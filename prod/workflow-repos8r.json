@@ -1,35 +1,11 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-14T20:29:23.790Z",
+  "updatedAt": "2025-09-14T20:32:13.471Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
   "isArchived": false,
   "nodes": [
-    {
-      "parameters": {
-        "returnAll": false,
-        "limit": 2,
-        "filters": {
-          "activeWorkflows": true
-        },
-        "requestOptions": {}
-      },
-      "id": "8314d63a-882b-4f73-8fcb-72b1e7522ab8",
-      "name": "n8n | get wf1",
-      "type": "n8n-nodes-base.n8n",
-      "position": [
-        896,
-        1184
-      ],
-      "typeVersion": 1,
-      "credentials": {
-        "n8nApi": {
-          "id": "7ZJB9gIi1brEzbh1",
-          "name": "dev n8n account"
-        }
-      }
-    },
     {
       "parameters": {
         "respondWith": "text",
@@ -362,43 +338,6 @@
     },
     {
       "parameters": {
-        "path": "Get-n8n-workflows",
-        "authentication": "headerAuth",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "5b38367f-17f2-4eaf-9759-777d628249a1",
-      "name": "Get-n8n-workflows",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        336,
-        1184
-      ],
-      "webhookId": "e892f1af-d192-40e1-9c27-7fda6539d911",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "sAn4iexzqVKgozlp",
-          "name": "n8n-dev"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "respondWith": "allIncomingItems",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2480,
-        1184
-      ],
-      "id": "22d83aa5-aecf-4bbc-abcf-49053e981ec8",
-      "name": "Respond to Webhook2"
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "Get-Workflow-Changes",
         "authentication": "headerAuth",
@@ -423,72 +362,6 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "c82211dd-6f9a-422a-9b87-6cc6e3ddfa1d",
-              "name": "workflows",
-              "value": "={{ JSON.stringify($json, null, 2) }}",
-              "type": "object"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1344,
-        1184
-      ],
-      "id": "51c20317-f02d-447e-9a93-9f08b904ec44",
-      "name": "SetWorkflows"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "2038984e-4782-45c2-9275-803fe9a8733a",
-              "name": "workflows",
-              "value": "={{\n  $json.workflows.map(item => {\n    return {\n      id: item.id,\n      name: item.name\n    };\n  })\n}}",
-              "type": "array"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2064,
-        1184
-      ],
-      "id": "779e338e-895c-43f4-89e4-da33ec779f5e",
-      "name": "Edit Fields"
-    },
-    {
-      "parameters": {
-        "fieldsToAggregate": {
-          "fieldToAggregate": [
-            {
-              "fieldToAggregate": "workflows"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        1680,
-        1184
-      ],
-      "id": "cfb62781-f935-44cc-a7d1-b2257d5c3216",
-      "name": "Aggregate1"
-    },
-    {
-      "parameters": {
         "content": "# route Check for Changes",
         "height": 299,
         "width": 2436,
@@ -501,22 +374,6 @@
       "position": [
         272,
         752
-      ]
-    },
-    {
-      "parameters": {
-        "content": "# route Get workflows from n8n",
-        "height": 299,
-        "width": 2436,
-        "color": 6
-      },
-      "id": "391e36b2-f799-4e98-8ee6-57f5665c4704",
-      "name": "Sticky Note1",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        272,
-        1088
       ]
     },
     {
@@ -581,21 +438,6 @@
     },
     {
       "parameters": {
-        "content": "## Set Header Auth\n## Credentials",
-        "width": 420,
-        "color": 3
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        64,
-        1168
-      ],
-      "typeVersion": 1,
-      "id": "4e562aac-22c6-46a9-b45c-dfc726d69ac9",
-      "name": "Sticky Note9"
-    },
-    {
-      "parameters": {
         "assignments": {
           "assignments": [
             {
@@ -653,17 +495,6 @@
     }
   ],
   "connections": {
-    "n8n | get wf1": {
-      "main": [
-        [
-          {
-            "node": "SetWorkflows",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "HTML-UI": {
       "main": [
         [
@@ -796,55 +627,11 @@
         ]
       ]
     },
-    "Get-n8n-workflows": {
-      "main": [
-        [
-          {
-            "node": "n8n | get wf1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Get-Workflow-Changes": {
       "main": [
         [
           {
             "node": "Set GH Repo and Path3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SetWorkflows": {
-      "main": [
-        [
-          {
-            "node": "Aggregate1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Edit Fields": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate1": {
-      "main": [
-        [
-          {
-            "node": "Edit Fields",
             "type": "main",
             "index": 0
           }
@@ -871,7 +658,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "ea9dee82-1020-4e7f-93a4-706a22eb9fdb",
+  "versionId": "068e8686-199d-40d9-ae61-821bbdd4256f",
   "triggerCount": 4,
   "shared": [
     {
