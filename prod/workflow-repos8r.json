@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-14T18:14:13.127Z",
+  "updatedAt": "2025-09-14T20:29:23.790Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -26,7 +26,7 @@
       "credentials": {
         "n8nApi": {
           "id": "7ZJB9gIi1brEzbh1",
-          "name": "n8n account"
+          "name": "dev n8n account"
         }
       }
     },
@@ -162,30 +162,6 @@
         "githubApi": {
           "id": "7VQNHerCV03uma6z",
           "name": "GitHub account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "execute-git-action",
-        "authentication": "headerAuth",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        336,
-        1648
-      ],
-      "id": "b2bf921f-0fee-4a93-97e9-7f4cafd953d6",
-      "name": "submit-form",
-      "webhookId": "d541171c-731e-4104-ac30-6a32f2c0af03",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "sAn4iexzqVKgozlp",
-          "name": "n8n-dev"
         }
       }
     },
@@ -344,7 +320,7 @@
       "credentials": {
         "n8nApi": {
           "id": "7ZJB9gIi1brEzbh1",
-          "name": "n8n account"
+          "name": "dev n8n account"
         }
       }
     },
@@ -383,19 +359,6 @@
       ],
       "id": "b0a87942-1084-459b-b833-b2c8d18a57b8",
       "name": "ComapreNodes"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2480,
-        1504
-      ],
-      "id": "60ae5ba3-a0b4-4da2-af01-16f0bd40e671",
-      "name": "Respond to Webhook1"
     },
     {
       "parameters": {
@@ -526,232 +489,6 @@
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $('Workflow Vars').item.json.body.type }}",
-                    "rightValue": "edit",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "5b83cc41-a967-4e63-b1d0-01fd02dfc5fc",
-                    "leftValue": "={{ $('Workflow Vars').item.json.body.type }}",
-                    "rightValue": "create",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        1344,
-        1648
-      ],
-      "id": "b65b5449-f0a6-410a-833c-d151782220ca",
-      "name": "Switch1"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "83291d80-75a8-492d-9d4a-625854656ff9",
-              "name": "repo",
-              "value": "devAutomations",
-              "type": "string"
-            },
-            {
-              "id": "a1ba4116-e872-4283-9869-1ad6967b5991",
-              "name": "path",
-              "value": "/",
-              "type": "string"
-            },
-            {
-              "id": "1b653e8d-f706-455b-8040-c194a9db0f44",
-              "name": "owner",
-              "value": "AmplectCo",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        880,
-        1648
-      ],
-      "id": "e97c6789-5263-4582-9e08-f7322b233fc4",
-      "name": "Set GH Repo and Path4"
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "workflowId": {
-          "__rl": true,
-          "value": "={{ $('Workflow Vars').item.json.body.n8nWorkflowId }}",
-          "mode": "id"
-        },
-        "requestOptions": {}
-      },
-      "type": "n8n-nodes-base.n8n",
-      "typeVersion": 1,
-      "position": [
-        1680,
-        1504
-      ],
-      "id": "bf4e7dd1-7ec2-49f9-8b14-6e39663c7249",
-      "name": "n8n",
-      "credentials": {
-        "n8nApi": {
-          "id": "7ZJB9gIi1brEzbh1",
-          "name": "n8n account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "file",
-        "operation": "edit",
-        "owner": {
-          "__rl": true,
-          "value": "={{ $('Set GH Repo and Path4').item.json.owner }}",
-          "mode": "name"
-        },
-        "repository": {
-          "__rl": true,
-          "value": "={{ $('Set GH Repo and Path4').item.json.repo }}",
-          "mode": "name"
-        },
-        "filePath": "={{ $('Set GH Repo and Path4').item.json.path }}/{{ $('Workflow Vars').item.json.body.filename.decoded }}",
-        "fileContent": "={{ JSON.stringify($json, null, 2) }}",
-        "commitMessage": "Updated Workflow with Repos8r"
-      },
-      "type": "n8n-nodes-base.github",
-      "typeVersion": 1,
-      "position": [
-        2064,
-        1504
-      ],
-      "id": "9c989064-44ed-469f-98a6-0fda5cea2fcf",
-      "name": "Commit Workflow Edit",
-      "webhookId": "45e7574c-7892-44bb-b0ad-8a1796f89c14",
-      "credentials": {
-        "githubApi": {
-          "id": "7VQNHerCV03uma6z",
-          "name": "GitHub account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "workflowId": {
-          "__rl": true,
-          "value": "={{ $('Workflow Vars').item.json.body.n8nWorkflowId }}",
-          "mode": "id"
-        },
-        "requestOptions": {}
-      },
-      "type": "n8n-nodes-base.n8n",
-      "typeVersion": 1,
-      "position": [
-        1680,
-        1728
-      ],
-      "id": "72843e44-b8be-4293-a6a7-8ddd5fde581f",
-      "name": "n8n1",
-      "credentials": {
-        "n8nApi": {
-          "id": "7ZJB9gIi1brEzbh1",
-          "name": "n8n account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "file",
-        "owner": {
-          "__rl": true,
-          "value": "={{ $('Set GH Repo and Path4').item.json.owner }}",
-          "mode": "name"
-        },
-        "repository": {
-          "__rl": true,
-          "value": "={{ $('Set GH Repo and Path4').item.json.repo }}",
-          "mode": "name"
-        },
-        "filePath": "={{ $('Set GH Repo and Path4').item.json.path }}/{{ $('Workflow Vars').item.json.body.filename.decoded }}",
-        "fileContent": "={{ JSON.stringify($json, null, 2) }}",
-        "commitMessage": "initial commit - Created Workflow with Repos8r"
-      },
-      "type": "n8n-nodes-base.github",
-      "typeVersion": 1,
-      "position": [
-        2064,
-        1728
-      ],
-      "id": "e0accbf9-67e8-40a3-81f5-6baa491925c4",
-      "name": "Commit New File",
-      "webhookId": "934ac153-f248-44d9-a90b-f3e5600b6205",
-      "credentials": {
-        "githubApi": {
-          "id": "7VQNHerCV03uma6z",
-          "name": "GitHub account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2480,
-        1728
-      ],
-      "id": "e953a933-5961-4e2a-b825-bf4fa8832f37",
-      "name": "Respond to Webhook3"
-    },
-    {
-      "parameters": {
         "content": "# route Check for Changes",
         "height": 299,
         "width": 2436,
@@ -784,22 +521,6 @@
     },
     {
       "parameters": {
-        "content": "# Create or Edit GitHub",
-        "height": 539,
-        "width": 2436,
-        "color": 6
-      },
-      "id": "9e88843e-133f-492b-a7e5-c648688fbff4",
-      "name": "Sticky Note2",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        272,
-        1424
-      ]
-    },
-    {
-      "parameters": {
         "content": "## Set Variables",
         "height": 220,
         "width": 220
@@ -827,21 +548,6 @@
       "typeVersion": 1,
       "id": "8fd40d00-4635-415e-87ed-863f51fd46c4",
       "name": "Sticky Note4"
-    },
-    {
-      "parameters": {
-        "content": "## Set Variables",
-        "height": 220,
-        "width": 220
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        816,
-        1584
-      ],
-      "typeVersion": 1,
-      "id": "aa02234a-818a-41b2-a9ac-3ddab69cd588",
-      "name": "Sticky Note5"
     },
     {
       "parameters": {
@@ -890,21 +596,6 @@
     },
     {
       "parameters": {
-        "content": "## Set Header Auth\n## Credentials",
-        "width": 440,
-        "color": 3
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        32,
-        1632
-      ],
-      "typeVersion": 1,
-      "id": "ccc8f238-d5a3-4c3c-bd9a-9717d54bde78",
-      "name": "Sticky Note10"
-    },
-    {
-      "parameters": {
         "assignments": {
           "assignments": [
             {
@@ -943,101 +634,6 @@
       ],
       "id": "e601257e-49ba-44eb-8d36-0396058a9505",
       "name": "Set Workflow Variables"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "17390fe2-3acb-4f8a-aad2-204405a6ed74",
-              "name": "body.type",
-              "value": "={{ $json.body.type }}",
-              "type": "string"
-            },
-            {
-              "id": "a097c9d4-cdf6-4cdb-9450-26c526921bbe",
-              "name": "body.workflow.decoded",
-              "value": "={{ $json.body.workflow.urlDecode() }}",
-              "type": "string"
-            },
-            {
-              "id": "024b6f1a-de03-4349-a998-ab9ab7dd2ef5",
-              "name": "body.workflow.encoded",
-              "value": "={{ $json.body.workflow }}",
-              "type": "string"
-            },
-            {
-              "id": "21d7a568-bffb-4d2b-9319-0f1fb862b4e1",
-              "name": "body.githubPath.decdoded",
-              "value": "={{ $json.body.githubPath.urlDecode() }}",
-              "type": "string"
-            },
-            {
-              "id": "6d2a1d3d-f9ff-4aad-afe8-e3cc4f34b3e9",
-              "name": "body.githubPath.encoded",
-              "value": "={{ $json.body.githubPath }}",
-              "type": "string"
-            },
-            {
-              "id": "c532016e-f8ce-4ea3-806d-5bfb49f76a99",
-              "name": "body.n8nWorkflow.decoded",
-              "value": "={{ $json.body.n8nWorkflow.urlDecode() }}",
-              "type": "string"
-            },
-            {
-              "id": "a209a4b5-2358-4651-9431-51ea88bf5779",
-              "name": "body.n8nWorkflow.encoded",
-              "value": "={{ $json.body.n8nWorkflow }}",
-              "type": "string"
-            },
-            {
-              "id": "65161c43-eb2f-4723-9497-8f74a80aa0d4",
-              "name": "body.n8nWorkflowId",
-              "value": "={{ $json.body.n8nWorkflowId.urlDecode() }}",
-              "type": "string"
-            },
-            {
-              "id": "e625042a-49f5-4174-ba75-cd6f8d21fba0",
-              "name": "body.filename.decoded",
-              "value": "={{ $json.body.filename.urlDecode() }}",
-              "type": "string"
-            },
-            {
-              "id": "1d1588fc-f053-43fb-bd53-8d0affa6121c",
-              "name": "body.filename.encoded",
-              "value": "={{ $json.body.filename }}",
-              "type": "string"
-            },
-            {
-              "id": "ff06a06b-c90d-4ac3-af8f-6fc328661be4",
-              "name": "body.commit",
-              "value": "={{ $json.body.commit }}",
-              "type": "string"
-            },
-            {
-              "id": "78688fc2-a493-4786-915d-a0d338c135bf",
-              "name": "body.action",
-              "value": "={{ $json.body.action }}",
-              "type": "string"
-            },
-            {
-              "id": "e405a57b-5a1f-4e9a-a6c3-5d01ad68ff52",
-              "name": "body.confirm",
-              "value": "={{ $json.body.confirm }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        624,
-        1648
-      ],
-      "id": "40b0878d-969d-47f5-a35d-fbc20f6bc121",
-      "name": "Workflow Vars"
     },
     {
       "parameters": {
@@ -1200,17 +796,6 @@
         ]
       ]
     },
-    "submit-form": {
-      "main": [
-        [
-          {
-            "node": "Workflow Vars",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Get-n8n-workflows": {
       "main": [
         [
@@ -1266,95 +851,11 @@
         ]
       ]
     },
-    "Switch1": {
-      "main": [
-        [
-          {
-            "node": "n8n",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "n8n1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set GH Repo and Path4": {
-      "main": [
-        [
-          {
-            "node": "Switch1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "n8n": {
-      "main": [
-        [
-          {
-            "node": "Commit Workflow Edit",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "n8n1": {
-      "main": [
-        [
-          {
-            "node": "Commit New File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Commit Workflow Edit": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Commit New File": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Set Workflow Variables": {
       "main": [
         [
           {
             "node": "GitHub",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Workflow Vars": {
-      "main": [
-        [
-          {
-            "node": "Set GH Repo and Path4",
             "type": "main",
             "index": 0
           }
@@ -1370,7 +871,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "ef48f5e3-b8f6-4ded-852d-4925f28354cf",
+  "versionId": "ea9dee82-1020-4e7f-93a4-706a22eb9fdb",
   "triggerCount": 4,
   "shared": [
     {
