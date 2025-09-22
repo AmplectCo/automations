@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T11:16:47.876Z",
+  "updatedAt": "2025-09-22T11:36:04.357Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -288,29 +288,6 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "c47912dd-e23e-4fc6-a8fb-592611714722",
-              "name": "n8nWorkflowJson",
-              "value": "={{ $json.nodes }}",
-              "type": "array"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1920,
-        848
-      ],
-      "id": "c95307b7-93fa-49a1-b2d3-1240377cb294",
-      "name": "Set n8n Workflow"
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "Get-Workflow-Changes",
         "authentication": "headerAuth",
@@ -569,17 +546,6 @@
     },
     "Get n8n Workflow": {
       "main": [
-        [
-          {
-            "node": "Set n8n Workflow",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set n8n Workflow": {
-      "main": [
         []
       ]
     },
@@ -614,7 +580,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "a98ce8ae-03b3-4ca7-8052-f44f1d08dd2f",
+  "versionId": "45608806-b2e7-4702-9b7c-888a0417f577",
   "triggerCount": 4,
   "shared": [
     {
