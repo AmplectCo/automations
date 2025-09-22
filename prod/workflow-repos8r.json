@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T11:48:33.887Z",
+  "updatedAt": "2025-09-22T12:17:29.424Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -388,6 +388,30 @@
       "typeVersion": 1,
       "id": "2d7cb39b-a86d-4979-83c5-3ee84dbbe811",
       "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1232,
+        848
+      ],
+      "id": "323c858f-ff18-493a-80aa-453c2c5f598d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1440,
+        848
+      ],
+      "id": "7c8fefa8-af88-4a22-97da-3469156c0174",
+      "name": "Merge"
     }
   ],
   "connections": {
@@ -470,7 +494,13 @@
     },
     "Extract from File": {
       "main": [
-        []
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get-Workflow-Changes": {
@@ -494,6 +524,17 @@
           }
         ]
       ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -504,7 +545,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "f565907e-48f5-4aaa-99f4-5884e5eb9612",
+  "versionId": "37d75466-b5bb-49aa-8491-2f0b70c478d9",
   "triggerCount": 4,
   "shared": [
     {
