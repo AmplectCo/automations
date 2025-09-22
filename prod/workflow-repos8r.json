@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T14:46:15.464Z",
+  "updatedAt": "2025-09-22T14:49:12.397Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -324,17 +324,6 @@
       "typeVersion": 1,
       "id": "2d7cb39b-a86d-4979-83c5-3ee84dbbe811",
       "name": "Sticky Note11"
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        1792,
-        512
-      ],
-      "id": "cac8246f-73ee-4683-8cde-dae1d36446b4",
-      "name": "Execute Command"
     }
   ],
   "connections": {
@@ -351,13 +340,7 @@
     },
     "Set Flows": {
       "main": [
-        [
-          {
-            "node": "Execute Command",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "GitHub": {
@@ -418,7 +401,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "b6555f94-45ff-49e7-b981-d1121d593683",
+  "versionId": "031cefb5-ae41-45c7-b23f-ee24d04101ad",
   "triggerCount": 4,
   "shared": [
     {
