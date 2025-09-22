@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T14:49:12.397Z",
+  "updatedAt": "2025-09-22T15:30:31.139Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -36,29 +36,6 @@
       "position": [
         272,
         416
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "12345678-1234-1234-1234-123456789012",
-              "name": "flows",
-              "value": "={{ $json }}",
-              "type": "object"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "f1009b93-ed11-48e5-8409-fb476725b0da",
-      "name": "Set Flows",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1584,
-        512
       ]
     },
     {
@@ -338,20 +315,9 @@
         ]
       ]
     },
-    "Set Flows": {
-      "main": [
-        []
-      ]
-    },
     "GitHub": {
       "main": [
-        [
-          {
-            "node": "Set Flows",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Set GH Repo and Path3": {
@@ -401,7 +367,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "031cefb5-ae41-45c7-b23f-ee24d04101ad",
+  "versionId": "2b06701d-bf5e-439f-bf57-b4dab8274649",
   "triggerCount": 4,
   "shared": [
     {
