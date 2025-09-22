@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T13:32:49.346Z",
+  "updatedAt": "2025-09-22T14:26:59.299Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -215,22 +215,6 @@
       ],
       "id": "bd4251ca-4b66-4d8c-b802-174ea1d1f08c",
       "name": "Set GH Repo and Path3"
-    },
-    {
-      "parameters": {
-        "operation": "fromJson",
-        "binaryPropertyName": "gitWorkflow",
-        "destinationKey": "jsonWorkflow",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1,
-      "position": [
-        1024,
-        848
-      ],
-      "id": "d51bcf64-7ca2-4fab-8008-f022fd4673bd",
-      "name": "Extract from File"
     },
     {
       "parameters": {
@@ -459,17 +443,6 @@
     },
     "GitHub2": {
       "main": [
-        [
-          {
-            "node": "Extract from File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract from File": {
-      "main": [
         []
       ]
     },
@@ -504,7 +477,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "73423b3d-536f-4a25-886c-dd5ec2e33e31",
+  "versionId": "bf5e4102-87f7-4753-9046-452891fd0237",
   "triggerCount": 4,
   "shared": [
     {
