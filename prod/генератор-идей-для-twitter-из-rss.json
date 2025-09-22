@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-08-24T13:10:34.763Z",
-  "updatedAt": "2025-09-22T11:58:16.986Z",
+  "updatedAt": "2025-09-22T12:17:41.004Z",
   "id": "mYTvYziSV29nqAK5",
   "name": "Генератор идей для Twitter из RSS",
   "active": false,
@@ -150,6 +150,20 @@
       ],
       "id": "d0575930-1091-4764-a10a-563bb3a512f9",
       "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "account",
+        "operation": "delete"
+      },
+      "type": "n8n-nodes-base.activeCampaign",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        352
+      ],
+      "id": "adb3aac4-d940-4691-962f-d9007512d15a",
+      "name": "Delete an account"
     }
   ],
   "connections": {
@@ -218,6 +232,17 @@
           }
         ]
       ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Delete an account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -226,7 +251,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "e2fab1f2-ff53-40a0-8b42-34c7abd7035f",
+  "versionId": "e8c5960e-9daf-4ed5-bee2-bec21afab398",
   "triggerCount": 0,
   "shared": [
     {
