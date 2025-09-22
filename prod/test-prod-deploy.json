@@ -1,0 +1,92 @@
+{
+  "createdAt": "2025-09-22T15:34:42.784Z",
+  "updatedAt": "2025-09-22T15:34:52.587Z",
+  "id": "jofQMKG9hhYsUzne",
+  "name": "test prod deploy",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "65d79d87-e7eb-42c0-a122-17c4321a27f6",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "615fd4c8-f9dc-4361-930d-96372e75d467",
+      "name": "Merge"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.actionNetwork",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "83f893a7-ba18-4cac-a867-dad04de7552d",
+      "name": "Create an attendance"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Create an attendance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "58329a93-472b-42e8-be5e-148c12c9882d",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-22T15:34:42.784Z",
+      "updatedAt": "2025-09-22T15:34:42.784Z",
+      "role": "workflow:owner",
+      "workflowId": "jofQMKG9hhYsUzne",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-09-13T19:06:54.371Z",
+      "updatedAt": "2025-09-13T21:30:32.257Z",
+      "id": "kQXJeoyu5pqroZeK",
+      "name": "env:prod"
+    }
+  ]
+}
