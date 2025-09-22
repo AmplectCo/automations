@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T11:14:48.357Z",
+  "updatedAt": "2025-09-22T11:16:47.876Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -311,19 +311,6 @@
     },
     {
       "parameters": {
-        "jsCode": "/**\n * Compare two values and return differences\n * @param {any} val1 - First value to compare\n * @param {any} val2 - Second value to compare\n * @param {string} path - Current path in the object\n * @returns {Array<{path: string, oldValue: any, newValue: any, type: string}>} Array of differences\n */\nfunction compareValues(val1, val2, path) {\n    // Handle different types\n    if (typeof val1 !== typeof val2) {\n        return [{\n            path,\n            oldValue: val2,\n            newValue: val1,\n            type: 'type_change'\n        }];\n    }\n\n    // Handle arrays\n    if (Array.isArray(val1) && Array.isArray(val2)) {\n        if (val1.length !== val2.length) {\n            return [{\n                path,\n                oldValue: val2,\n                newValue: val1,\n                type: 'array_length_change'\n            }];\n        }\n        \n        const differences = [];\n        val1.forEach((item, index) => {\n            const itemDiffs = compareValues(item, val2[index], `${path}[${index}]`);\n            differences.push(...itemDiffs);\n        });\n        return differences;\n    }\n\n    // Handle objects\n    if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {\n        const differences = [];\n        const allKeys = new Set([...Object.keys(val1), ...Object.keys(val2)]);\n        \n        for (const key of allKeys) {\n            const newPath = path ? `${path}.${key}` : key;\n            \n            if (!(key in val1)) {\n                differences.push({\n                    path: newPath,\n                    oldValue: val2[key],\n                    newValue: undefined,\n                    type: 'key_removed'\n                });\n            } else if (!(key in val2)) {\n                differences.push({\n                    path: newPath,\n                    oldValue: undefined,\n                    newValue: val1[key],\n                    type: 'key_added'\n                });\n            } else {\n                const valueDiffs = compareValues(val1[key], val2[key], newPath);\n                differences.push(...valueDiffs);\n            }\n        }\n        return differences;\n    }\n\n    // Handle primitive values\n    if (val1 !== val2) {\n        return [{\n            path,\n            oldValue: val2,\n            newValue: val1,\n            type: 'value_change'\n        }];\n    }\n\n    return [];\n}\n\n/**\n * Compare n8n nodes and return differences\n * @param {Array} n8nNodes - Array of n8n nodes\n * @param {Array} gitNodes - Array of git nodes\n * @returns {Array} Array of differences\n */\nfunction compareNodes(n8nNodes, gitNodes) {\n    const differences = [];\n    const n8nNodesMap = new Map(n8nNodes.map(node => [node.id, node]));\n    const gitNodesMap = new Map(gitNodes.map(node => [node.id, node]));\n    \n    // Compare existing nodes\n    n8nNodes.forEach((n8nNode, index) => {\n        const gitNode = gitNodesMap.get(n8nNode.id);\n        if (gitNode) {\n            const changes = compareValues(n8nNode, gitNode, `[${index}]`);\n            if (changes.length > 0) {\n                differences.push({\n                    type: n8nNode.type?.split('.')[1] || 'unknown',\n                    name: n8nNode.name,\n                    description: `Properties changed in ${n8nNode.name}`,\n                    changes\n                });\n            }\n        } else {\n            differences.push({\n                type: n8nNode.type?.split('.')[1] || 'unknown',\n                name: n8nNode.name,\n                description: `Node added: ${n8nNode.name}`,\n                changes: [{\n                    path: `[${index}]`,\n                    oldValue: null,\n                    newValue: n8nNode,\n                    type: 'node_added'\n                }]\n            });\n        }\n    });\n\n    // Check for deleted nodes\n    gitNodes.forEach((gitNode, index) => {\n        if (!n8nNodesMap.has(gitNode.id)) {\n            differences.push({\n                type: gitNode.type?.split('.')[1] || 'unknown',\n                name: gitNode.name,\n                description: `Node deleted: ${gitNode.name}`,\n                changes: [{\n                    path: `[${index}]`,\n                    oldValue: gitNode,\n                    newValue: null,\n                    type: 'node_deleted'\n                }]\n            });\n        }\n    });\n\n    return differences;\n}\n\n// Get the input data\nconst n8nWorkflowNodes = $input.first().json.n8nWorkflowJson;\nconst gitWorkflowNodes = $('Set Git Workflow Id').first().json.gitJsonWorkflowNodes;\n\n// Add debug info\nconst items = [];\n\n// Add debug information\nitems.push({\n    json: {\n        type: 'debug',\n        description: 'Input data structure',\n        n8nNodesCount: n8nWorkflowNodes.length,\n        gitNodesCount: gitWorkflowNodes.length,\n        n8nNodeIds: n8nWorkflowNodes.map(node => ({ id: node.id, name: node.name })),\n        gitNodeIds: gitWorkflowNodes.map(node => ({ id: node.id, name: node.name }))\n    }\n});\n\n// Compare the workflows\nconst differences = compareNodes(n8nWorkflowNodes, gitWorkflowNodes);\n\n// Add the differences to the output\nif (differences.length === 0) {\n    items.push({\n        json: {\n            type: 'info',\n            description: 'No changes detected',\n            details: 'Deep comparison performed on all node properties'\n        }\n    });\n} else {\n    differences.forEach(diff => {\n        items.push({\n            json: {\n                type: diff.type,\n                name: diff.name,\n                description: diff.description,\n                changes: diff.changes\n            }\n        });\n    });\n}\n\n// Return the items array for n8n\nreturn items;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2192,
-        848
-      ],
-      "id": "b0a87942-1084-459b-b833-b2c8d18a57b8",
-      "name": "ComapreNodes"
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "Get-Workflow-Changes",
         "authentication": "headerAuth",
@@ -593,17 +580,6 @@
     },
     "Set n8n Workflow": {
       "main": [
-        [
-          {
-            "node": "ComapreNodes",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "ComapreNodes": {
-      "main": [
         []
       ]
     },
@@ -638,7 +614,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "37cae2c5-ac1b-4193-aff5-f5e3bfe0d184",
+  "versionId": "a98ce8ae-03b3-4ca7-8052-f44f1d08dd2f",
   "triggerCount": 4,
   "shared": [
     {
