@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-08-24T13:10:34.763Z",
-  "updatedAt": "2025-09-22T11:38:53.678Z",
+  "updatedAt": "2025-09-22T11:43:41.784Z",
   "id": "mYTvYziSV29nqAK5",
   "name": "Генератор идей для Twitter из RSS",
   "active": false,
@@ -111,6 +111,19 @@
       ],
       "id": "14c23b4e-44b8-4ef7-90b2-f3c20d90fdea",
       "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        352
+      ],
+      "id": "fe6dc5eb-591a-4eab-8bc2-b38582ad81d0",
+      "name": "Edit Fields"
     }
   ],
   "connections": {
@@ -146,6 +159,17 @@
           }
         ]
       ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -154,7 +178,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "35cbf079-fb00-4762-9026-fbf3772355c2",
+  "versionId": "31224e1c-377d-4b9e-91ae-c4658f93df30",
   "triggerCount": 0,
   "shared": [
     {
