@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-08-24T13:10:34.763Z",
-  "updatedAt": "2025-09-22T15:07:53.831Z",
+  "updatedAt": "2025-09-22T15:19:03.944Z",
   "id": "mYTvYziSV29nqAK5",
   "name": "Генератор идей для Twitter из RSS",
   "active": false,
@@ -122,19 +122,6 @@
       ],
       "id": "25a5ed1d-88fc-48fb-92b6-69fc3d19b476",
       "name": "Execute Command"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1648,
-        352
-      ],
-      "id": "544a9a9a-90be-41a1-b703-fd5634528de8",
-      "name": "Code"
     }
   ],
   "connections": {
@@ -184,13 +171,7 @@
     },
     "Execute Command": {
       "main": [
-        [
-          {
-            "node": "Code",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
@@ -202,7 +183,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "27f13f75-f5c7-4cb1-bb91-7adad162ebe9",
+  "versionId": "7d447149-4c53-4220-a6cb-03ec29be0df0",
   "triggerCount": 0,
   "shared": [
     {
