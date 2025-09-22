@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-14T20:32:13.471Z",
+  "updatedAt": "2025-09-22T11:14:48.357Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -140,20 +140,6 @@
           "name": "GitHub account"
         }
       }
-    },
-    {
-      "parameters": {
-        "respondWith": "allIncomingItems",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2480,
-        848
-      ],
-      "id": "fc371e9b-85b0-48e5-bfd1-54aea2402cbf",
-      "name": "Respond to Webhook"
     },
     {
       "parameters": {
@@ -618,13 +604,7 @@
     },
     "ComapreNodes": {
       "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Get-Workflow-Changes": {
@@ -658,7 +638,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "068e8686-199d-40d9-ae61-821bbdd4256f",
+  "versionId": "37cae2c5-ac1b-4193-aff5-f5e3bfe0d184",
   "triggerCount": 4,
   "shared": [
     {
