@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T11:36:04.357Z",
+  "updatedAt": "2025-09-22T11:48:33.887Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -231,60 +231,6 @@
       ],
       "id": "d51bcf64-7ca2-4fab-8008-f022fd4673bd",
       "name": "Extract from File"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "dc32e95b-bec2-44aa-9c00-2c551ab3b1dd",
-              "name": "gitJsonWorkflowNodes",
-              "value": "={{ $json.jsonWorkflow.nodes }}",
-              "type": "array"
-            },
-            {
-              "id": "2aabcc5b-a21d-48ff-a3e1-21ca8311f7b7",
-              "name": "gitWorkflowId",
-              "value": "={{ $json.jsonWorkflow.id }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1296,
-        848
-      ],
-      "id": "5b09cde2-e356-4d19-af53-b1a5578e3d08",
-      "name": "Set Git Workflow Id"
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "workflowId": {
-          "__rl": true,
-          "value": "={{ $json.gitWorkflowId }}",
-          "mode": "id"
-        },
-        "requestOptions": {}
-      },
-      "id": "41c87cd4-4585-4c20-b6c3-8dc4c18458e3",
-      "name": "Get n8n Workflow",
-      "type": "n8n-nodes-base.n8n",
-      "position": [
-        1600,
-        848
-      ],
-      "typeVersion": 1,
-      "credentials": {
-        "n8nApi": {
-          "id": "7ZJB9gIi1brEzbh1",
-          "name": "dev n8n account"
-        }
-      }
     },
     {
       "parameters": {
@@ -524,28 +470,6 @@
     },
     "Extract from File": {
       "main": [
-        [
-          {
-            "node": "Set Git Workflow Id",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Git Workflow Id": {
-      "main": [
-        [
-          {
-            "node": "Get n8n Workflow",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get n8n Workflow": {
-      "main": [
         []
       ]
     },
@@ -580,7 +504,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "45608806-b2e7-4702-9b7c-888a0417f577",
+  "versionId": "f565907e-48f5-4aaa-99f4-5884e5eb9612",
   "triggerCount": 4,
   "shared": [
     {
