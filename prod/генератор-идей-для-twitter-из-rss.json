@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-08-24T13:10:34.763Z",
-  "updatedAt": "2025-09-14T18:30:09.361Z",
+  "updatedAt": "2025-09-22T11:38:53.678Z",
   "id": "mYTvYziSV29nqAK5",
   "name": "Генератор идей для Twitter из RSS",
   "active": false,
@@ -98,6 +98,19 @@
         1104,
         144
       ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        352
+      ],
+      "id": "14c23b4e-44b8-4ef7-90b2-f3c20d90fdea",
+      "name": "HTTP Request"
     }
   ],
   "connections": {
@@ -114,7 +127,13 @@
     },
     "Сгенерировать идеи": {
       "main": [
-        []
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "OpenAI Chat Model": {
@@ -135,7 +154,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "3bfd4965-e538-41d8-abd0-4a84ed670abb",
+  "versionId": "35cbf079-fb00-4762-9026-fbf3772355c2",
   "triggerCount": 0,
   "shared": [
     {
