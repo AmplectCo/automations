@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-22T15:50:56.299Z",
-  "updatedAt": "2025-09-22T15:54:35.807Z",
+  "updatedAt": "2025-09-22T16:04:15.982Z",
   "id": "VJQsz8ipE7dpFDoD",
   "name": "test new",
   "active": false,
@@ -67,6 +67,32 @@
       ],
       "id": "9f2aebca-0792-46ee-b3e8-2df7f54e9e4e",
       "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "user": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        768,
+        96
+      ],
+      "id": "8854f4cd-e97f-4ae8-a1ac-266ca71426a4",
+      "name": "Send a message",
+      "webhookId": "fb5a1d4d-3db9-4522-a1de-232d026e0b9f",
+      "credentials": {
+        "slackApi": {
+          "id": "CkE8ZRIRMzKRdZCv",
+          "name": "SportsCampCanada parse meta API"
+        }
+      }
     }
   ],
   "connections": {
@@ -91,15 +117,29 @@
           }
         ]
       ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {},
-  "versionId": "abd3030c-ebb6-4539-848a-99e260b80991",
+  "versionId": "38f8b522-7af9-49cf-9ade-ef237b6620d7",
   "triggerCount": 0,
   "shared": [
     {
