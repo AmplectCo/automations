@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T14:34:27.944Z",
+  "updatedAt": "2025-09-22T14:44:07.210Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -60,26 +60,6 @@
         1584,
         512
       ]
-    },
-    {
-      "parameters": {
-        "fieldsToAggregate": {
-          "fieldToAggregate": [
-            {
-              "fieldToAggregate": "flows"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        1920,
-        512
-      ],
-      "id": "401ddddd-26ba-400f-9b61-6da0fa72dd18",
-      "name": "Aggregate"
     },
     {
       "parameters": {
@@ -360,17 +340,6 @@
     },
     "Set Flows": {
       "main": [
-        [
-          {
-            "node": "Aggregate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate": {
-      "main": [
         []
       ]
     },
@@ -432,7 +401,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "9bb853a4-cde4-4a30-9830-02eb82e17b03",
+  "versionId": "e81c204d-d0c5-40d3-a04d-01f9e4f54b60",
   "triggerCount": 4,
   "shared": [
     {
