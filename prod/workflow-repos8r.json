@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-08T12:46:10.049Z",
-  "updatedAt": "2025-09-22T12:56:18.259Z",
+  "updatedAt": "2025-09-22T13:32:49.346Z",
   "id": "wAiTJAOUVXLl7gEY",
   "name": "Workflow Repos8r",
   "active": false,
@@ -388,19 +388,6 @@
       "typeVersion": 1,
       "id": "2d7cb39b-a86d-4979-83c5-3ee84dbbe811",
       "name": "Sticky Note11"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1232,
-        848
-      ],
-      "id": "323c858f-ff18-493a-80aa-453c2c5f598d",
-      "name": "Edit Fields"
     }
   ],
   "connections": {
@@ -483,13 +470,7 @@
     },
     "Extract from File": {
       "main": [
-        [
-          {
-            "node": "Edit Fields",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Get-Workflow-Changes": {
@@ -513,11 +494,6 @@
           }
         ]
       ]
-    },
-    "Edit Fields": {
-      "main": [
-        []
-      ]
     }
   },
   "settings": {
@@ -528,7 +504,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "c02073e8-6273-48d6-9135-6131ca5de5ce",
+  "versionId": "73423b3d-536f-4a25-886c-dd5ec2e33e31",
   "triggerCount": 4,
   "shared": [
     {
