@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-08-24T13:10:34.763Z",
-  "updatedAt": "2025-09-22T11:43:41.784Z",
+  "updatedAt": "2025-09-22T11:53:27.289Z",
   "id": "mYTvYziSV29nqAK5",
   "name": "Генератор идей для Twitter из RSS",
   "active": false,
@@ -124,6 +124,19 @@
       ],
       "id": "fe6dc5eb-591a-4eab-8bc2-b38582ad81d0",
       "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        352
+      ],
+      "id": "bb5e530e-7ae1-468f-b12d-096f3fed0f53",
+      "name": "Code"
     }
   ],
   "connections": {
@@ -170,6 +183,17 @@
           }
         ]
       ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -178,7 +202,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "31224e1c-377d-4b9e-91ae-c4658f93df30",
+  "versionId": "3bde98bc-c745-47a8-8e75-d0975480c9f5",
   "triggerCount": 0,
   "shared": [
     {
