@@ -1,0 +1,76 @@
+{
+  "createdAt": "2025-09-22T15:50:56.299Z",
+  "updatedAt": "2025-09-22T15:51:01.454Z",
+  "id": "VJQsz8ipE7dpFDoD",
+  "name": "test new",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "4118884d-72cf-4f06-b55c-eb7497d90cd9",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8e3510a8-9ea4-49df-9439-fcc07db6d722",
+      "name": "Webhook",
+      "webhookId": "4118884d-72cf-4f06-b55c-eb7497d90cd9"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8bbc6381-67ca-4700-a23b-fed2b2acc870",
+      "name": "AI Agent"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "36e64b61-58ca-48f5-b88b-c14fb47f5fb0",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-22T15:50:56.299Z",
+      "updatedAt": "2025-09-22T15:50:56.299Z",
+      "role": "workflow:owner",
+      "workflowId": "VJQsz8ipE7dpFDoD",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-09-13T19:06:54.371Z",
+      "updatedAt": "2025-09-13T21:30:32.257Z",
+      "id": "kQXJeoyu5pqroZeK",
+      "name": "env:prod"
+    }
+  ]
+}
