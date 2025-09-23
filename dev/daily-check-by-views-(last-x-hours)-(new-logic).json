@@ -1,0 +1,516 @@
+{
+  "createdAt": "2025-08-14T13:36:37.169Z",
+  "updatedAt": "2025-09-02T11:20:52.008Z",
+  "id": "F3ND2n7wbAoG1UrI",
+  "name": "Daily check by views (last x hours) (new logic)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys1').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys1').item.json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT\n  campaign.id,\n  segments.date,\n  segments.hour,\n  metrics.impressions\nFROM\n  campaign\nWHERE\n  campaign.id = {{ $json.campaignId }}\n  AND segments.date BETWEEN '{{ new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}' AND '{{ new Date(Date.now() - 0 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}'"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "6318ca97-0abd-445a-9911-06fa6fa6ce14",
+      "name": "Last 4 hours",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2784,
+        -816
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2112,
+        -528
+      ],
+      "id": "22450531-1a1b-4423-9ae2-d55ec818f9cd",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"x4a0TMYbaSw1SCXSFrtRyQ\",\n    \"mccCustomerId\": \"1331716219\",\n    \"customerId\": \"3700886370\",\n    \"version\": \"v20\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        -528
+      ],
+      "id": "51a2f349-9be6-46c9-b953-4db1d1701b3d",
+      "name": "Google ads additional keys1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Начало кода для n8n ---\n\n// Вспомогательные функции для расчетов\n\n/**\n * Рассчитывает медиану для массива чисел.\n */\nfunction getMedian(numbers) {\n  if (!numbers || numbers.length === 0) {\n    return 0;\n  }\n  const sorted = [...numbers].sort((a, b) => a - b);\n  const middleIndex = Math.floor(sorted.length / 2);\n\n  if (sorted.length % 2 === 0) {\n    return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;\n  } else {\n    return sorted[middleIndex];\n  }\n}\n\n/**\n * Рассчитывает среднее арифметическое (mean).\n */\nfunction getMean(numbers) {\n    if (!numbers || numbers.length === 0) {\n        return 0;\n    }\n    const sum = numbers.reduce((acc, val) => acc + val, 0);\n    return sum / numbers.length;\n}\n\n/**\n * Рассчитывает стандартное отклонение (standard deviation).\n */\nfunction getStandardDeviation(numbers) {\n    if (!numbers || numbers.length < 2) {\n        return 0;\n    }\n    const mean = getMean(numbers);\n    const squaredDiffs = numbers.map(val => Math.pow(val - mean, 2));\n    const avgSquaredDiff = getMean(squaredDiffs);\n    return Math.sqrt(avgSquaredDiff);\n}\n\n// ==========================================================\n// НАСТРОЙКА: Минимальное количество дней для анализа.\nconst MIN_DAYS_FOR_ANALYSIS = 13;\n// ==========================================================\n\n// 1. ПОДГОТОВКА ДАННЫХ\nconst allDailyStats = $input.first().json.results;\nconst campaignsData = {};\nfor (const stat of allDailyStats) {\n    const id = stat.campaign.id;\n    if (!campaignsData[id]) {\n        campaignsData[id] = {\n            name: stat.campaign.name,\n            id: id,\n            dailyData: []\n        };\n    }\n    campaignsData[id].dailyData.push({\n        date: stat.segments.date,\n        impressions: parseInt(stat.metrics.impressions, 10),\n        // ИСПРАВЛЕНО: Обращаемся к costMicros (верблюжий регистр)\n        costMicros: parseInt(stat.metrics.costMicros, 10) || 0\n    });\n}\n\n\n// 2. ОСНОВНАЯ ЛОГИКА ОБРАБОТКИ\nconst categorizedCampaigns = [];\n\nfor (const campaignId in campaignsData) {\n    const campaign = campaignsData[campaignId];\n    campaign.dailyData.sort((a, b) => new Date(b.date) - new Date(a.date));\n\n    // Пропускаем кампании с недостаточным количеством данных для *любого* анализа\n    if (campaign.dailyData.length < 7) {\n        console.warn(`Кампания \"${campaign.name}\" (${campaign.id}) имеет ${campaign.dailyData.length} дней данных (требуется минимум 7) и будет пропущена.`);\n        continue;\n    }\n\n    // --- БЛОК 1: Расчет и категоризация бюджета (за последние 7 дней) ---\n    const last7DaysData = campaign.dailyData.slice(0, 7);\n    const totalCostMicros7Days = last7DaysData.reduce((sum, day) => sum + day.costMicros, 0);\n    const totalCost7Days = totalCostMicros7Days / 1000000;\n    const avgDailyCost = (totalCost7Days / last7DaysData.length); // Делим на фактическое кол-во дней (до 7)\n    const budgetType = avgDailyCost < 15 ? 'micro' : 'standard';\n\n\n    // --- БЛОК 2: Анализ волатильности (может быть пропущен, если данных < 13 дней) ---\n    if (campaign.dailyData.length < MIN_DAYS_FOR_ANALYSIS) {\n      // Если данных мало, все равно возвращаем компанию с категорией бюджета\n      categorizedCampaigns.push({\n        campaignId: campaign.id,\n        campaignName: campaign.name,\n        totalCost: parseFloat(totalCost7Days.toFixed(2)),\n        avgDailyCost: parseFloat(avgDailyCost.toFixed(2)),\n        budgetType: budgetType,\n        volatility: 'Not enough data', // Указываем причину отсутствия анализа\n        coefficientOfVariation: null,\n        meanImpressions: null,\n        stdDevImpressions: null,\n        median13Days: null,\n        timeWindowUsed: campaign.dailyData.length,\n        impressions_today: campaign.dailyData[0]?.impressions || 0,\n        robust_z: null\n      });\n      continue; // Переходим к следующей кампании\n    }\n\n    // --- Определение окна анализа (13 или 28 дней) ---\n    const last13DaysData = campaign.dailyData.slice(0, 13);\n    const last13DaysImpressions = last13DaysData.map(d => d.impressions);\n    const median13Days = getMedian(last13DaysImpressions);\n\n    let historicalData = last13DaysData;\n    let timeWindowUsed = 13;\n\n    if (median13Days < 80 && campaign.dailyData.length >= 28) {\n        historicalData = campaign.dailyData.slice(0, 28);\n        timeWindowUsed = 28;\n    }\n    \n    const historicalImpressions = historicalData.map(d => d.impressions);\n\n    // --- Расчет волатильности ---\n    const mean = getMean(historicalImpressions);\n    const stdDev = getStandardDeviation(historicalImpressions);\n    const cv = mean === 0 ? 0 : stdDev / mean;\n    let volatilityCategory;\n    if (cv <= 0.25) {\n        volatilityCategory = 'Низкая';\n    } else if (cv > 0.25 && cv <= 0.45) {\n        volatilityCategory = 'Средняя';\n    } else {\n        volatilityCategory = 'Высокая';\n    }\n\n    // --- Расчет robust_z ---\n    const yValues = historicalImpressions.map(impr => 2 * Math.sqrt(impr + 3/8));\n    const median_Y = getMedian(yValues);\n    const absoluteDeviationsY = yValues.map(y => Math.abs(y - median_Y));\n    const mad_Y = getMedian(absoluteDeviationsY);\n    \n    const impressions_today = campaign.dailyData[0].impressions;\n    const y_today = 2 * Math.sqrt(impressions_today + 3/8);\n    const robust_z_denominator = 1.4826 * mad_Y;\n    const robust_z = robust_z_denominator === 0 ? 0 : (y_today - median_Y) / robust_z_denominator;\n\n\n    // 3. ФОРМИРОВАНИЕ ВЫХОДНЫХ ДАННЫХ\n    categorizedCampaigns.push({\n        campaignId: campaign.id,\n        campaignName: campaign.name,\n        // --- Результаты анализа бюджета (по 7 дням) ---\n        totalCost: parseFloat(totalCost7Days.toFixed(2)),\n        avgDailyCost: parseFloat(avgDailyCost.toFixed(2)),\n        budgetType: budgetType,\n        // --- Результаты анализа волатильности (по 13/28 дням) ---\n        volatility: volatilityCategory,\n        coefficientOfVariation: parseFloat(cv.toFixed(4)),\n        meanImpressions: parseFloat(mean.toFixed(2)),\n        stdDevImpressions: parseFloat(stdDev.toFixed(2)),\n        median13Days: median13Days,\n        timeWindowUsed: timeWindowUsed,\n        impressions_today: impressions_today,\n        robust_z: parseFloat(robust_z.toFixed(4)),\n        // --- Детальные метрики для отладки ---\n        y_today: parseFloat(y_today.toFixed(4)),\n        median_Y: parseFloat(median_Y.toFixed(4)),\n        MAD_Y: parseFloat(mad_Y.toFixed(4))\n    });\n}\n\n// Возвращаем результат для использования в следующих нодах n8n\nreturn categorizedCampaigns;\n\n// --- Конец кода для n8n ---"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        -528
+      ],
+      "id": "9c3ae12a-de36-4337-b1c7-32198a7213d8",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys1').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys1').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT\n    campaign.id,\n    campaign.name,\n    campaign.status,\n    segments.date,\n    metrics.impressions,\n    metrics.cost_micros\n  FROM campaign\n  WHERE\n    segments.date BETWEEN '{{ new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}' AND '{{ new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}'\n    AND campaign.status IN ('ENABLED')\n  ORDER BY campaign.id, segments.date"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "94bb1831-c373-4aff-bcc6-e8699a93d781",
+      "name": "Get companies1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1664,
+        -528
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 * * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1216,
+        -528
+      ],
+      "id": "1c629fc1-bfff-4d90-b170-53d546431b56",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "669c1c3e-9978-4db9-ac82-f16680e794bf",
+              "leftValue": "={{ $json.volatility }}",
+              "rightValue": "Низкая",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "bd87b0b1-069b-4a6c-ad72-ee29a212c549",
+              "leftValue": "={{ $json.volatility }}",
+              "rightValue": "Средняя",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2560,
+        -816
+      ],
+      "id": "1f96fced-3ec9-4572-8d4d-e5dcecd43915",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Функция для анализа данных. Ее логика остается прежней.\n * @param {object} data - Полный объект с данными, содержащий ключ 'results'.\n */\nfunction checkRecentImpressions(data) {\n    // Проверяем, что у нас есть данные для обработки\n    if (!data || !data.results || data.results.length === 0) {\n        return {\n            status: 'CRITICAL',\n            message: 'Ошибка: Входные данные отсутствуют или пусты.',\n            totalImpressions: 0\n        };\n    }\n\n    const results = data.results;\n\n    // 1. Находим самый последний временной штамп в данных\n    let latestTimestamp = new Date(0); // Начнем с эпохи Unix\n    results.forEach(item => {\n        // Создаем объект Date из сегментов. 'Z' указывает, что это время в UTC.\n        const currentTimestamp = new Date(`${item.segments.date}T${String(item.segments.hour).padStart(2, '0')}:00:00Z`);\n        if (currentTimestamp > latestTimestamp) {\n            latestTimestamp = currentTimestamp;\n        }\n    });\n\n    // 2. Определяем начало 4-часового окна\n    const windowStartTimestamp = new Date(latestTimestamp.getTime());\n    windowStartTimestamp.setUTCHours(windowStartTimestamp.getUTCHours() - 4);\n\n    // 3. Суммируем показы внутри этого окна\n    let totalImpressionsInWindow = 0;\n    results.forEach(item => {\n        const currentTimestamp = new Date(`${item.segments.date}T${String(item.segments.hour).padStart(2, '0')}:00:00Z`);\n\n        // Проверяем, что запись попадает в наше 4-часовое окно\n        // Исправлено: > windowStartTimestamp, а не >=, чтобы не включать ровно 4 часа назад, а только то что после.\n        if (currentTimestamp > windowStartTimestamp && currentTimestamp <= latestTimestamp) {\n            totalImpressionsInWindow += parseInt(item.metrics.impressions, 10);\n        }\n    });\n\n    // 4. Устанавливаем статус\n    if (totalImpressionsInWindow === 0) {\n        return {\n            status: 'CRITICAL',\n            message: `Показы не были зафиксированы за последние 4 часа (с ${windowStartTimestamp.toISOString()} до ${latestTimestamp.toISOString()}).`,\n            totalImpressions: totalImpressionsInWindow\n        };\n    }\n\n    return {\n        status: 'OK',\n        message: `За последние 4 часа было ${totalImpressionsInWindow} показов.`,\n        totalImpressions: totalImpressionsInWindow\n    };\n}\n\n\n// --- ОСНОВНАЯ ЧАСТЬ ДЛЯ N8N ---\n\n// 1. Получаем весь JSON-объект из первого входящего элемента (item).\n// Ваша нода получает на вход массив из одного элемента, в котором лежит JSON.\n// Мы берем этот JSON целиком.\nconst inputJson = $input.first().json;\n\n\n// 2. Вызываем нашу функцию, передавая в нее полученные данные.\nconst analysisResult = checkRecentImpressions(inputJson);\n\n\n// 3. Возвращаем результат в формате, который требует n8n.\n// Это должен быть массив объектов, где каждый объект имеет ключ 'json'.\nreturn [{\n  json: analysisResult\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3008,
+        -816
+      ],
+      "id": "34da9fe3-1df7-4f57-b65b-72202bcda365",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C098WHM2KD5",
+          "mode": "list",
+          "cachedResultName": "i9-local-notifications"
+        },
+        "text": "=Status: CRITICAL\nCampaign name: {{ $('If').item.json.campaignName }}\nVolatility: {{ $('If').item.json.volatility }}\nCoefficient of variation: {{ $('If').item.json.coefficientOfVariation }}\nMean impressions: {{ $('If').item.json.meanImpressions }}\nStandard deviation of impressions: {{ $('If').item.json.stdDevImpressions }}\nMedian 13 days: {{ $('If').item.json.median13Days }}\nTime window used: {{ $('If').item.json.timeWindowUsed }}\nImpressions today: {{ $('If').item.json.impressions_today }}\ny_today: {{ $('If').item.json.y_today }}\nmedian_Y: {{ $('If').item.json.median_Y }}\nMAD_Y: {{ $('If').item.json.MAD_Y }}\nrobust_z {{ $('If').item.json.robust_z }}\n\nПроблема просадка по показам:\n- за последние 4 часа 0 показов \n\n",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3456,
+        -744
+      ],
+      "id": "e4954e2c-3160-4bc0-a7f8-83ce86c448b7",
+      "name": "CRITICAL",
+      "webhookId": "6c318468-db3b-453c-a828-2aaff00de465",
+      "credentials": {
+        "slackApi": {
+          "id": "xzGeHM57eBQ6pACT",
+          "name": "i9 local notifications"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9414b34a-1b2d-4d86-8fdc-8d409d5f9d46",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "CRITICAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3232,
+        -816
+      ],
+      "id": "71ef6f54-59a1-4f10-83f4-4e0cfb432f36",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e9bb8cb4-5ec2-446b-a32a-7badd2874995",
+              "leftValue": "={{ $json.budgetType }}",
+              "rightValue": "standard",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2336,
+        -816
+      ],
+      "id": "614edd11-ca11-4519-b467-4eb58a0980ec",
+      "name": "If2"
+    }
+  ],
+  "connections": {
+    "Last 4 hours": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google ads additional keys1": {
+      "main": [
+        [
+          {
+            "node": "Get companies1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get companies1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Last 4 hours",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRITICAL": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "CRITICAL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "count": 11
+    },
+    "node:Schedule Trigger1": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "fcce68b6-1496-44ec-b9e3-7adf59dbf34b",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:28.781Z",
+      "updatedAt": "2025-08-28T14:30:28.781Z",
+      "role": "workflow:owner",
+      "workflowId": "F3ND2n7wbAoG1UrI",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
