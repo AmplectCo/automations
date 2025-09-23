@@ -1,0 +1,713 @@
+{
+  "createdAt": "2025-07-11T07:21:36.334Z",
+  "updatedAt": "2025-09-02T11:20:41.512Z",
+  "id": "s4KpopTyaUqI3J8W",
+  "name": "checking_exceptions_camps (all camps)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "link",
+              "condition": "!=",
+              "value": "NULL"
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "link",
+            "sport",
+            "status",
+            "state",
+            "zip",
+            "street_address",
+            "locality",
+            "region",
+            "season",
+            "tags",
+            "add_to_cart",
+            "coordinates",
+            "class",
+            "cost",
+            "begins",
+            "ends",
+            "minAge",
+            "maxAge",
+            "camp",
+            "description",
+            "modification_date"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1248,
+        160
+      ],
+      "id": "bb57249e-a257-427c-9ef5-244bd822355c",
+      "name": "Get current camps from DB",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source1 = $input.all().map(item => item.json);\nconst source2 = $('Get current camps from DB').all().map(item => item.json);\n\nfunction normalize(link) {\n  return link ? link.trim().replace(/\\/$/, '').toLowerCase() : '';\n}\n\nconst statusMap = new Map();\nsource1.forEach(item => {\n  const normLink = normalize(item.link);\n  statusMap.set(normLink, {\n    status: item.status,\n    additional_companies: item.additional_companies,\n    additional_feeds: item.additional_feeds\n  });\n});\n\nconst updatedRecords = source2\n  .filter(item => {\n    const normLink = normalize(item.link);\n    return statusMap.has(normLink);\n  })\n  .map(item => {\n    const normLink = normalize(item.link);\n    const sourceData = statusMap.get(normLink);\n\n    const updatedItem = { ...item };\n\n    // Обновляем status, если статус в source1 не пустая строка, иначе сохраняем текущий статус из source2\n    updatedItem.status = sourceData.status !== \"\" ? sourceData.status : item.status;\n\n    // Обновляем additional_companies, если не пустое (строка/массив/не null)\n    if (\n      sourceData.additional_companies !== \"\" &&\n      sourceData.additional_companies !== null &&\n      !(\n        Array.isArray(sourceData.additional_companies) &&\n        sourceData.additional_companies.length === 0\n      )\n    ) {\n      updatedItem.additional_companies = sourceData.additional_companies;\n    }\n\n    // Обновляем additional_feeds по тем же правилам\n    if (\n      sourceData.additional_feeds !== \"\" &&\n      sourceData.additional_feeds !== null &&\n      !(\n        Array.isArray(sourceData.additional_feeds) &&\n        sourceData.additional_feeds.length === 0\n      )\n    ) {\n      updatedItem.additional_feeds = sourceData.additional_feeds;\n    }\n\n    return updatedItem;\n  });\n\nif (updatedRecords.length !== source1.length) {\n  console.warn(`Warning: Updated records count (${updatedRecords.length}) does not match source1 length (${source1.length})`);\n}\n\nreturn updatedRecords.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        160
+      ],
+      "id": "c7f787d9-2d6c-4c59-beb9-75ce9f724a4f",
+      "name": "Check removed camps"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "link": "={{ $json.link }}",
+            "status": "={{ $json.status }}",
+            "additional_companies": "={{ $json.additional_companies }}",
+            "additional_feeds": "={{ $json.additional_feeds }}"
+          },
+          "matchingColumns": [
+            "link"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "additional_companies",
+              "displayName": "additional_companies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "additional_feeds",
+              "displayName": "additional_feeds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -544,
+        160
+      ],
+      "id": "20f0d883-3726-4b08-aea2-1313716da3fb",
+      "name": "Save (update) data to DB (removed camps)",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I",
+          "mode": "list",
+          "cachedResultName": "marketing-automation-uscamps",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 346984471,
+          "mode": "list",
+          "cachedResultName": "exceptions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I/edit#gid=346984471"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -1024,
+        160
+      ],
+      "id": "8e4e0995-201d-4750-b85b-80ceec57d1ff",
+      "name": "Get exceptions",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "sheetId": "1NNwUy91b8zZvU7djoJ30MT8iqRyB5Xtc80RbGIknzlU",
+        "range": "A:Z",
+        "options": {}
+      },
+      "name": "Save data to sheet (current camps)",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        48,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "2cbf3bfc-8fe3-4924-9cb2-f0431139b936",
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "link",
+              "condition": "!=",
+              "value": "NULL"
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "link",
+            "sport",
+            "status",
+            "state",
+            "zip",
+            "street_address",
+            "locality",
+            "region",
+            "season",
+            "tags",
+            "add_to_cart",
+            "coordinates",
+            "class",
+            "cost",
+            "begins",
+            "ends",
+            "minAge",
+            "maxAge",
+            "camp",
+            "description",
+            "modification_date",
+            "sport_code",
+            "overnight",
+            "google_ads_synced"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -288,
+        160
+      ],
+      "id": "e0cca553-468a-4472-9ec4-6af9c4167845",
+      "name": "Get current camps from DB (last check)",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Дублирование актуальных данных из БД в google sheet",
+        "height": 80
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        48
+      ],
+      "id": "e90287f8-a42d-4e5d-b67b-d1ccbd4309b8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "43 1 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1664,
+        160
+      ],
+      "id": "1701efb3-a470-4ea6-be3a-9c1237242406",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1NNwUy91b8zZvU7djoJ30MT8iqRyB5Xtc80RbGIknzlU",
+          "mode": "list",
+          "cachedResultName": "marketing-automation-uscamps-all-camps",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NNwUy91b8zZvU7djoJ30MT8iqRyB5Xtc80RbGIknzlU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "All camps",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NNwUy91b8zZvU7djoJ30MT8iqRyB5Xtc80RbGIknzlU/edit#gid=0"
+        },
+        "keepFirstRow": true
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -1440,
+        160
+      ],
+      "id": "2a397837-f8cb-4dc3-a967-2ff42d8f8d38",
+      "name": "Clear sheet",
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Get current camps from DB": {
+      "main": [
+        [
+          {
+            "node": "Get exceptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check removed camps": {
+      "main": [
+        [
+          {
+            "node": "Save (update) data to DB (removed camps)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save (update) data to DB (removed camps)": {
+      "main": [
+        [
+          {
+            "node": "Get current camps from DB (last check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get exceptions": {
+      "main": [
+        [
+          {
+            "node": "Check removed camps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get current camps from DB (last check)": {
+      "main": [
+        [
+          {
+            "node": "Save data to sheet (current camps)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear sheet": {
+      "main": [
+        [
+          {
+            "node": "Get current camps from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "76bf1b6e-a196-43bb-a100-5184b37b3343",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:51.803Z",
+      "updatedAt": "2025-08-28T14:34:51.803Z",
+      "role": "workflow:owner",
+      "workflowId": "s4KpopTyaUqI3J8W",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
