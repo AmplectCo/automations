@@ -1,0 +1,90 @@
+{
+  "createdAt": "2025-08-24T21:08:06.478Z",
+  "updatedAt": "2025-08-24T21:32:24.256Z",
+  "id": "yVanC6VJTxesNsuU",
+  "name": "getAllNodes.tool",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "02b0e874-c1a5-4b93-8cd4-6cd968530b1d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://automation.dizzain.com/types/nodes.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a2c2cd68-018b-4b4d-8d3d-328dcb5ac614",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst simplifiedNodes = allItems.map(item => {\n\n  const nodeData = item.json;\n  \n  return {\n    name: nodeData.name,\n    displayName: nodeData.displayName,\n    description: nodeData.description\n  };\n});\n\n\nreturn simplifiedNodes;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "98a13602-887e-4f48-93b1-c9307dfb9e12",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "46c61f23-67d6-4f67-bd20-d0143124dffc",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:36:13.045Z",
+      "updatedAt": "2025-08-28T14:36:13.045Z",
+      "role": "workflow:owner",
+      "workflowId": "yVanC6VJTxesNsuU",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
