@@ -1,0 +1,290 @@
+{
+  "createdAt": "2025-08-20T08:52:16.655Z",
+  "updatedAt": "2025-08-23T14:35:09.161Z",
+  "id": "X2figLomRvBbUNIM",
+  "name": "Slack AI Decision Agent",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "eventTypes": [
+          "message.channels",
+          "message.groups",
+          "message.im",
+          "message.mpim"
+        ]
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "SlackTrigger",
+      "webhookId": "slack-webhook-id",
+      "notes": "Listens for incoming messages from the designated Slack channel, initiating the workflow.",
+      "notesInFlow": true,
+      "credentials": {
+        "slackApi": {
+          "id": "1",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "complete",
+        "prompt": "={{ 'Analyze this Slack message and decide if it requires calendar interaction (true) or email interaction (false). Message: ' + $json.text + '\n\nRespond with only true or false.'}}",
+        "options": {
+          "maxTokens": 10,
+          "temperature": 0.3
+        }
+      },
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        420,
+        300
+      ],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "AIDecision",
+      "notes": "Analyzes the Slack message content to decide whether to invoke the Calendar tool or Gmail tool.",
+      "notesInFlow": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "2",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.choices[0].text.trim().toLowerCase() }}",
+              "operation": "contains",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        620,
+        300
+      ],
+      "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "name": "DecisionIf",
+      "notes": "Branches the workflow based on the AI decision: true if Calendar interaction is needed; false if Gmail interaction is needed.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendarId": "primary",
+        "start": "={{new Date().toISOString()}}",
+        "end": "={{new Date(new Date().getTime() + 3600000).toISOString()}}",
+        "summary": "={{$json.text}}"
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        820,
+        200
+      ],
+      "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
+      "name": "CalendarTool",
+      "notes": "Performs the specific calendar operations if the AI decides calendar interaction is required.",
+      "notesInFlow": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "3",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toEmail": "recipient@example.com",
+        "subject": "Automated message from Slack AI agent",
+        "body": "={{$json.text}}"
+      },
+      "type": "n8n-nodes-base.googleGmail",
+      "typeVersion": 2,
+      "position": [
+        820,
+        400
+      ],
+      "id": "e5f6a7b8-c9d0-1234-efab-567890123456",
+      "name": "GmailTool",
+      "notes": "Performs the specific Gmail operations if the AI decides Gmail interaction is required.",
+      "notesInFlow": true,
+      "credentials": {
+        "googleGmailOAuth2Api": {
+          "id": "4",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "sheetId": "YOUR_GOOGLE_SHEET_ID",
+        "range": "A:D",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        },
+        "dataMode": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1020,
+        300
+      ],
+      "id": "f6a7b8c9-d0e1-2345-fabc-678901234567",
+      "name": "LogToGoogleSheets",
+      "notes": "Logs the original Slack message, the AI's decision, and the results from either the Calendar or Gmail operation.",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "channel": "=#general",
+        "text": "Action completed! {{$node[\"DecisionIf\"].json.choices[0].text.includes('true') ? 'Calendar' : 'Gmail'}} operation performed successfully.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        300
+      ],
+      "id": "a7b8c9d0-e1f2-3456-abcd-789012345678",
+      "name": "SlackReply",
+      "notes": "Sends a confirmation message back to Slack reflecting the action performed.",
+      "notesInFlow": true,
+      "credentials": {
+        "slackApi": {
+          "id": "1",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "SlackTrigger": {
+      "main": [
+        [
+          {
+            "node": "AIDecision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AIDecision": {
+      "main": [
+        [
+          {
+            "node": "DecisionIf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DecisionIf": {
+      "main": [
+        [
+          {
+            "node": "CalendarTool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GmailTool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CalendarTool": {
+      "main": [
+        [
+          {
+            "node": "LogToGoogleSheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GmailTool": {
+      "main": [
+        [
+          {
+            "node": "LogToGoogleSheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LogToGoogleSheets": {
+      "main": [
+        [
+          {
+            "node": "SlackReply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "4ccb8a77-eee6-463d-9012-1fb96864333e",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:23.580Z",
+      "updatedAt": "2025-08-28T14:32:23.580Z",
+      "role": "workflow:owner",
+      "workflowId": "X2figLomRvBbUNIM",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
