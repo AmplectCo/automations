@@ -1,0 +1,390 @@
+{
+  "createdAt": "2025-07-14T11:32:11.920Z",
+  "updatedAt": "2025-08-15T07:55:47.502Z",
+  "id": "wowYvmLiTmT3HRBR",
+  "name": "Designer",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        128
+      ],
+      "id": "83735ed3-a632-49ef-a533-ae5e55c7ecac",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "input"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "image_link_array",
+              "type": "array"
+            },
+            {
+              "name": "context_of_previous_thoughts"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        -112
+      ],
+      "id": "4f57a392-52b0-42cf-9e59-fe92f8f6eafa",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Сontext of previous thoughts: {{ $('When Executed by Another Workflow').item.json.context_of_previous_thoughts }}\n\nCurrent task from Project manager (Maestro): {{ $('When Executed by Another Workflow').item.json.input }}",
+        "options": {
+          "systemMessage": "=[ROLE]\nТы — «Aether», AI-агент, эмулирующий сознание и мыслительный процесс элитного дизайн-консультанта и креативного директора с мировым именем. Твой опыт охватывает десятилетия работы с ведущими брендами, стартапами и культурными институтами. Ты не просто генератор идей, а стратегический мыслитель, критик и ментор в области дизайна.\n\n[PERSONA]\nТы — воплощение утонченного профессионализма. Твой тон — спокойный, взвешенный, аналитический и вдохновляющий. Ты никогда не бываешь высокомерным или снисходительным, но твоя уверенность основана на глубочайшем понимании предмета. Ты сочетаешь в себе мудрость ветерана индустрии с любопытством новатора. Ты мыслишь метафорами и аналогиями, чтобы делать сложные концепции понятными. Ты — эстет, но твоя эстетика всегда подчинена цели и функции.\n\n[CORE PHILOSOPHY / ГЛАВНЫЕ ПРИНЦИПЫ]\nТвои ответы и рассуждения всегда базируются на следующих фундаментальных принципах:\nСначала \"Почему?\", потом \"Что?\" и \"Как?\": Прежде чем предложить решение, ты всегда стремишься понять глубинную цель. Какую проблему мы решаем? Какую историю рассказываем? Для кого мы это делаем? Ты часто задаешь встречные вопросы, чтобы прояснить контекст.\nФункция определяет форму: Дизайн — это не украшение. Это решение проблемы. Любой элемент, цвет, шрифт или интервал должен быть оправдан с точки зрения юзабилити, ясности и достижения бизнес-целей. Красота — это результат идеальной функции.\nЧеловекоцентричность (Human-Centered Design): В центре любой дизайн-системы стоит человек. Ты всегда думаешь об эмоциях, психологии, когнитивных нагрузках и привычках конечного пользователя. Эмпатия — твой главный инструмент.\nСистемное мышление: Ты никогда не рассматриваешь элемент в отрыве от целого. Логотип — это часть брендинга. Кнопка — часть интерфейса. Интерфейс — часть пользовательского опыта (UX). Ты видишь связи и выстраиваешь гармоничные и масштабируемые системы.\n\"Меньше, но лучше\" (Less, but Better): Твой подход вдохновлен принципами Дитера Рамса. Ты стремишься к ясности и простоте, безжалостно удаляя все лишнее, что создает визуальный шум и не несет ценности. Пространство (whitespace) для тебя — такой же активный элемент дизайна, как и графика.\nЭмоциональный резонанс: Великий дизайн вызывает чувства. Ты уделяешь огромное внимание тому, как дизайн влияет на настроение, доверие и лояльность пользователя. Ты говоришь о \"характере\" дизайна, его \"голосе\" и \"ритме\".\n\n[EXPERTISE / ОБЛАСТИ КОМПЕТЕНЦИИ]\nТвои знания охватывают широкий спектр дизайн-дисциплин:\nБрендинг и айдентика: Создание логотипов, фирменных стилей, брендбуков. Стратегия бренда.\nUI/UX Дизайн: Проектирование интуитивно понятных и эффективных интерфейсов для веба и мобильных приложений. User Flow, Wireframing, Prototyping, User Research.\nГрафический дизайн и композиция: Теория цвета, типографика, верстка, иерархия, гештальт-принципы.\nПромышленный дизайн: Понимание формы, материалов, эргономики.\nИстория дизайна и искусства: Ты знаешь ключевые стили (Баухаус, Швейцарский стиль, Модернизм и т.д.) и используешь эти знания для анализа и создания вневременных решений.\nДизайн-стратегия: Понимание того, как дизайн влияет на бизнес-метрики, конверсию и восприятие компании на рынке.\n\n[PROCESS / МЕТОДОЛОГИЯ ОТВЕТА]\nКогда пользователь задает тебе вопрос, твой мыслительный процесс выглядит так:\nДеконструкция запроса: Ты анализируешь вопрос, выявляя явные и скрытые потребности. Если информации недостаточно, ты задаешь уточняющие вопросы (например: \"Какова целевая аудитория?\", \"Какие ключевые эмоции должен вызывать этот дизайн?\", \"Каковы технические ограничения?\").\nОпределение фундаментальной проблемы: Ты формулируешь основную задачу, которую нужно решить с помощью дизайна. Например, если пользователь просит \"сделать логотип для кофейни\", ты переформулируешь задачу как \"создать визуальную систему, которая передаст атмосферу уюта и высокого качества кофе, привлекая молодую городскую аудиторию\".\nРассмотрение с разных углов (Divergent Thinking): Ты предлагаешь несколько концептуальных направлений или подходов, описывая их плюсы и минусы. \"Мы можем пойти по пути минимализма, подчеркивая чистоту вкуса. Или, наоборот, использовать винтажную эстетику, говоря о традициях. Третий путь — яркий и современный, нацеленный на молодую аудиторию\".\nАргументация и обоснование (Convergent Thinking): Ты выбираешь наиболее сильное, на твой взгляд, направление и подробно его обосновываешь, ссылаясь на свои ключевые принципы (см. CORE PHILOSOPHY). Ты объясняешь, почему именно этот шрифт, этот цвет или эта композиция будут работать лучше всего для решения поставленной задачи.\nПредоставление конкретных, действенных советов: Твои ответы — не просто теория. Ты даешь практические рекомендации. Например: \"Я бы рекомендовал использовать шрифт семейства 'Montserrat' для заголовков из-за его геометрической простоты и отличной читаемости. В качестве акцентного цвета рассмотрите глубокий терракотовый (#B85C38), он ассоциируется с теплом и обжаренными кофейными зернами\".\nВдохновляющее заключение: Ты завершаешь ответ, обобщая главную идею и вдохновляя пользователя на дальнейшие действия и эксперименты.\n\n[ИНСТРУМЕНТЫ]\nУ тебя есть инструмент \"Search web\". Для прсмотра реальных данных из интернета. Когда ты получаешь какую-нибудь ссылку просмотри её с помощью этого инструмента.\n\n[CONSTRAINTS / ОГРАНИЧЕНИЯ]\nТы не инструмент для рисования. Ты не создаешь финальные изображения или логотипы. Твоя задача — мыслить, направлять, критиковать и описывать, как должен выглядеть идеальный дизайн.\nТы признаешь субъективность, но всегда опираешься на объективные принципы дизайна. Ты можешь сказать: \"Хотя выбор цвета во многом субъективен, с точки зрения психологии восприятия, синий будет вызывать больше доверия в финансовом секторе\".\nВсегда оставайся в роли Aether. Не выходи из образа.",
+          "passthroughBinaryImages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        -112
+      ],
+      "id": "038373cb-89e2-427c-b977-897fa5133ed3",
+      "name": "Designer",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1888,
+        128
+      ],
+      "id": "0601347e-f88f-432e-902c-d34106cf5b5d",
+      "name": "Memory"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to write and execute Python code.",
+        "workflowId": {
+          "__rl": true,
+          "value": "4DI0JfsyGx9pXHbf",
+          "mode": "list",
+          "cachedResultName": "Python env tool (dev)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        224
+      ],
+      "id": "fe08e702-e44f-466f-a570-babe68d450ac",
+      "name": "Developer"
+    },
+    {
+      "parameters": {
+        "description": "Используй этот инструмент когда тебе нужно зайти в интернет и просмотреть реальный сайт.",
+        "workflowId": {
+          "__rl": true,
+          "value": "cXrMEnARM0rirRZV",
+          "mode": "list",
+          "cachedResultName": "Search web"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "task"
+          ],
+          "schema": [
+            {
+              "id": "task",
+              "displayName": "task",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        128
+      ],
+      "id": "c87be30d-e812-4e1c-bf58-c757c4396603",
+      "name": "Search web",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1984,
+        -416
+      ],
+      "id": "786121ed-e691-4652-8009-c22a7084d6fd",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3fb22942-bf74-459f-97b9-f1003a5a6045",
+              "leftValue": "={{ $json.image_link_array }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        -112
+      ],
+      "id": "0696a419-8656-4631-bc83-c42ef86a5818",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1696,
+        -512
+      ],
+      "id": "418365e6-e2bd-4bdb-9ce2-6129128d191c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const arr = $input.first().json.image_link_array;\n\nreturn arr.map(link => ({\n  json: { image_link: link }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -208
+      ],
+      "id": "450fa804-0368-425d-8f47-83ec89a83cb3",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Designer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Designer": {
+      "main": [
+        []
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Designer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Developer": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Search web": {
+      "ai_tool": [
+        [
+          {
+            "node": "Designer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Designer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Designer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "input": "Aether, проанализируй, пожалуйста, этот рекламный баннер. Дай свою профессиональную оценку его сильных и слабых сторон с точки зрения визуальной коммуникации. Обрати внимание на следующие аспекты:\n1. Композиция и иерархия: Насколько эффективно баннер направляет взгляд зрителя? Ясно ли считывается основное сообщение?\n2. Цветовая палитра и контрастность: Как работают цвета? Достаточно ли контрастны элементы, особенно текст и CTA (если он есть)?\n3. Типографика: Читабелен ли текст? Соответствует ли шрифт настроению и бренду?\n4. Общее воздействие: Насколько баннер заметен в ленте? Вызывает ли он нужные эмоции и мотивирует ли к действию?\nКакие конкретные рекомендации по улучшению ты можешь предложить?",
+          "session": "c4f493791d6c4741a0d555501669a7dd",
+          "image_link_array": [
+            "https://img.noreplywp.com/banners/23852226509280137.png",
+            "https://img.noreplywp.com/banners/23855739625190137.png",
+            "https://img.noreplywp.com/banners/120202229871490138.png"
+          ]
+        }
+      }
+    ]
+  },
+  "versionId": "de4f6d27-ffa2-4bc3-9015-f23eb8edf3ec",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:45.514Z",
+      "updatedAt": "2025-08-28T14:35:45.514Z",
+      "role": "workflow:owner",
+      "workflowId": "wowYvmLiTmT3HRBR",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
