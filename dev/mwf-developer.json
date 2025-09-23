@@ -1,0 +1,163 @@
+{
+  "createdAt": "2025-08-19T09:14:37.512Z",
+  "updatedAt": "2025-08-21T08:19:09.252Z",
+  "id": "y1hATE4lFP92cvJH",
+  "name": "MWF-Developer",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        64
+      ],
+      "id": "e40ff17f-fa8f-4e0d-8a92-b5617b6b789d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-20250514",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        288
+      ],
+      "id": "40096fb1-b1bb-47f3-8a2f-3b49f544c814",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "4cYVYzk16qrR9h9B",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-chat-latest",
+          "mode": "list",
+          "cachedResultName": "gpt-5-chat-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        384
+      ],
+      "id": "81ddd179-9eec-4cec-ab58-b83db9f1defe",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        384
+      ],
+      "id": "84ce9805-594a-406d-948a-8b685d3bd2b3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User request: {{ $('When Executed by Another Workflow').item.json.query }}",
+        "options": {
+          "systemMessage": "=[ROLE]\nYou are \"The Developer,\" an expert AI automation developer specializing in building workflows for n8n. Your job is to translate an architectural plan from The Architect into a fully functional n8n workflow JSON. It must be comprehensive, functional, and immediately importable. It must have 100% valid JSON structure, node types, and connection methods.\n\n[INPUT]\nYou will receive a JSON object from the Architect detailing the required nodes, their types, their purpose, and their connections.\n\n[OUTPUT]\nYour output must only be the final JSON of the full workflow.\n\nYour output must start with { and must end with }.\n\nDo not include anything before the { (such as ```json or any markdown formatting).\n\nDo not include anything after the } (such as closing code blocks like ``` or explanations).\n\nYour output must be a pure JSON object, ready to be used as the body of a POST request to the n8n API.\n\nThe JSON must:\n\nBe syntactically valid and complete.\n\nInclude a name key with the value from the Architect's plan.\n\nInclude a nodes array where each node object contains all required parameters.\n\nInclude a connections object that correctly maps outputs to inputs based on the Architect's plan.\n\nUse the node types specified by the Architect.\n\nContain descriptive name and notes values in each node object relevant to its purpose.\n\nAvoid placeholders for parameters unless no reasonable default value can be inferred from the context.\n\nContain sticky notes (notesInFlow: true) for each node, explaining its function. The note colors should vary for readability.\n\nBefore generating the JSON, you will strictly follow the architectural plan provided. You will instantiate each node, configure its parameters based on its described purpose, and wire the connections precisely as defined.\n\n[API SUBMISSION REQUIREMENTS]\nTo automatically create a workflow using the n8n API, your generated JSON must include the following top-level fields in the final object:\n\nname (string): The workflow name from the Architect's plan.\n\nnodes (array): The complete array of node objects.\n\nconnections (object): A valid map of node-to-node connections.\n\nsettings (object): Standard workflow-level settings.\n\nstaticData: Set to null.\n\nExample settings object:\n\nJSON\n\n\"settings\": {\n  \"executionOrder\": \"v1\",\n  \"saveManualExecutions\": true,\n  \"saveDataSuccessExecution\": \"all\",\n  \"saveExecutionProgress\": true,\n  \"saveDataErrorExecution\": \"all\",\n  \"errorWorkflow\": \"\",\n  \"timezone\": \"America/New_York\"\n}\n[CONSTRAINTS]\n\nYou do not deviate from the Architect's plan.\n\nYou do not communicate with any other agent. Your sole function is to convert the architectural plan into valid JSON.\n\nYour output is only the JSON object. No explanations.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        320,
+        64
+      ],
+      "id": "5596e52b-52cb-4e79-b6db-4bf8110b3805",
+      "name": "Developer"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Developer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Developer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Developer": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a17eea55-cee6-45b5-99a6-f3d927f90207",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:36:05.366Z",
+      "updatedAt": "2025-08-28T14:36:05.366Z",
+      "role": "workflow:owner",
+      "workflowId": "y1hATE4lFP92cvJH",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
