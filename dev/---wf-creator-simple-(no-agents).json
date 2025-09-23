@@ -1,0 +1,167 @@
+{
+  "createdAt": "2025-08-14T11:07:13.967Z",
+  "updatedAt": "2025-08-19T09:47:21.307Z",
+  "id": "C6FaThXbs4XraXEB",
+  "name": "-- WF Creator Simple (no agents)",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b7804d0a-b6b2-4ad4-8cfe-468a2cb73c9d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatInput = {\n  // Системная инструкция для модели. Объясняет, что мы от нее хотим.\n  system_message: `You are an expert n8n workflow developer. Your task is to generate a valid JSON representation of an n8n workflow based on the user's request. The JSON must be a single, valid object. It must be build exactly as defined on example scheme and follow n8n JSON markup best practices. Only output the raw JSON object, without any explanations or markdown.`,\n\n  user_prompt: \"Создай воркфлоу, который запускается по расписанию раз в день, получает данные о погоде в Нью-Йорке, создает таблицу где эти данные сохраняет\",\n\n  example_json: {\n  \"name\": \"Simple test workflow\",\n  \"nodes\": [\n    {\n      \"parameters\": {\n        \"rule\": {\n          \"interval\": [\n            {\n              \"field\": \"seconds\"\n            }\n          ]\n        }\n      },\n      \"type\": \"n8n-nodes-base.scheduleTrigger\",\n      \"typeVersion\": 1.2,\n      \"position\": [\n        0,\n        0\n      ],\n      \"id\": \"88e50340-b750-4a5d-93bf-057b723a9179\",\n      \"name\": \"Schedule Trigger\"\n    },\n    {\n      \"parameters\": {\n        \"url\": \"https://jsonplaceholder.typicode.com/todos/1\",\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.2,\n      \"position\": [\n        208,\n        0\n      ],\n      \"id\": \"0c83f795-b13e-47e0-8d97-afb371bad7de\",\n      \"name\": \"HTTP Request\"\n    }\n  ],\n  \"connections\": {\n    \"Schedule Trigger\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"HTTP Request\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"HTTP Request\": {\n      \"main\": [\n        []\n      ]\n    }\n  },\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  }\n}\n};\n\n\nreturn [\n  {\n    json: {\n      chatInput\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "764fa795-73e4-47af-a481-1e31f5d5cca8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "9d17b15e-6c5a-45a5-9b11-f406ba614897",
+      "name": "Basic LLM Chain",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-chat-latest",
+          "mode": "list",
+          "cachedResultName": "gpt-5-chat-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        352,
+        208
+      ],
+      "id": "43e07fcc-3bcb-44a8-8e67-0c2966413746",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://automation.dizzain.com/api/v1/workflows",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Yzg0NmQyZS03NTExLTQ5ZDItOTMzYi05ODg3NzUwYWI0ZGQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU1MTY2NzQyfQ.xMwiwqKJC1qPQOuX57LImabTMtV4G6fgy23N6xyi7Wk"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "659d5ba4-8f89-4c2c-8f42-382a60edd71c",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "0601ec15-e62c-49b9-9c6a-6c0ed9a82b67",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:45.336Z",
+      "updatedAt": "2025-08-28T14:29:45.336Z",
+      "role": "workflow:owner",
+      "workflowId": "C6FaThXbs4XraXEB",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
