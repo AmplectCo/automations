@@ -1,0 +1,641 @@
+{
+  "createdAt": "2025-07-09T14:05:27.384Z",
+  "updatedAt": "2025-07-16T06:30:04.512Z",
+  "id": "tHoopT0HjAive47o",
+  "name": "CustomerCreated Hook",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "id"
+            },
+            {
+              "name": "email"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -40,
+        -180
+      ],
+      "id": "a5902673-bc6d-449e-9a72-1823610a3dc8",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e6bdd54f-8673-42b8-91d5-25d14ec73005",
+              "name": "customer_id",
+              "value": "={{ $('Set customer id').item.json.customer_id }}",
+              "type": "string"
+            },
+            {
+              "id": "90d16b20-b9f8-4f5a-945f-02f0f5f1f3f0",
+              "name": "amount",
+              "value": "={{ $json.Periods[0].Planned_Budget }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        840,
+        -80
+      ],
+      "id": "3504ebb1-5f3f-477a-824a-9d766b593d25",
+      "name": "Map params"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "lIBo5maVVG6wjO0F",
+          "mode": "list",
+          "cachedResultName": "Get customer sheet data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_id": "={{ $json.customer_id }}",
+            "email": "={{ $json.email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        -80
+      ],
+      "id": "3b1c681a-6e84-49f8-8828-765f7a84612c",
+      "name": "Get customer sheet data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "70b6eeb4-dc60-4926-a087-9873fbad0e0f",
+              "name": "row_number",
+              "value": "={{ $('Get customer sheet data').item.json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "145c9508-0402-41d5-97e1-c67f1b2aba63",
+              "name": "customer_id",
+              "value": "={{ $('Map params').item.json.customer_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1155e0ea-6339-43a4-8c7c-580b3cfdf9dc",
+              "name": "sub_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "9629ebc8-f9b4-49a1-a37d-a2b4f4e734c2",
+              "name": "price_id",
+              "value": "={{ $('Create price').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "041cefb7-f7d6-4031-9c9a-6309f1a9e004",
+              "name": "sub_item_id",
+              "value": "={{ $json.items?.data[0]?.id ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1500,
+        -80
+      ],
+      "id": "f3f5742a-7215-4eac-b98c-f21b53c73816",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "eJ6iOKTSuaXPp2aM",
+          "mode": "list",
+          "cachedResultName": "Update customer sheet data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "Stripe_Customer_ID": "={{ $json.customer_id }}",
+            "Stripe_Subscription_ID": "={{ $json.sub_id }}",
+            "Stripe_Price_ID": "={{ $json.price_id }}",
+            "Payment_Status": "=Pending",
+            "Stripe_Sub_Item_ID": "={{ $json.sub_item_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "Stripe_Customer_ID",
+              "displayName": "Stripe_Customer_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Stripe_Subscription_ID",
+              "displayName": "Stripe_Subscription_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Stripe_Sub_Item_ID",
+              "displayName": "Stripe_Sub_Item_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Payment_Method",
+              "displayName": "Payment_Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "Stripe_Price_ID",
+              "displayName": "Stripe_Price_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Payment_Status",
+              "displayName": "Payment_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Stripe_Fee_Actual",
+              "displayName": "Stripe_Fee_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Ads_Spend_MTD",
+              "displayName": "Ads_Spend_MTD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Ads_Spend_Actual",
+              "displayName": "Ads_Spend_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Adjustment",
+              "displayName": "Adjustment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1720,
+        -80
+      ],
+      "id": "fd08272b-eaea-44cf-b358-9cf2d1c56147",
+      "name": "Update customer sheet data"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        20
+      ],
+      "id": "3b38104b-c707-4e83-b494-99b68ee57217",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "413f4c19-b201-46af-85bf-34b3c24720ab",
+              "name": "customer_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ed96c747-227e-4362-9fdd-03351f2dc024",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        180,
+        -80
+      ],
+      "id": "c89882d1-8a8c-4844-bce5-0e6690bf5dda",
+      "name": "Set customer id"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "051acce4-2619-4eb4-b7b1-72ee7e011156",
+              "leftValue": "={{ $json.customer_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b03363fc-ef58-45a9-ab62-ef0386609d1c",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -80
+      ],
+      "id": "fea04a7c-ac97-4abd-ad29-d122b9b2a9cd",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G6NBgTgn6pzMNiMf",
+          "mode": "list",
+          "cachedResultName": "Create stripe price"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "unit_amount": "={{ $json.amount * 100 }}",
+            "interval": "month"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "unit_amount",
+              "displayName": "unit_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "interval",
+              "displayName": "interval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        -80
+      ],
+      "id": "7c279c49-e2b0-42f1-a002-d48383b570d0",
+      "name": "Create price"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nq0uoikw0V6BoF9L",
+          "mode": "list",
+          "cachedResultName": "Create stripe subscription"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer": "={{ $('Map params').item.json.customer_id }}",
+            "price": "={{ $json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "customer",
+              "displayName": "customer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        -80
+      ],
+      "id": "c2550c26-c777-49c9-8320-35cf92ed37b1",
+      "name": "Create Subscription"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Set customer id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map params": {
+      "main": [
+        [
+          {
+            "node": "Create price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get customer sheet data": {
+      "main": [
+        [
+          {
+            "node": "Map params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update customer sheet data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set customer id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set customer id": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get customer sheet data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create price": {
+      "main": [
+        [
+          {
+            "node": "Create Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Subscription": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {
+          "id": "cus_SeBIgVzxylVHCJ",
+          "object": "customer",
+          "address": null,
+          "balance": 0,
+          "created": 1680893993,
+          "currency": null,
+          "default_source": null,
+          "delinquent": false,
+          "description": null,
+          "email": "alexei.sonets@dizzain.com",
+          "invoice_prefix": "0759376C",
+          "invoice_settings": {
+            "custom_fields": null,
+            "default_payment_method": null,
+            "footer": null,
+            "rendering_options": null
+          },
+          "livemode": false,
+          "metadata": {},
+          "name": "Alexes Sonets",
+          "next_invoice_sequence": 1,
+          "phone": null,
+          "preferred_locales": [],
+          "shipping": null,
+          "tax_exempt": "none",
+          "test_clock": null
+        }
+      }
+    ]
+  },
+  "versionId": "79af7139-55df-4971-a716-e9216460a341",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:03.665Z",
+      "updatedAt": "2025-08-28T14:35:03.665Z",
+      "role": "workflow:owner",
+      "workflowId": "tHoopT0HjAive47o",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
