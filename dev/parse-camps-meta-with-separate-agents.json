@@ -1,0 +1,1377 @@
+{
+  "createdAt": "2025-06-30T13:12:08.304Z",
+  "updatedAt": "2025-07-16T06:34:32.663Z",
+  "id": "vvih396FVNNUTPKp",
+  "name": "Parse camps meta with separate agents",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.sportscampscanada.com/find-a-camp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        500
+      ],
+      "id": "fccb5d7e-15ac-45c8-9833-ba6155ed8b97",
+      "name": "Get page html"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "config_src",
+              "cssSelector": "script[src*=\".txt\"]",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        660
+      ],
+      "id": "d60b1e19-b207-4180-9f34-09695430cada",
+      "name": "Parse config source"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Исходная строка, которую ты получаешь\nconst datas = $input.all() || [];\n\nlet csvUrl = null;\n\nfor (const rawString of datas) {\n  if(!!csvUrl) continue;\n  const regex = /CSV:\\s+\"(https:\\/\\/[^\\\"]+)\"/;\n  // Извлекаем ссылку\n  const matches = rawString.json.data.match(regex);\n  csvUrl = matches && matches[1] || null; \n}\n\n\nreturn {\n  json: {\n    csvUrl\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        500
+      ],
+      "id": "f40d689e-3cdd-4617-94b4-c542173f9fe0",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.config_src }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        660
+      ],
+      "id": "89a25327-9499-49c3-b045-d01ee4707166",
+      "name": "Get config"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.csvUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        660
+      ],
+      "id": "b82b070d-1791-40e5-93c2-05b4c2b51f42",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        500
+      ],
+      "id": "38751b2c-0ef5-482e-8895-0796cc52eb7a",
+      "name": "All camps data"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1840,
+        340
+      ],
+      "id": "0f6e3326-7299-4dd8-98a7-9571e641c653",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps_to_parse = $input.all() || [];\n\nconst all_camps_data = $(\"All camps data\").all() || [];\n\n\n// --- ШАГ 1: Функции для обработки и сравнения строк ---\n\n// Определяем набор стоп-слов, которые нужно игнорировать.\n// Использование Set обеспечивает очень быстрый поиск (метод .has()).\nconst STOP_WORDS = new Set(['at', 'the', 'in', 'a', 'an', 'for', 'of', 'on']);\n\n/**\n * Нормализует строку и превращает ее в Set уникальных, значащих слов.\n * @param {string} text - Исходная строка.\n * @returns {Set<string>} - Набор слов.\n */\nfunction preprocessStringToSet(text) {\n    if (!text || typeof text !== 'string') {\n        return new Set();\n    }\n    // 1. Привести к нижнему регистру и удалить все символы, кроме букв, цифр и пробелов.\n    // Флаг 'g' означает \"глобальный\" поиск, чтобы заменить все вхождения.\n    const normalizedText = text.toLowerCase().replace(/[^\\w\\s]/g, '');\n    \n    // 2. Разбить на слова и отфильтровать пустые строки и стоп-слова.\n    const tokens = normalizedText.split(/\\s+/) // Разделяем по одному или нескольким пробелам\n        .filter(word => word.length > 0 && !STOP_WORDS.has(word));\n        \n    // 3. Вернуть как Set для уникальности и быстрых операций.\n    return new Set(tokens);\n}\n\n/**\n * Вычисляет коэффициент схожести Жаккара для двух наборов (Set).\n * @param {Set<string>} set1\n * @param {Set<string>} set2\n * @returns {number} - Коэффициент от 0 до 1.\n */\nfunction jaccardSimilarity(set1, set2) {\n    const intersection = new Set([...set1].filter(word => set2.has(word)));\n    const union = new Set([...set1, ...set2]);\n\n    // Защита от деления на ноль, если оба набора пустые.\n    if (union.size === 0) {\n        return 1.0; // Два пустых набора идентичны\n    }\n    \n    return intersection.size / union.size;\n}\n\n\n// --- ШАГ 2: Основная логика слияния ---\n\n// Используем метод .map(), чтобы преобразовать каждый элемент исходного массива в новый\nconst mergedCamps = camps_to_parse.map(campToFind => {\n    let bestMatch = null;\n    let highestScore = -1;\n\n    const setToFind = preprocessStringToSet(campToFind.json.camp_name);\n\n    for (const potentialMatch of all_camps_data) {\n        const potentialSet = preprocessStringToSet(potentialMatch.json.Name.trim());\n        const score = jaccardSimilarity(setToFind, potentialSet);\n\n        if (score > highestScore) {\n            highestScore = score;\n            bestMatch = potentialMatch;\n        }\n    }\n    \n    // Создаем новый объект, копируя все свойства из campToFind,\n    // и добавляем результат поиска.\n    const result = {\n      name: campToFind.json.camp_name\n    };\n    \n    // Устанавливаем порог уверенности, например, 0.5 (50% общих слов)\n    if (bestMatch && highestScore > 0.5) {\n      result.slug = bestMatch.json.Slug;\n      // result.matched_data = bestMatch;\n      // result.match_score = highestScore;\n    } else {\n      result.slug = null;\n      // result.matched_data = null;\n      // result.match_score = 0;\n    }\n    \n    return result;\n});\n\nreturn mergedCamps;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        340
+      ],
+      "id": "216dd85c-6d29-4f0c-a30e-b8b37f8f543b",
+      "name": "Add meta for camps"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.sportscampscanada.com/camps/{{ $json.slug }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        220
+      ],
+      "id": "51d3dfc8-fdb4-4487-a8b4-20fc78697e7a",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2480,
+        340
+      ],
+      "id": "3ef37fb8-456b-4d55-82bc-128917aba89d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7ed11b87-b077-40b1-8eee-035a0f8737dc",
+              "leftValue": "={{ $json.slug }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2720,
+        340
+      ],
+      "id": "5c68940e-a94a-49c3-a214-9e3ea086ab2b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        400
+      ],
+      "id": "0b1c57d5-59c6-453f-95f0-9ce85de8383b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zlpzHmEIFxC4AQLg",
+          "name": "Alex's free gemini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "content",
+              "cssSelector": ".site-wrapper",
+              "returnValue": "html"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        3220,
+        220
+      ],
+      "id": "7e7bfe34-0301-43d1-8d4e-e15b572bd99c",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campStartDate = $(\"Loop Over Items\").first().json;\nconst data = $input.first().json.output || {};\n\nconst output = {\n  link: `https://www.sportscampscanada.com/camps/${campStartDate.slug}`,\n  name: campStartDate.name\n};\n\nif(data && !data.properties) {\n  output.type = data.type;\n  output.sport = (data.sport || \"\").toLowerCase();\n  output.location = data.location;\n  output.season = data.season;\n  output.dates = \"\";\n  output.age = \"\";\n  output.skill = \"\";\n  if(data.sessions) {\n    for (const session of data.sessions) {\n      if(data.sessions.length > 1) {\n        output.dates += `${session.session_name} - ${session.dates} \\n`;\n        output.age += `${session.session_name} - ${session.age} \\n`;\n        output.skill += `${session.session_name} - ${session.skill} \\n`;\n      } else {\n        output.dates = `${session.dates}`;\n        output.age = `${session.age}`;\n        output.skill = `${session.skill}`;\n      }\n    } \n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        440
+      ],
+      "id": "c6f38aee-7034-43c8-9486-dcfc7b1e88a3",
+      "name": "Prepare data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campStartDate = $(\"Loop Over Items\").first().json;\n\nconst output = {\n  link: `https://www.sportscampscanada.com/camps/${campStartDate.slug}`,\n  name: campStartDate.name\n};\n\nreturn output"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        440
+      ],
+      "id": "8ddd75ae-3ed1-4cbf-be55-b93a66b3c715",
+      "name": "Prepare data1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b0c7d08-2947-40e8-96d4-01d2e79523ea",
+              "leftValue": "={{ $itemIndex }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2260,
+        340
+      ],
+      "id": "03ad3675-d5c4-4f49-94c4-ad33722f494c",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"type\": \"string\",\n  \"sport\": \"string\",\n  \"location\": \"string\",\n  \"season\": \"string\",\n  \"sessions\": [\n    {\n      \"session_name\": \"string\",\n      \"dates\": \"string\",\n      \"age\": \"string\",\n      \"skill\": \"string\"\n    }\n  ]\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3920,
+        400
+      ],
+      "id": "0d580349-034f-477b-acc2-79490878e318",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        4860,
+        20
+      ],
+      "id": "23727a1b-4197-4bca-b081-73a9c0030095",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "### **Guiding Principles**\n*   **You are an intelligent processor executing a strict algorithm.** Your ONLY source of information is the JSON object provided as input.\n*   **The Grounding Rule: No Hallucinations.** If information cannot be derived from the input JSON, the output field MUST be `\"\"`.\n*   **The Tool is the Judge:** The decision to aggregate or separate is made **exclusively** by the `analyzeJaccardSimilarity` tool.\n\n### **Core Task**\nGiven a JSON object containing pre-extracted parallel lists of data, execute the **Master Processing Logic**. This involves re-combining and parsing the input, using a tool to make a critical decision, and assembling the final, formatted JSON.\n\n---\n\n### **Input Data Format (JSON from Stage 1)**\n{\n  \"title\": \"string\",\n  \"sport\": \"string\",\n  \"year\": \"string\",\n  \"location_found\": \"string\",\n  \"session_headings_from_register_block\": [\"string\", ...],\n  \"session_dates\": [\"string\", ...],\n  \"session_ages\": [\"string\", ...],\n  \"session_skills\": [\"string\", ...]\n}\n\n### **Required Output Format (JSON)**\n{\n  \"type\": \"string\",\n  \"sport\": \"string\",\n  \"location\": \"string\",\n  \"season\": \"string\",\n  \"sessions\": [\n    {\n      \"session_name\": \"string\",\n      \"dates\": \"string\",\n      \"age\": \"string\",\n      \"skill\": \"string\"\n    }\n  ]\n}\n---\n### **The Algorithm: Execute in This Exact Order**\n\n#### **Step 1: Establish Page Identity**\n1.  **`type` & `location`:**\n    *   Take the `title` string from the input. Identify the `type` (e.g., \"Nike Soccer Camp\").\n    *   The text remaining in `title` after removing the `type` and prepositions is the `title_location_candidate`.\n    *   The `location_found` string from the input is the `body_location_candidate`.\n    *   **Apply Priority:** If `title_location_candidate` is a valid location, use it. Otherwise, use `body_location_candidate`. This is the final `location`.\n2.  **`sport`:** Take the `sport` value directly from the input JSON.\n\n#### **Step 2: Prepare Input for the Tool**\n1.  Take the `session_headings_from_register_block` list from the input JSON.\n2.  **Create a `cleaned_headings` list:** For each string in `session_headings_from_register_block`, remove all date information and any text in parentheses.\n    *   *Example:* \"Nike Tennis Camp ATC: July 2-4, 2025 (3 day camp)\" becomes \"Nike Tennis Camp ATC\".\n3.  This `cleaned_headings` list is your input for the tool.\n\n#### **Step 3: The CRITICAL DECISION GATE (Using the `analyzeJaccardSimilarity` Tool)**\n1.  Pass the `cleaned_headings` list to the **`analyzeJaccardSimilarity`** tool.\n2.  The tool will return a decision: `'AGGREGATE'` or `'SEPARATE'`.\n3.  Based on the decision, execute **ONLY ONE** of the following paths.\n\n#### **Step 4: Execute Final Logic & Assemble Sessions**\n*Based on the tool's decision, execute ONLY one of the following paths.*\n\n*   **PATH A: AGGREGATION LOGIC**\n    1.  Create a **single session object**.\n    2.  `session_name`: Set to `\"\"`.\n    3.  `dates`: Parse all strings from the `session_dates` input list. Determine the absolute earliest start and latest end date. Format the result without the year.\n        *   *Format Example:* \"July 7 - August 1\".\n    4.  `age` (Format: `'[range] years'`): Parse all strings from the `session_ages` input list. Determine the absolute minimum and maximum age. Combine and format.\n    5.  `skill`: Examine all strings in the `session_skills` input list. If they describe a range of abilities, set to `\"All Skills\"`.\n    6.  The `sessions` array will contain only this one object.\n\n*   **PATH B: SEPARATION LOGIC**\n    1.  This path requires you to \"zip\" the parallel input lists together.\n    2.  Create a new session object **for each index `i`** from 0 to the length of the `session_headings_from_register_block` list.\n    3.  **For each object at index `i`:**\n        *   `session_name`: Take the `i`-th element from your `cleaned_headings` list (created in Step 2).\n        *   `dates`: Take the `i`-th element from the `session_dates` input list and format it (remove year, etc.).\n        *   `age` (Format: `'[range] years'`): Take the `i`-th element from the `session_ages` input list and format it.\n        *   `skill`: Take the `i`-th element from the `session_skills` input list.\n    4.  The `sessions` array will contain all of these created objects.\n\n#### **Step 5: Final Assembly & `season` Calculation**\n1.  **Calculate `season` (Strict Procedure):**\n    *   The `season` value is **ALWAYS** composed of `[Season Name] [Year]`.\n    *   **Get [Year]:** Take the `year` value from the input JSON.\n    *   **Get [Season Name]:** Derive this from the earliest start month of the final `dates` field you calculated in Step 4.\n        *   Summer: June, July, August\n        *   Spring: March, April, May\n        *   Autumn: September, October, November\n        *   Winter: December, January, February\n    *   **Fallback:** If `year` or `dates` are empty, `season` **MUST** be `\"\"`.\n2.  **Final JSON:** Assemble all the final calculated fields into the required output format."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        4460,
+        0
+      ],
+      "id": "3277e300-e359-42e1-beb4-31ec7f82fad3",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Вспомогательная функция для преобразования строки в набор уникальных слов (токенов).\n * @param {string} str - Исходная строка.\n * @returns {Set<string>} Набор уникальных токенов.\n */\nfunction stringToTokenSet(str) {\n    if (!str || typeof str !== 'string') {\n        return new Set();\n    }\n    \n    const tokens = str\n        .toLowerCase()\n        .replace(/[^\\w\\s-]/g, '')\n        .split(/\\s+/);\n        \n    return new Set(tokens.filter(Boolean)); \n}\n\n\n/**\n * Анализирует массив строк на схожесть по методу Жаккара.\n * Сравнивает первую строку со всеми остальными и принимает решение об объединении.\n *\n * @param {string[]} stringArray - Массив строк для анализа.\n * @param {number} [threshold=0.5] - Порог схожести для принятия решения об объединении.\n * @returns {{decision: ('AGGREGATE'|'SEPARATE'), scores: number[]}} - Объект с решением и массивом коэффициентов.\n */\nfunction analyzeJaccardSimilarity(stringArray, threshold = 0.2) {\n    // Обработка крайних случаев: если в массиве меньше двух строк, сравнивать нечего.\n    if (!Array.isArray(stringArray) || stringArray.length < 2) {\n        return {\n            decision: 'AGGREGATE', // Нечего объединять\n            scores: []\n        };\n    }\n\n    // Первая строка становится эталоном для сравнения\n    const referenceSet = stringToTokenSet(stringArray[0]);\n    const scores = [];\n\n    // Сравниваем каждую последующую строку с эталоном\n    for (let i = 1; i < stringArray.length; i++) {\n        const currentSet = stringToTokenSet(stringArray[i]);\n\n        // Логика расчета коэффициента Жаккара\n        const intersection = new Set([...referenceSet].filter(token => currentSet.has(token)));\n        const union = new Set([...referenceSet, ...currentSet]);\n        \n        const score = union.size === 0 ? 1.0 : intersection.size / union.size;\n        scores.push(score);\n    }\n\n    // Принимаем решение: нужно ли объединять?\n    // Объединяем, только если КАЖДАЯ строка похожа на первую (все коэф. > порога)\n    const shouldAggregate = scores.every(score => score > threshold);\n    const decision = shouldAggregate ? 'AGGREGATE' : 'SEPARATE';\n\n    return {\n        decision: decision,\n        scores: scores\n    };\n}\n\n\nconst result = query.session_names.length && analyzeJaccardSimilarity(query.session_names) || {};\n// console.log(\"Анализ похожих сессий:\");\n// console.log(result1);\n// Ожидаем: { decision: 'AGGREGATE', scores: [ 0.75, 0.66... ] }\nreturn JSON.stringify(result);",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"session_names\": [\n    \"session_name\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        5200,
+        20
+      ],
+      "id": "d8b6dd7e-25ec-4c60-b809-5d8464dee8fb",
+      "name": "analyzeJaccardSimilarity"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A",
+          "mode": "list",
+          "cachedResultName": "Sportscampscanada - camps parse meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 11149240,
+          "mode": "list",
+          "cachedResultName": "Parsed meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit#gid=11149240"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2480,
+        160
+      ],
+      "id": "5264f076-d908-4585-a2fe-a32903b48ceb",
+      "name": "Clear sheet",
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A",
+          "mode": "list",
+          "cachedResultName": "Sportscampscanada - camps parse meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 11149240,
+          "mode": "list",
+          "cachedResultName": "Parsed meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit#gid=11149240"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dates",
+              "displayName": "dates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "age",
+              "displayName": "age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skill",
+              "displayName": "skill",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        4440,
+        440
+      ],
+      "id": "a244d5ab-7f9e-499d-98b2-ecdf26423ba3",
+      "name": "Append meta",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "app_mention"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "options": {},
+        "path": "670fee6d-89f0-4414-bbcf-63edf342dbc8"
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -20
+      ],
+      "id": "55414d30-859e-4b08-a6cb-c67373690f31",
+      "name": "Slack Trigger",
+      "webhookId": "670fee6d-89f0-4414-bbcf-63edf342dbc8",
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\nif(!Object.keys(input).length) {\n  return {};\n}\nconst link = input.blocks[0].elements[0].elements.find(item => item.type === 'link' && item.url.includes(\"https://docs.google.com\"));\n\nconst colName = input.blocks[0].elements[0].elements.find(item => item.type === 'text' && item.text !== \" \");\n\nreturn {\n  json: {\n    link: !!link && link.url || \"\",\n    colName: !!colName && colName.text || \"\",\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        160
+      ],
+      "id": "2254b4e2-33c7-46fe-9b7f-e2a30b072368",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.link }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.link }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        920,
+        -20
+      ],
+      "id": "158702af-3cf5-415d-afdb-0db2f19c287f",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6735f1a0-6eff-45f0-a2ad-ef869b436e8d",
+              "name": "camp_name",
+              "value": "={{ $json[$('Code1').item.json.colName] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1060,
+        -20
+      ],
+      "id": "d76577ed-5bd2-475a-8f41-4767936e812a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01e25fe6-672e-4ccb-8024-52e0c816af89",
+              "leftValue": "={{ $json.link }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2edf836b-73d1-49d2-b362-4286ee229f09",
+              "leftValue": "={{ $json.colName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        160
+      ],
+      "id": "97cd4bc1-f953-461e-9cb5-dc8185214dc7",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> The link isn't Google Drive folder or Column name is empty",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "d6669987-653b-49a4-b089-27c3881eb442"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        980,
+        160
+      ],
+      "id": "4fb0b4d7-9735-426a-aa0e-fbed639bcb15",
+      "name": "Is not google drive link",
+      "webhookId": "d6669987-653b-49a4-b089-27c3881eb442",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "952f4417-3cfa-4bb4-95d1-7588b5a24fb0",
+              "leftValue": "={{ $input.first().json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        160
+      ],
+      "id": "a7cdedc3-d4ba-4056-b6f0-408624ccff19",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "47c87e62-54e8-49b6-8575-c59d0f90afb7",
+              "leftValue": "={{ $json.camp_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        160
+      ],
+      "id": "3aa7f243-6c85-4ec6-8cbd-1eeb9507b2c7",
+      "name": "Filter1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "path": "e2eb673c-fba7-4492-aa07-600142d5b7dc"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4620,
+        440
+      ],
+      "id": "7a5f5b4a-9714-43d1-9986-fa22d3ea4d18",
+      "name": "Wait",
+      "webhookId": "e2eb673c-fba7-4492-aa07-600142d5b7dc"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Rows not found",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "7663bc90-4b3a-422e-a3b5-91dafab1a57b"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1560,
+        340
+      ],
+      "id": "ed779002-55f1-4774-9d70-0825db07458d",
+      "name": "Rows not found",
+      "webhookId": "7663bc90-4b3a-422e-a3b5-91dafab1a57b",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Process finished! <https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?gid=11149240#gid=11149240|Here is a camps data!>",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "f59ab759-18bb-49da-8f5c-898ff3a51bb0"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2720,
+        160
+      ],
+      "id": "335b852d-cecb-450c-824a-b3396e65173b",
+      "name": "Finished",
+      "webhookId": "f59ab759-18bb-49da-8f5c-898ff3a51bb0",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Process is started!",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "b9ed71fc-3226-4bc4-b6f8-4ff78d8c8db1"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2480,
+        0
+      ],
+      "id": "911b84fa-8154-41f1-a5f0-efe8398bf612",
+      "name": "Start process",
+      "webhookId": "b9ed71fc-3226-4bc4-b6f8-4ff78d8c8db1",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.first().json.config_src.map(item => ({config_src: item}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        500
+      ],
+      "id": "9f97b2e4-fb3a-47e1-b644-09db0b274fcb",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.content }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"title\": \"The full, unmodified text content of the main `<h1>` heading on the page. If not found, this field must be an empty string.\",\n  \"sport\": \"The sport for which the camp is intended, extracted from the `title` field. If not found, this field must be an empty string.\",\n  \"year\": \"The 4-digit year of the camp, found by scanning the page's content. If not found, this field must be an empty string.\",\n  \"location_found\": \"The physical location of the camp, found by scanning for a dedicated 'Location' section in the HTML. Extract the address as-is. If not found, this field must be an empty string.\",\n  \"session_headings_from_register_block\": [\n    \"First, find the HTML element with id='register-block'. Inside it, find every session heading (usually an `<h3>` tag) and extract its full, unmodified text into this list. This list is the primary reference; all other session lists below MUST be the same length.\"\n  ],\n  \"cleaned_session_headings\": [\n    \"The purpose of this field is to isolate the core name of each session by removing secondary details like dates or week numbers. This list MUST be the same length as `session_headings_from_register_block`. For EACH string from that list, your task is to identify and extract ONLY the main name of the camp or session. Follow this logic: Look for a colon `:` or a comma `,` followed by a date. The text BEFORE this separator is the main name. If no separator is found, assume the entire string (with any dates/parentheses removed) is the main name. CRITICAL: The result MUST be the camp name, NOT the date or the week number. For example: 'Nike Basketball Camp Montreal: Semaine/Week 1' MUST BECOME 'Nike Basketball Camp Montreal'. And 'Nike Soccer Camp at LCI Sports Centre, July 7-11, 2025' MUST BECOME 'Nike Soccer Camp at LCI Sports Centre'.\"\n  ],\n  \"session_dates\": [\n    \"This list MUST be the same length as the `session_headings_from_register_block` list. For EACH heading in that list, find its corresponding date on the page and place it here at the SAME index. If the date is part of the heading text itself, extract it from there. If no date is found for a specific session, place an empty string `\\\"\\\"` at its index to maintain order.\"\n  ],\n  \"session_ages\": [\n    \"This list MUST be the same length as the `session_headings_from_register_block` list. The process for each session is two steps. Step 1: Find the corresponding age string for the session (e.g., '7-15'). Step 2: Perform a separate search across the ENTIRE HTML document for the exact term 'Co-Ed'. If 'Co-Ed' is found anywhere on the page, you MUST append ', Co-Ed' to the age string you found in Step 1. The final result should be placed at the correct index in this list. Example: '7-15, Co-Ed'. If no age is found, place an empty string `\\\"\\\"` here.\"\n  ],\n  \"session_skills\": [\n    \"This list MUST be the same length as the `session_headings_from_register_block` list. For EACH heading in that list, find its corresponding skill level information on the page and place it here at the SAME index. If no skill level is found for a specific session, place an empty string `\\\"\\\"` at its index to maintain order.\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        3420,
+        140
+      ],
+      "id": "11203e91-047a-4aca-a79d-dd61291972a9",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Вспомогательная функция для преобразования строки в набор уникальных слов (токенов).\n * @param {string} str - Исходная строка.\n * @returns {Set<string>} Набор уникальных токенов.\n */\nfunction stringToTokenSet(str) {\n    if (!str || typeof str !== 'string') {\n        return new Set();\n    }\n    \n    const tokens = str\n        .toLowerCase()\n        .replace(/[^\\w\\s-]/g, '')\n        .split(/\\s+/);\n        \n    return new Set(tokens.filter(Boolean)); \n}\n\n\n/**\n * Анализирует массив строк на схожесть по методу Жаккара.\n * Сравнивает первую строку со всеми остальными и принимает решение об объединении.\n *\n * @param {string[]} stringArray - Массив строк для анализа.\n * @param {number} [threshold=0.5] - Порог схожести для принятия решения об объединении.\n * @returns {{decision: ('AGGREGATE'|'SEPARATE'), scores: number[]}} - Объект с решением и массивом коэффициентов.\n */\nfunction analyzeJaccardSimilarity(stringArray, threshold = 0.2) {\n    // Обработка крайних случаев: если в массиве меньше двух строк, сравнивать нечего.\n    if (!Array.isArray(stringArray) || stringArray.length < 2) {\n        return {\n            decision: 'AGGREGATE', // Нечего объединять\n            scores: []\n        };\n    }\n\n    // Первая строка становится эталоном для сравнения\n    const referenceSet = stringToTokenSet(stringArray[0]);\n    const scores = [];\n\n    // Сравниваем каждую последующую строку с эталоном\n    for (let i = 1; i < stringArray.length; i++) {\n        const currentSet = stringToTokenSet(stringArray[i]);\n\n        // Логика расчета коэффициента Жаккара\n        const intersection = new Set([...referenceSet].filter(token => currentSet.has(token)));\n        const union = new Set([...referenceSet, ...currentSet]);\n        \n        const score = union.size === 0 ? 1.0 : intersection.size / union.size;\n        scores.push(score);\n    }\n\n    // Принимаем решение: нужно ли объединять?\n    // Объединяем, только если КАЖДАЯ строка похожа на первую (все коэф. > порога)\n    const shouldAggregate = scores.every(score => score >= threshold);\n    const decision = shouldAggregate ? 'AGGREGATE' : 'SEPARATE';\n\n    return {\n        decision: decision,\n        scores: scores\n    };\n}\n\n\nconst input = $input.first().json.output || {};\ninput.decision = input.cleaned_session_headings.length && analyzeJaccardSimilarity(input.cleaned_session_headings) || {};\n\nreturn input;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        140
+      ],
+      "id": "2b929710-67a8-4552-813e-46d40b24aabf",
+      "name": "analyzeJaccardSimilarity1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "### **Guiding Principles**\n*   **You are an intelligent processor executing a strict algorithm.** Your ONLY source of information is the JSON object provided as input.\n*   **The Grounding Rule: No Hallucinations.** If information cannot be derived from the input JSON, the output field MUST be `\"\"`.\n*   **The Input is the Judge:** The decision to `AGGREGATE` or `SEPARATE` is provided in the input JSON. You **MUST** obey this decision.\n\n### **Core Task**\nGiven a JSON object with pre-extracted data and a pre-made processing decision, execute the **Master Processing Logic**. This involves parsing the input fields according to the provided decision and assembling the final, formatted JSON.\n\n---\n\n### **Input Data Format (JSON from Stage 2)**\n{\n  \"title\": \"string\",\n  \"sport\": \"string\",\n  \"year\": \"string\",\n  \"location_found\": \"string\",\n  \"session_headings_from_register_block\": [\"string\", ...],\n  \"session_dates\": [\"string\", ...],\n  \"session_ages\": [\"string\", ...],\n  \"session_skills\": [\"string\", ...],\n  \"decision\": {\n    \"decision\": \"SEPARATE\" or \"AGGREGATE\"\n  }\n}\n\n### **Required Output Format (JSON)**\n{\n  \"type\": \"string\",\n  \"sport\": \"string\",\n  \"location\": \"string\",\n  \"season\": \"string\",\n  \"sessions\": [\n    {\n      \"session_name\": \"string\",\n      \"dates\": \"string\",\n      \"age\": \"string\",\n      \"skill\": \"string\"\n    }\n  ]\n}\n---\n### **The Algorithm: Execute in This Exact Order**\n\n#### **Step 1: Establish Page Identity**\n1.  **`type` & `location`:**\n    *   Take the `title` string from the input. Identify the `type` (e.g., \"Nike Soccer Camp\").\n    *   The text remaining in `title` after removing the `type` and prepositions is the `title_location_candidate`.\n    *   The `location_found` string from the input is the `body_location_candidate`.\n    *   **Apply Priority:** If `title_location_candidate` is a valid location, use it. Otherwise, use `body_location_candidate`. This is the final `location`.\n2.  **`sport`:** Take the `sport` value directly from the input JSON.\n\n#### **Step 2: The CRITICAL DECISION GATE (Reading the Input)**\n1.  Read the value of the `decision.decision` key from the input JSON.\n2.  Based on this value (`'AGGREGATE'` or `'SEPARATE'`), execute **ONLY ONE** of the following paths.\n\n#### **Step 3: Execute Final Logic & Assemble Sessions**\n\n*   **PATH A: AGGREGATION LOGIC**\n    1.  Create a **single session object**.\n    2.  `session_name`: Set to `\"\"`.\n    3.  `dates`: Parse all strings from the `session_dates` list. Determine the earliest start and latest end date. Format the result without the year.\n    4.  **`age` (Revised Aggregation & Formatting Procedure):**\n        *   **A. Analyze Data Type:** First, examine the strings in the `session_ages` list. Do they contain primarily numerical ranges (e.g., \"9-12\") or category identifiers (e.g., \"U14\", \"U15\")?\n        *   **B. Generate Core Age String (Conditional Logic):**\n            *   **If numerical ranges:** Determine the absolute minimum and maximum age from all strings. Combine them into a single range string (e.g., \"7-15\").\n            *   **If category identifiers:** Extract all unique identifiers (e.g., \"U14\", \"U15\", \"U16\", \"U17\"). Sort them and join them with a comma and space. The result is a list string (e.g., \"U14, U15, U16, U17\").\n        *   **C. Check for \"Co-Ed\":** Scan all original strings in the `session_ages` list for terms like \"Co-Ed\" or \"Boys & Girls\".\n        *   **D. Assemble Final String:**\n            *   Start with the Core Age String from step B.\n            *   If a \"Co-Ed\" term was found in step C, prepend \"Co-Ed, \" to the string.\n            *   If the Core Age String is a numerical range, append \" years\".\n            *   *Example 1 (Numerical):* Result is \"Co-Ed, 7-15 years\".\n            *   *Example 2 (Categorical):* Result is \"Co-Ed, U14, U15, U16, U17\".\n    5.  `skill`: Examine all strings in the `session_skills` list. If they describe a range of different abilities, set to `\"All Skills\"`.\n    6.  The `sessions` array will contain only this one object.\n\n*   **PATH B: SEPARATION LOGIC**\n    1.  Create a new session object for each index `i` of the `session_headings_from_register_block` list.\n    2.  **For each object at index `i`:**\n        *   `session_name`: Take the `i`-th string from `session_headings_from_register_block` and clean it (remove dates/parentheses).\n        *   `dates`: Take the `i`-th string from `session_dates` and format it.\n        *   `age`: Take the `i`-th string from `session_ages` and format it (e.g., ensure \"Co-Ed\" is included if present, add \" years\" if appropriate).\n        *   `skill`: Take the `i`-th string from `session_skills`.\n    3.  The `sessions` array will contain all of these created objects.\n\n#### **Step 4: Final Assembly & `season` Calculation**\n1.  **Calculate `season` (Strict Procedure):**\n    *   **Get [Year]:** Take the `year` value from the input JSON.\n    *   **Get [Season Name]:** Derive this from the earliest start month of the final `dates` field you calculated in Step 3. Use the mapping: Summer (Jun-Aug), Spring (Mar-May), Autumn (Sep-Nov), Winter (Dec-Feb).\n    *   Combine into \"Season Year\". If `year` or `dates` are empty, `season` MUST be `\"\"`.\n2.  **Final JSON:** Assemble all the final calculated fields into the required output format."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        4000,
+        140
+      ],
+      "id": "78828477-9191-47b0-9208-6abc5c4be745",
+      "name": "Basic LLM Chain",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Get page html": {
+      "main": [
+        [
+          {
+            "node": "Parse config source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse config source": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get config": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "All camps data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All camps data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add meta for camps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add meta for camps": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Finished",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data": {
+      "main": [
+        [
+          {
+            "node": "Append meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Start process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "analyzeJaccardSimilarity": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Append meta": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get page html",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is not google drive link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rows not found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Get config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "analyzeJaccardSimilarity1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyzeJaccardSimilarity1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Prepare data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "ecb14e72-a203-4bfb-973e-9110750d007a",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:34.162Z",
+      "updatedAt": "2025-08-28T14:35:34.162Z",
+      "role": "workflow:owner",
+      "workflowId": "vvih396FVNNUTPKp",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
