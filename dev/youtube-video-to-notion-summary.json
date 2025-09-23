@@ -1,0 +1,218 @@
+{
+  "createdAt": "2025-08-23T14:41:05.901Z",
+  "updatedAt": "2025-08-23T14:41:05.901Z",
+  "id": "PwUB4LVOFUV4dP29",
+  "name": "YouTube Video to Notion Summary",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "5a415e61-c89b-4c48-84a5-6364115e4414",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "youtubeUrl",
+              "type": "string",
+              "default": "https://www.youtube.com/watch?v=frh0KAYl2xU",
+              "placeholder": "Enter YouTube Video URL",
+              "description": "Link to the YouTube video you want to summarize."
+            }
+          ]
+        }
+      },
+      "id": "e028b056-e63d-4c31-97b5-24e6720e5db7",
+      "name": "Input Video URL",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.youtubeUrl }}"
+      },
+      "id": "18f91807-06b2-4d24-811c-c2a412850785",
+      "name": "Get YouTube Transcript",
+      "type": "n8n-nodes-base.youtubeTranscript",
+      "typeVersion": 1,
+      "position": [
+        240,
+        320
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "prompt": "={{ `Based on the following transcript from a YouTube video, please perform two tasks:\n\n1.  Write a concise summary of the content.\n2.  Identify and list the 5 most important key takeaways.\n\nStructure your response using Markdown. Use '## Summary' as the heading for the summary and '## Key Takeaways' as the heading for the takeaways list.\n\nTranscript:\n---\n${{ $('Get YouTube Transcript').item.json.text }}---` }}"
+      },
+      "id": "1537b796-0158-450a-a50e-56e6fa0f0896",
+      "name": "Generate Summary & Takeaways",
+      "type": "n8n-nodes-base.openAiChat",
+      "typeVersion": 1,
+      "position": [
+        480,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": "REPLACE_WITH_YOUR_DATABASE_ID",
+        "title": "={{ `Summary of YouTube Video: ${$json.youtubeUrl}` }}",
+        "content": {
+          "__rl": true,
+          "value": "={{ $('Generate Summary & Takeaways').item.json.message.content }}",
+          "mode": "json"
+        }
+      },
+      "id": "67b93197-0099-4d2c-af61-39c2c62c9c5d",
+      "name": "Save to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3.1,
+      "position": [
+        720,
+        320
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "note": "Stage 1: Input Video URL\nThe workflow is triggered manually and prompts the user to input a public YouTube video URL."
+      },
+      "id": "610214c7-1d54-4a4a-92c2-805177a4505c",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "note": "Stage 2: Get Video Transcript\nRetrieves the full text transcript of the provided YouTube video."
+      },
+      "id": "b3e34b72-f19b-4177-8386-83cae19d7d4c",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "note": "Stage 3: AI Content Generation\nAn AI model processes the transcript to generate a concise summary and a list of the top 5 key takeaways."
+      },
+      "id": "1d8bfac1-f925-4c07-b37f-6831d102e342",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "note": "Stage 4: Save to Notion\nCreates a new page in a Notion database with the AI-generated content."
+      },
+      "id": "e2d4f20e-8f19-4876-8575-b6ffc25b394d",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Input Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Video URL": {
+      "main": [
+        [
+          {
+            "node": "Get YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary & Takeaways",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary & Takeaways": {
+      "main": [
+        [
+          {
+            "node": "Save to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "f09e944e-3aa4-4ce6-9da3-51a3010cb0cd",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:49.116Z",
+      "updatedAt": "2025-08-28T14:31:49.116Z",
+      "role": "workflow:owner",
+      "workflowId": "PwUB4LVOFUV4dP29",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
