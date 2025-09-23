@@ -1,0 +1,38 @@
+{
+  "createdAt": "2025-09-13T22:33:51.833Z",
+  "updatedAt": "2025-09-13T23:25:06.608Z",
+  "id": "KXCBBoq8ncrXTbXW",
+  "name": "testflow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2f2a3011-4abd-497a-81b7-c6aba8c4294f",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "connections": {},
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "775e7d35-4f72-4235-aaf4-a7c34f70d838",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-13T22:33:51.833Z",
+      "updatedAt": "2025-09-13T22:33:51.833Z",
+      "role": "workflow:owner",
+      "workflowId": "KXCBBoq8ncrXTbXW",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
