@@ -1,0 +1,454 @@
+{
+  "createdAt": "2025-07-11T08:27:51.352Z",
+  "updatedAt": "2025-07-16T06:29:59.583Z",
+  "id": "voadA8MyzShe8x8t",
+  "name": "Stripe webhook splitter",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "customer.created",
+          "invoice.payment_succeeded",
+          "setup_intent.succeeded",
+          "setup_intent.canceled",
+          "invoice.payment_failed"
+        ]
+      },
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        20
+      ],
+      "id": "dc1686e4-a5ee-4516-b740-2a9f4d069411",
+      "name": "Stripe Trigger",
+      "webhookId": "3c783b44-f5d3-4531-87b1-1454ab8ca4e1",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "customer.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0d5add5e-dcf2-4a24-8d6f-f113dd4ac496"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "customer.created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d4a1f92a-2dc3-455b-84d5-d7bcb24a726c",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "invoice.payment_succeeded",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invoice.payment_succeeded"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "004e617a-0dff-448a-9507-e0c575df7a22",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "invoice.payment_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invoice.payment_failed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3b8a7e43-0b2b-4827-ad43-00acc3b3a381",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "setup_intent.succeeded",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "setup_intent.succeeded"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "64bb1d66-b6f5-4d73-bb1c-9f16d4e27914",
+                    "leftValue": "{{ $json.type }}",
+                    "rightValue": "setup_intent.canceled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "setup_intent.canceled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        -22
+      ],
+      "id": "9f191dab-4601-41e8-8e51-d6b751a3c60c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4v8LOI3InrtGkrZ0",
+          "mode": "list",
+          "cachedResultName": "InvoicePaid/InvoiceFailed Hook"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_id": "={{ $json.data.object.customer }}",
+            "status": "={{ $json.data.object.status }}",
+            "subscription_id": "={{ $json.data.object.parent.subscription_details.subscription }}",
+            "price_id": "={{ $json.data.object.lines.data[0].pricing.price_details.price }}",
+            "amount_paid": "={{ $json.data.object.amount_paid }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "subscription_id",
+              "displayName": "subscription_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "price_id",
+              "displayName": "price_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "amount_paid",
+              "displayName": "amount_paid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        20
+      ],
+      "id": "c9fabc1f-7985-4dde-93c7-0ccf9b724ef3",
+      "name": "InvoicePaid/InvoiceFailed Hook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tHoopT0HjAive47o",
+          "mode": "list",
+          "cachedResultName": "CustomerCreated Hook"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.data.object.id }}",
+            "email": "={{ $json.data.object.email }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        -180
+      ],
+      "id": "383ba13a-22e9-47f5-9190-03e88becc8c6",
+      "name": "CustomerCreated Hook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PHoOMvnZhsOmWZXL",
+          "mode": "list",
+          "cachedResultName": "SetupSucceeded Hook"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_id": "={{ $json.data.object.customer }}",
+            "status": "={{ $json.data.object.status }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        220
+      ],
+      "id": "fd135017-a9f8-4038-a7cf-90ae984b911b",
+      "name": "SetupSucceeded Hook"
+    }
+  ],
+  "connections": {
+    "Stripe Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "CustomerCreated Hook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "InvoicePaid/InvoiceFailed Hook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "InvoicePaid/InvoiceFailed Hook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SetupSucceeded Hook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SetupSucceeded Hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Stripe Trigger": {
+      "webhookId": "we_1RjegRKFYkhTMKD92slztdnN",
+      "webhookEvents": [
+        "customer.created",
+        "invoice.payment_succeeded",
+        "setup_intent.succeeded",
+        "setup_intent.canceled",
+        "invoice.payment_failed"
+      ],
+      "webhookSecret": "whsec_BMfVDGoWBCkzj5cmz9z72ErLyyhiHdCz"
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "cd84f21a-2e5c-4606-a58f-a2bbca0eb9e2",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:30.418Z",
+      "updatedAt": "2025-08-28T14:35:30.418Z",
+      "role": "workflow:owner",
+      "workflowId": "voadA8MyzShe8x8t",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
