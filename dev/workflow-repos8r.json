@@ -1,0 +1,389 @@
+{
+  "createdAt": "2025-09-08T12:46:10.049Z",
+  "updatedAt": "2025-09-22T15:30:31.139Z",
+  "id": "wAiTJAOUVXLl7gEY",
+  "name": "Workflow Repos8r",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "WorkflowManager",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "34f93063-30b8-49de-a103-64b6e185a426",
+      "name": "Webhook-ideogener8r",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        336,
+        512
+      ],
+      "webhookId": "e892f1af-d192-40e1-9c27-7fda6539d911"
+    },
+    {
+      "parameters": {
+        "content": "# User Interface",
+        "height": 299,
+        "width": 2436,
+        "color": 6
+      },
+      "id": "53b0bcaa-89bf-4266-b72c-f837fdc76982",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        272,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $json.repo }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.path }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        512
+      ],
+      "id": "773e9507-a3e0-42d3-8689-df02c9fd57b2",
+      "name": "GitHub",
+      "webhookId": "ffec7466-7fc8-42ba-94e3-233b6a964a71",
+      "credentials": {
+        "githubApi": {
+          "id": "7VQNHerCV03uma6z",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $json.repo }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.filePath }}",
+        "binaryPropertyName": "gitWorkflow",
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        800,
+        848
+      ],
+      "id": "26feb019-c9f2-4b6f-8026-7120aa3a7801",
+      "name": "GitHub2",
+      "webhookId": "4dd32039-c391-4abd-9381-3373481267b4",
+      "credentials": {
+        "githubApi": {
+          "id": "7VQNHerCV03uma6z",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "83291d80-75a8-492d-9d4a-625854656ff9",
+              "name": "repo",
+              "value": "devAutomations",
+              "type": "string"
+            },
+            {
+              "id": "a1ba4116-e872-4283-9869-1ad6967b5991",
+              "name": "path",
+              "value": "/",
+              "type": "string"
+            },
+            {
+              "id": "1b653e8d-f706-455b-8040-c194a9db0f44",
+              "name": "owner",
+              "value": "AmplectCo",
+              "type": "string"
+            },
+            {
+              "id": "1221eea3-c253-44d3-ac63-812aa4393c5a",
+              "name": "filePath",
+              "value": "={{ $json.body.workflowId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        848
+      ],
+      "id": "bd4251ca-4b66-4d8c-b802-174ea1d1f08c",
+      "name": "Set GH Repo and Path3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Get-Workflow-Changes",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "54b01e40-cedd-456f-b000-c5d4559e4930",
+      "name": "Get-Workflow-Changes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        336,
+        848
+      ],
+      "webhookId": "e892f1af-d192-40e1-9c27-7fda6539d911",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "sAn4iexzqVKgozlp",
+          "name": "n8n-dev"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# route Check for Changes",
+        "height": 299,
+        "width": 2436,
+        "color": 6
+      },
+      "id": "c14c933a-c023-4dce-ae9e-c612862c04c4",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        272,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Set Variables",
+        "height": 220,
+        "width": 220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        560,
+        448
+      ],
+      "typeVersion": 1,
+      "id": "8e1995b3-b3ef-416a-984e-b58aa4212f9d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Set Variables",
+        "height": 220,
+        "width": 220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        544,
+        816
+      ],
+      "typeVersion": 1,
+      "id": "8fd40d00-4635-415e-87ed-863f51fd46c4",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Set Basic Auth\n## Credentials",
+        "width": 420,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        496
+      ],
+      "typeVersion": 1,
+      "id": "3dfb2524-65de-4cb5-98db-4529fa96aaa6",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Set Header Auth\n## Credentials",
+        "width": 420,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        832
+      ],
+      "typeVersion": 1,
+      "id": "f9022eaf-9bb2-44b7-8821-6e84f11eebf6",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1b653e8d-f706-455b-8040-c194a9db0f44",
+              "name": "owner",
+              "value": "AmplectCo",
+              "type": "string"
+            },
+            {
+              "id": "83291d80-75a8-492d-9d4a-625854656ff9",
+              "name": "repo",
+              "value": "devAutomations",
+              "type": "string"
+            },
+            {
+              "id": "a1ba4116-e872-4283-9869-1ad6967b5991",
+              "name": "path",
+              "value": "/",
+              "type": "string"
+            },
+            {
+              "id": "a4807ec8-ab09-4c92-9183-0831aa95c2a8",
+              "name": "headerAuth",
+              "value": "tdxU2a6Pfg4jpQ7Yqady6nbf6Z0R3UQ7",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        512
+      ],
+      "id": "e601257e-49ba-44eb-8d36-0396058a9505",
+      "name": "Set Workflow Variables"
+    },
+    {
+      "parameters": {
+        "content": "# Workflow Repos8r\n## 🔧 **Setup & Usage**\n\n1. **Generate your n8n API key**\n\n2. **Set up GitHub repository & access token**\n\n3. **Create Generic Basic Auth credentials**\n\n4. **Create Generic Header Auth credentials**\n\n5. **Set the workflow variables in the nodes in yellow stickies**\n\n6. **Set the webhook Auths**\n\n7. **Deploy & start tracking your workflow versions**",
+        "height": 400,
+        "width": 520,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "2d7cb39b-a86d-4979-83c5-3ee84dbbe811",
+      "name": "Sticky Note11"
+    }
+  ],
+  "connections": {
+    "Webhook-ideogener8r": {
+      "main": [
+        [
+          {
+            "node": "Set Workflow Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub": {
+      "main": [
+        []
+      ]
+    },
+    "Set GH Repo and Path3": {
+      "main": [
+        [
+          {
+            "node": "GitHub2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub2": {
+      "main": [
+        []
+      ]
+    },
+    "Get-Workflow-Changes": {
+      "main": [
+        [
+          {
+            "node": "Set GH Repo and Path3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Workflow Variables": {
+      "main": [
+        [
+          {
+            "node": "GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "2b06701d-bf5e-439f-bf57-b4dab8274649",
+  "triggerCount": 4,
+  "shared": [
+    {
+      "createdAt": "2025-09-08T12:46:10.049Z",
+      "updatedAt": "2025-09-08T12:46:10.049Z",
+      "role": "workflow:owner",
+      "workflowId": "wAiTJAOUVXLl7gEY",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-09-13T19:06:54.371Z",
+      "updatedAt": "2025-09-13T21:30:32.257Z",
+      "id": "kQXJeoyu5pqroZeK",
+      "name": "env:prod"
+    }
+  ]
+}
