@@ -1,0 +1,203 @@
+{
+  "createdAt": "2025-08-18T13:15:48.742Z",
+  "updatedAt": "2025-08-23T14:34:58.877Z",
+  "id": "l4qR3YFwPa8gads6",
+  "name": "WordPress Development Support Chatbot",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        304
+      ],
+      "id": "8f7c3d2e-4b5a-4c89-9e21-3f2a8b7c9d10",
+      "name": "When chat message received",
+      "webhookId": "wordpress-support-chat"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an expert WordPress developer and support specialist. Your role is to help users with WordPress development questions, troubleshooting, and best practices.\n\nYour expertise includes:\n- WordPress core functionality and architecture\n- Theme development (PHP, HTML, CSS, JavaScript)\n- Plugin development and customization\n- WordPress REST API\n- Database structure and queries\n- Performance optimization\n- Security best practices\n- WooCommerce and popular plugins\n- Gutenberg block development\n- WordPress hooks, filters, and actions\n- Troubleshooting common WordPress issues\n- WordPress hosting and deployment\n\nWhen answering questions:\n1. Provide clear, concise explanations\n2. Include code examples when relevant\n3. Suggest best practices and security considerations\n4. Mention any version-specific differences if applicable\n5. Recommend reliable resources or documentation when appropriate\n\nBe friendly, patient, and thorough in your responses. If you need clarification about the user's WordPress version, hosting environment, or specific setup, don't hesitate to ask."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        608,
+        304
+      ],
+      "id": "7a9b5c3d-2e4f-4d89-8c12-5f3a9b8c7d11",
+      "name": "WordPress Support Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        512
+      ],
+      "id": "9c8d7e3f-5a6b-4e90-9d23-6g4b0c9d8e12",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        512
+      ],
+      "id": "4b7c8d9e-6c7d-4f01-8e34-7h5c1d0e9f13",
+      "name": "Conversation Memory"
+    },
+    {
+      "parameters": {
+        "content": "## WordPress Support Chatbot\n\nThis workflow provides an AI-powered support chatbot specifically trained to help with WordPress development questions.\n\n### Features:\n- Answers WordPress development questions\n- Provides code examples\n- Suggests best practices\n- Maintains conversation context\n\n### Setup Required:\n1. Configure OpenAI credentials\n2. Test the chat trigger webhook\n3. Customize the system message if needed",
+        "height": 280,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        128
+      ],
+      "id": "5c8d9e0f-7d8e-5g12-9f45-8i6d2e1f0g14",
+      "name": "Workflow Overview"
+    },
+    {
+      "parameters": {
+        "content": "## Chat Trigger Configuration\n\nThe chat trigger creates a webhook endpoint that can be embedded in your WordPress site or any interface to receive user messages.\n\nWebhook URL will be generated after saving the workflow.",
+        "height": 180,
+        "width": 320,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        528
+      ],
+      "id": "6d9e0f1g-8e9f-6h23-0g56-9j7e3f2g1h15",
+      "name": "Trigger Setup Note"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent Configuration\n\nThe agent is configured with WordPress-specific knowledge including:\n- Core WordPress development\n- Theme & plugin development\n- Database operations\n- Security best practices\n- Performance optimization\n- Popular plugins like WooCommerce\n\nFeel free to modify the system message to focus on specific areas of WordPress development.",
+        "height": 240,
+        "width": 350,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        256
+      ],
+      "id": "7e0f2g1h-9f0g-7i34-1h67-0k8f4g3h2i16",
+      "name": "Agent Configuration Note"
+    },
+    {
+      "parameters": {
+        "content": "## Required Credentials\n\n⚠️ OpenAI API Key Required\n\nYou need to add your OpenAI API credentials to use this workflow. The model is set to GPT-4 Turbo for best results with technical questions.\n\nYou can change to GPT-3.5 Turbo for faster responses and lower cost if preferred.",
+        "height": 200,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        656
+      ],
+      "id": "8f1g2h1i-0g1h-8j45-2i78-1l9g5h4i3j17",
+      "name": "Credentials Note"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "WordPress Support Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "WordPress Support Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "WordPress Support Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "faa9806e-a931-46ff-a208-d8ec6f6fe71e",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:10.253Z",
+      "updatedAt": "2025-08-28T14:34:10.253Z",
+      "role": "workflow:owner",
+      "workflowId": "l4qR3YFwPa8gads6",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
