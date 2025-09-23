@@ -1,0 +1,439 @@
+{
+  "createdAt": "2025-07-09T06:51:20.437Z",
+  "updatedAt": "2025-09-02T11:22:46.062Z",
+  "id": "7Q4eMxhwhF2JLEfR",
+  "name": "Data Analyst (dev)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Session: {{ $json.output.sessionId }}\nTarget site: {{ $json.output.target_site }}\nBussiness goal: {{ $json.output.business_goal }}",
+        "options": {
+          "systemMessage": "=You are an elite marketing data analyst specializing in keyword generation.\n\nYou have access to a powerful tool called “Python Env Tool” that allows you to perform a variety of plain-text analytical tasks. You can send commands such as:\n\nAnalyze data structure: Understanding how data is organized within a dataset (e.g., identifying data types, schema).\n\nCount unique keywords: Identifying how many distinct keywords appear in the data.\n\nCheck for null fields: Detecting and handling any missing or incomplete values within the dataset.\n\nAnalyze frequency of words: Count the frequency of specific words or terms within a dataset (e.g., most frequent keywords in content).\n\nSegmentation analysis: Segment data based on categories, demographics, or other key parameters.\n\nAnalyze data distribution: Calculate statistical measures such as mean, median, standard deviation for numerical data.\n\nIdentify semantic gaps: Spot areas where content or keyword coverage is lacking and suggest new opportunities.\n\nAnd other tasks that you consider necessary for your analysis.\n\nYou may generate up to 15 such tasks. Use your judgment to decide which are most relevant to the keyword generation goal.\n\nYour objective: **produce a final report** based on your investigation and output a **list of the top 50 keywords** tailored to `TARGET_SITE` and `BUSINESS_GOAL`.\n\n🚨 Mandatory task request format:\n```json\n{\n  \"task\": \"some task\", // text, not code!\n  \"session\": {{ $json.output.sessionId }} // Use this value exactly\n}\n\nYou also have tools to get semantic profiles for both the target site and competitors. You must use these as part of your process.\n\n❗ IMPORTANT: You MUST use ALL tools in the analysis process. \nLaunch tools one by one. Before launching the next one, you must wait for the response from the previous one.\n\n⛔ Do not fabricate data. Only use tool responses.\n🧠 Think step-by-step. One tool at a time.\n📊 Final report must include:\n\nExecutive summary\n\nKeyword strategy suggestions\n\nKey patterns & risks\n\nTop 50 keyword list",
+          "maxIterations": 20
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -16
+      ],
+      "id": "7a3bbbf7-3a48-462b-a585-673370e0fc2a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}\n",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        240
+      ],
+      "id": "ab50da59-2890-4f4e-82a1-67a382118466",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze data with Python code.",
+        "workflowId": {
+          "__rl": true,
+          "value": "4DI0JfsyGx9pXHbf",
+          "mode": "list",
+          "cachedResultName": "Python env tool (dev)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        240
+      ],
+      "id": "c7d18b59-6ba5-4b29-b8f0-f8dfaad82653",
+      "name": "Python env tool"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        752,
+        224
+      ],
+      "id": "97eeb3d7-3ecb-474f-a2e2-c82a95a82d3a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need target site semantic profile from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('Information Extractor').item.json.output.sessionId }}\", \"context.target_site_semantic_profile\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        224
+      ],
+      "id": "893d9adc-bdff-4202-b9ea-6d85ec006a5b",
+      "name": "Target site semantic profile data from MongoDB",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need competitors semantic profile from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('Information Extractor').item.json.output.sessionId }}\", \"context.competitors\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        224
+      ],
+      "id": "dc635a5e-1fc2-4750-b503-33aef6fed562",
+      "name": "Competitors from MongoDB",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "6efa02c0-73d3-40fe-8c3f-27b400ea507b",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        464,
+        208
+      ],
+      "id": "033e6646-b1f0-4be1-9438-89aa88a4df29",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.chatInput }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "target_site",
+              "description": "URL of the site for which you need to create a semantic profile",
+              "required": true
+            },
+            {
+              "name": "keywords",
+              "description": "Write 2-3 words (no more) that describe the topic of the marketing campaign",
+              "required": true
+            },
+            {
+              "name": "sessionId",
+              "description": "sessionId",
+              "required": true
+            },
+            {
+              "name": "business_goal",
+              "description": "Business goal",
+              "required": true
+            },
+            {
+              "name": "user",
+              "description": "User id",
+              "required": true
+            },
+            {
+              "name": "timestamp",
+              "description": "timestamp",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        368,
+        -16
+      ],
+      "id": "31e5eb63-55ea-4d80-b9f0-9529885eb379",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6088ffa4-00ff-404b-b23a-22fb10d6f9eb",
+              "name": "chatInput",
+              "value": "={{ $json.query }} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "82720d83-c932-40de-9a66-02743719456f",
+      "name": "Set variables",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      output: $('AI Agent').first().json.output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -64
+      ],
+      "id": "0e5fcf8c-de40-4eee-978b-653ecafc3479",
+      "name": "Result message"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Information Extractor').first().json.output.user }}",
+          "mode": "id"
+        },
+        "text": "=Data Analyst repoprt is ready.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Information Extractor').first().json.output.timestamp }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        -64
+      ],
+      "id": "ef50bf7b-08cf-49c1-bc2e-ea6948bb8312",
+      "name": "Send a message",
+      "webhookId": "56a02ea2-d03a-4ed1-830a-baa5c3646087",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Python env tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target site semantic profile data from MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competitors from MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set variables": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Result message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When clicking ‘Test workflow’": [
+      {
+        "json": {
+          "query": "target_site: https://www.dizzain.com, keywords: Digital agency WordPress, session: 1750162566.321979, buissenes_goal: increase sale, user: U01QLUNCNF4, timestamp: 1750845925.991089"
+        }
+      }
+    ]
+  },
+  "versionId": "9e565572-ec8e-427f-bf4b-ca41b3e872ac",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:11.227Z",
+      "updatedAt": "2025-08-28T14:29:11.227Z",
+      "role": "workflow:owner",
+      "workflowId": "7Q4eMxhwhF2JLEfR",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
