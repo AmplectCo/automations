@@ -1,0 +1,167 @@
+{
+  "createdAt": "2025-07-18T07:49:51.214Z",
+  "updatedAt": "2025-09-02T11:22:35.132Z",
+  "id": "JCbir0UgFBHW2Cr7",
+  "name": "Download image",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "link"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        128
+      ],
+      "id": "5e179d86-1c28-4531-8758-7ad3db6d90ef",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        128
+      ],
+      "id": "59d05024-4a84-4717-96f6-1ec099857c16",
+      "name": "HTTP Request",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            },
+            {},
+            {}
+          ]
+        }
+      },
+      "id": "cf398dda-f4fa-4b27-8667-a29a58c43dc1",
+      "name": "Parse and check text",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1088,
+        144
+      ],
+      "typeVersion": 1.4,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        336
+      ],
+      "id": "d72c812f-f679-41f9-99e1-9d3f386a0f60",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const imageBuffer = $input.first().binary.data;\nconst base64String = Buffer.from(imageBuffer).toString('base64');\nreturn base64String;\n\n\n\n// // Получаем бинарные данные из предыдущей ноды\n// const binaryData = $input.first().binary.data;\n\n// if (!binaryData) {\n//   throw new Error(\"Бинарные данные не найдены\");\n// }\n\n// // Преобразуем бинарные данные в строку Base64\n// const base64Data = Buffer.from(binaryData, 'base64').toString('base64');\n\n// // Возвращаем результат\n// return [\n//   {\n//     json: {\n//       base64: base64Data,\n//     },\n//   },\n// ];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -64
+      ],
+      "id": "c7877fad-2c23-4c3f-8846-3923b4b87722",
+      "name": "Code1"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Parse and check text",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "link": "https://scontent.fvno8-1.fna.fbcdn.net/v/t45.1600-4/379497084_23858178864440137_2174385028602805726_n.png?_nc_cat=109&ccb=1-7&_nc_ohc=MW9cy3yzBLsQ7kNvwHRjL0X&_nc_oc=Admpk0GnaUlixS3CTjBfcI1gKHHiAv-VpNHJFwflBpYezxt6GQMKwnY7bbxmU4hWSTQ&_nc_zt=1&_nc_ht=scontent.fvno8-1.fna&edm=AAT1rw8EAAAA&_nc_gid=vcncTwt_rFO0ZwigXjXn7Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=4c02d7&_nc_sid=58080a&oh=00_AfRsewEqi7nHzULs259VmPz8RB_t1UO8gBN72a_PqLRLxQ&oe=687AAFBA"
+        }
+      }
+    ]
+  },
+  "versionId": "18f9e7a5-1fd4-488d-8ffd-42939802f088",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:51.690Z",
+      "updatedAt": "2025-08-28T14:30:51.690Z",
+      "role": "workflow:owner",
+      "workflowId": "JCbir0UgFBHW2Cr7",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
