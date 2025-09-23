@@ -1,0 +1,288 @@
+{
+  "createdAt": "2025-09-13T22:03:13.523Z",
+  "updatedAt": "2025-09-13T22:17:58.960Z",
+  "id": "NdK71XDrJkGiW2z8",
+  "name": "gads get campaign month cost metric",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "campaign"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -25
+      ],
+      "id": "c40f32ed-8c65-4bb4-8b24-28e80048b919",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"x4a0TMYbaSw1SCXSFrtRyQ\",\n    \"mccCustomerId\": \"1331716219\",\n    \"customerId\": \"3700886370\",\n    \"version\": \"v18\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        -25
+      ],
+      "id": "231900ee-5191-4ab4-bd32-d63c92a5d1db",
+      "name": "Google ads additional keys"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $json.googleAdsKeys.version }}/customers/{{$json.googleAdsKeys.customerId}}/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT campaign.id, campaign.name, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '{{ $now.startOf('month').toFormat('yyyy-MM-dd') }}' AND '{{ $now.toFormat('yyyy-MM-dd') }}' AND metrics.cost_micros > 0 AND campaign.status != 'REMOVED'\"\n}",
+        "options": {}
+      },
+      "id": "630dc098-e5be-4ffd-b3a7-41f93631494c",
+      "name": "get campaign metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        440,
+        -25
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "4TFwmjsxHczNxCSq",
+          "name": "google@dizzain.com gADS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -25
+      ],
+      "id": "532f62dc-5dce-40e5-832a-f34a3e803d98",
+      "name": "Split Out",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -25
+      ],
+      "id": "8279d791-259b-4ee0-9c4d-be7b88fd0967",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9775d9a1-d36a-49ae-8fe5-1813dac78ea9",
+              "leftValue": "={{ $json.campaign }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -25
+      ],
+      "id": "681d52de-69fc-441e-acd0-e445d9d7d432",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb9b2f87-d995-4a03-80a3-3f4b278afebe",
+              "name": "campaign",
+              "value": "={{ $json.campaign }}",
+              "type": "object"
+            },
+            {
+              "id": "95681456-5a16-449e-ba43-ca08e8ed6a92",
+              "name": "cost",
+              "value": "={{ $json.metrics.costMicros / 1000000 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        -100
+      ],
+      "id": "dae941e9-4926-43be-926e-b9bdd5f74fa5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        -25
+      ],
+      "id": "f100036f-e4f3-489d-8aed-12e2fa1a643d",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google ads additional keys": {
+      "main": [
+        [
+          {
+            "node": "get campaign metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get campaign metrics": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "52b91f11-52a6-46bf-a2ad-f09e6f274a89",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-13T22:03:13.523Z",
+      "updatedAt": "2025-09-13T22:03:13.523Z",
+      "role": "workflow:owner",
+      "workflowId": "NdK71XDrJkGiW2z8",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
