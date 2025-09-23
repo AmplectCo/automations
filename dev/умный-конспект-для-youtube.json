@@ -1,0 +1,277 @@
+{
+  "createdAt": "2025-08-23T23:32:06.338Z",
+  "updatedAt": "2025-08-23T23:32:06.338Z",
+  "id": "2RCJVvk4aQYe8EbI",
+  "name": "Умный конспект для YouTube",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🟢 Шаг 1: Ввод YouTube URL\nЭтот триггер запускает процесс вручную. Сразу после него используем *Set URL* для указания ссылки на видео. При желании можно заменить на Webhook и принимать URL от пользователей."
+      },
+      "id": "2",
+      "name": "Sticky Note - Step 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { youtubeUrl: \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\" } }];"
+      },
+      "id": "3",
+      "name": "Set YouTube URL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🟢 Шаг 2: Извлечение транскрипта\nЭта нода получает транскрипт по URL. В случае отсутствия субтитров (авто или вручную) — текста не будет."
+      },
+      "id": "4",
+      "name": "Sticky Note - Step 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "videoUrl": "={{$json[\"youtubeUrl\"]}}"
+      },
+      "id": "5",
+      "name": "YouTube Transcript",
+      "type": "n8n-nodes-base.youtubeTranscript",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🟢 Шаг 3: Анализ транскрипта с помощью AI\nAI Agent использует OpenAI Chat Model и анализирует транскрипт: создает краткое резюме и выделяет ровно 5 ключевых мыслей."
+      },
+      "id": "6",
+      "name": "Sticky Note - Step 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Ты аналитический ассистент. Получая транскрипт видео:\n\n{{$json[\"text\"]}}\n\nЗадачи:\n1. Создай краткий конспект (5–7 предложений).\n2. Выдели ровно 5 ключевых мыслей.\n\nФормат JSON вывода:\n{\n  \"summary\": \"...\",\n  \"key_points\": [\"1\", \"2\", \"3\", \"4\", \"5\"]\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Ты эксперт в создании конспектов. Отвечай строго структурированно в JSON."
+        }
+      },
+      "id": "7",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"summary\": {\"type\": \"string\"},\n    \"key_points\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}\n  },\n  \"required\": [\"summary\", \"key_points\"]\n}"
+      },
+      "id": "8",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🟢 Шаг 4: Сохранение в Notion\nРезультаты загружаются в указанную базу данных Notion. Перед запуском убедитесь, что передан верный *Database ID* и креденшелы."
+      },
+      "id": "9",
+      "name": "Sticky Note - Step 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "create",
+        "title": "={{$json[\"summary\"]}}",
+        "databaseId": "ВАШ_DATABASE_ID",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Summary",
+              "value": "={{$json[\"summary\"]}}"
+            },
+            {
+              "key": "Key Ideas",
+              "value": "={{$json[\"key_points\"].join(\", \")}}"
+            },
+            {
+              "key": "YouTube Link",
+              "value": "={{$node[\"Set YouTube URL\"].json[\"youtubeUrl\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "10",
+      "name": "Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [
+        500,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_AUTH_ID",
+          "name": "YOUR_AUTH_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "11",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.chatOpenAI",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_AUTH_ID",
+          "name": "YOUR_AUTH_NAME"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set YouTube URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set YouTube URL": {
+      "main": [
+        [
+          {
+            "node": "YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "ai_languageModel": [
+        [
+          {
+            "node": "OpenAI Chat Model",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ],
+      "ai_outputParser": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "d43dc439-f236-4c29-a53d-2755f3bb46d1",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:25.060Z",
+      "updatedAt": "2025-08-28T14:28:25.060Z",
+      "role": "workflow:owner",
+      "workflowId": "2RCJVvk4aQYe8EbI",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
