@@ -1,0 +1,164 @@
+{
+  "createdAt": "2025-09-12T11:21:55.320Z",
+  "updatedAt": "2025-09-18T07:38:01.998Z",
+  "id": "WLzLLK7CB6ZE8jQa",
+  "name": "Compute average distance",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1264,
+        -48
+      ],
+      "id": "4e87a2fd-922c-40d7-95ea-4bd5c645eae2",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A",
+          "mode": "list",
+          "cachedResultName": "SCC All Enrolled Campers 2025 Season with radius",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1595000476,
+          "mode": "list",
+          "cachedResultName": "Sheet5",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit#gid=1595000476"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1056,
+        -48
+      ],
+      "id": "402638a2-fa43-421f-840c-0aea3559ca90",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Фаза 1: Группировка данных по 'camp location' ---\n\nconst groupedData = {};\n\n// Проходим по каждому объекту (item) из входящего массива\nfor (const item of items) {\n  const location = item.json['camp location'];\n  const distance = item.json.distance;\n\n  // Пропускаем объекты, если в них нет нужных данных\n  if (!location || distance === undefined) {\n    continue;\n  }\n\n  // Если мы видим эту локацию впервые, создаем для нее новую запись\n  if (!groupedData[location]) {\n    groupedData[location] = {\n      distances: [] // Создаем массив для хранения всех дистанций этой группы\n    };\n  }\n\n  // Добавляем дистанцию текущего объекта в массив его группы\n  groupedData[location].distances.push(distance);\n}\n\n// --- Фаза 2: Расчет среднего и медианы для каждой группы ---\n\n// Проходим по каждой собранной группе в объекте groupedData\nfor (const location in groupedData) {\n  const distances = groupedData[location].distances;\n  \n  // 1. Расчет среднего арифметического (Mean)\n  const sum = distances.reduce((total, current) => total + current, 0);\n  const mean = sum / distances.length;\n  groupedData[location].mean_distance = parseFloat(mean.toFixed(2)); // Сохраняем с округлением\n\n  // 2. Расчет медианы (Median)\n  const sortedDistances = [...distances].sort((a, b) => a - b); // Сортируем дистанции по возрастанию\n  const midIndex = Math.floor(sortedDistances.length / 2);\n\n  let median;\n  if (sortedDistances.length % 2 === 0) {\n    // Если количество четное, берем среднее от двух центральных элементов\n    median = (sortedDistances[midIndex - 1] + sortedDistances[midIndex]) / 2;\n  } else {\n    // Если количество нечетное, берем центральный элемент\n    median = sortedDistances[midIndex];\n  }\n  groupedData[location].median_distance = parseFloat(median.toFixed(2)); // Сохраняем с округлением\n}\n\n// --- Фаза 3: Обогащение исходных данных и возврат результата ---\n\n// Используем .map() для создания нового массива на основе исходного\nconst finalResult = items.map(item => {\n  const location = item.json['camp location'];\n  \n  // Проверяем, есть ли для этой локации рассчитанные данные\n  if (groupedData[location]) {\n    // Создаем новый объект, копируя все старые поля (...item.json)\n    // и добавляя новые с рассчитанными значениями\n    const enrichedJson = {\n      ...item.json,\n      mean_distance_for_camp: groupedData[location].mean_distance,\n      median_distance_for_camp: groupedData[location].median_distance\n    };\n    return { json: enrichedJson };\n  }\n  \n  // Если по какой-то причине объект не попал в группу, возвращаем его без изменений\n  return item;\n});\n\nreturn finalResult;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        -48
+      ],
+      "id": "f2f6df5e-7ea4-422e-86c2-12eaea2e65cb",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A",
+          "mode": "list",
+          "cachedResultName": "SCC All Enrolled Campers 2025 Season with radius",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 500726325,
+          "mode": "list",
+          "cachedResultName": "Fixed",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit#gid=500726325"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -640,
+        -48
+      ],
+      "id": "5fcc6cdf-fe39-41f7-9ff9-d7b4e9525a76",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "f7d49957-955f-406e-8a4c-bdaa79d9b8ff",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-12T11:21:55.320Z",
+      "updatedAt": "2025-09-12T11:21:55.320Z",
+      "role": "workflow:owner",
+      "workflowId": "WLzLLK7CB6ZE8jQa",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
