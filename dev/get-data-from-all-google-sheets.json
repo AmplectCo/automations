@@ -1,0 +1,320 @@
+{
+  "createdAt": "2025-07-07T14:14:33.659Z",
+  "updatedAt": "2025-07-16T06:29:11.711Z",
+  "id": "LjNGprYOn7RZZqPK",
+  "name": "Get data from all google sheets",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "url"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3d318afe-987b-4229-b358-810dd686a784",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.sheetId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "name": "HTTP Request: Get Sheet List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        740,
+        0
+      ],
+      "id": "17f67a4b-faab-421b-a32b-302a84428777",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "90cfac7e-8a6b-4acb-9f94-10a143215310",
+              "leftValue": "={{ $input.first().json.sheetId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b90b3d36-c96a-4c23-95ce-e75311112919",
+              "leftValue": "={{ $input.first().json.sheetId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        0
+      ],
+      "id": "e4313c47-fa8b-4fde-86f0-b48001c61d94",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Используем надежный вариант\nconst regex = /spreadsheets\\/d\\/([a-zA-Z0-9-_]{40,})/;\nconst match = ($input.first().json.url || \"\").match(regex);\n\nif (match) {\n  const sheetId = match[1]; // Берем первую захватывающую группу\n  return {\n    sheetId  \n  }\n}\n\nreturn {};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "52413ba3-7fc6-4deb-9e06-0f70624caed6",
+      "name": "Get ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.first().json.sheets.map(item => ({\n  name: item.properties.title,\n  sheetId: item.properties.sheetId\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "8de00052-5ab8-44b9-b87f-59fc97bb19c4",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1180,
+        0
+      ],
+      "id": "4da6a678-6078-41bf-8368-f31d973661fe",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Get ID').item.json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.sheetId }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1440,
+        20
+      ],
+      "id": "98f90edd-8cfd-426e-bbda-8ad03963bb2d",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00a822e9-da0e-4ce7-86f9-5207ac7260cc",
+              "name": "={{ $('Loop Over Items').item.json.name }}",
+              "value": "={{ $input.all().map(item => item.json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        20
+      ],
+      "id": "06d7c4d1-0212-4494-aa75-002f26665dde",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1880,
+        20
+      ],
+      "id": "90a9d322-20f4-4f2d-bbe8-4689e370b616",
+      "name": "Wait",
+      "webhookId": "8b78d16b-c522-4a4e-a6a2-de313940179a"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get ID": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Get Sheet List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Get Sheet List": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "20ab068d-4511-4a1d-8c76-a4a7f05c48cb",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:18.682Z",
+      "updatedAt": "2025-08-28T14:31:18.682Z",
+      "role": "workflow:owner",
+      "workflowId": "LjNGprYOn7RZZqPK",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
