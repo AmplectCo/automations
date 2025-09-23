@@ -1,0 +1,81 @@
+{
+  "createdAt": "2025-07-11T08:51:48.216Z",
+  "updatedAt": "2025-07-16T07:47:07.609Z",
+  "id": "7xb5CMQqjhrBsTBa",
+  "name": "My workflow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "1-59/1 4 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7aa4b7b5-82f2-40ee-9bba-a1f3e04a20c0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\n// Сохраняем исходное значение count\nconst originalCount = staticData.count || 0;\n\n// Обновляем значение count\nstaticData.count = originalCount + 1;\n\n// Возвращаем оба значения (исходное и новое)\nreturn [{ json: { originalCount, updatedCount: staticData.count } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "0c48d6ad-1dfb-4289-adcc-89bfee07c983",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "count": 3
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "ff72f039-f7b6-4657-93e5-d59e1b6e1b40",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:15.016Z",
+      "updatedAt": "2025-08-28T14:29:15.016Z",
+      "role": "workflow:owner",
+      "workflowId": "7xb5CMQqjhrBsTBa",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
