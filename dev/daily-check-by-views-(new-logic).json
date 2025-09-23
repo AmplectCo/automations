@@ -1,0 +1,652 @@
+{
+  "createdAt": "2025-08-14T08:21:16.593Z",
+  "updatedAt": "2025-09-02T11:20:48.850Z",
+  "id": "GfdFDpGBEAJCu0CM",
+  "name": "Daily check by views (new logic)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"x4a0TMYbaSw1SCXSFrtRyQ\",\n    \"mccCustomerId\": \"1331716219\",\n    \"customerId\": \"3700886370\",\n    \"version\": \"v20\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        32
+      ],
+      "id": "456ade5b-7f0d-4740-a8de-6a7078fa449b",
+      "name": "Google ads additional keys"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Начало кода для n8n ---\n\n// Вспомогательные функции для расчетов\n\n/**\n * Рассчитывает медиану для массива чисел.\n */\nfunction getMedian(numbers) {\n  if (!numbers || numbers.length === 0) {\n    return 0;\n  }\n  const sorted = [...numbers].sort((a, b) => a - b);\n  const middleIndex = Math.floor(sorted.length / 2);\n\n  if (sorted.length % 2 === 0) {\n    return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;\n  } else {\n    return sorted[middleIndex];\n  }\n}\n\n/**\n * Рассчитывает среднее арифметическое (mean).\n */\nfunction getMean(numbers) {\n    if (!numbers || numbers.length === 0) {\n        return 0;\n    }\n    const sum = numbers.reduce((acc, val) => acc + val, 0);\n    return sum / numbers.length;\n}\n\n/**\n * Рассчитывает стандартное отклонение (standard deviation).\n */\nfunction getStandardDeviation(numbers) {\n    if (!numbers || numbers.length < 2) {\n        return 0;\n    }\n    const mean = getMean(numbers);\n    const squaredDiffs = numbers.map(val => Math.pow(val - mean, 2));\n    const avgSquaredDiff = getMean(squaredDiffs);\n    return Math.sqrt(avgSquaredDiff);\n}\n\n// ==========================================================\n// НАСТРОЙКА: Минимальное количество дней для анализа.\n// ВРЕМЕННО установлено на 13 по вашему запросу. Стандартное значение - 14.\nconst MIN_DAYS_FOR_ANALYSIS = 13;\n// ==========================================================\n\n// 1. ПОДГОТОВКА ДАННЫХ\nconst allDailyStats = $input.first().json.results;\nconst campaignsData = {};\nfor (const stat of allDailyStats) {\n    const id = stat.campaign.id;\n    if (!campaignsData[id]) {\n        campaignsData[id] = {\n            name: stat.campaign.name,\n            id: id,\n            dailyData: []\n        };\n    }\n    campaignsData[id].dailyData.push({\n        date: stat.segments.date,\n        impressions: parseInt(stat.metrics.impressions, 10)\n    });\n}\n\n\n// 2. ОСНОВНАЯ ЛОГИКА ОБРАБОТКИ\nconst categorizedCampaigns = [];\n\nfor (const campaignId in campaignsData) {\n    const campaign = campaignsData[campaignId];\n    campaign.dailyData.sort((a, b) => new Date(b.date) - new Date(a.date));\n\n    if (campaign.dailyData.length < MIN_DAYS_FOR_ANALYSIS) {\n        console.warn(`Кампания \"${campaign.name}\" (${campaign.id}) имеет ${campaign.dailyData.length} дней данных (требуется ${MIN_DAYS_FOR_ANALYSIS}) и будет пропущена.`);\n        continue;\n    }\n\n    // --- Шаг 5: Определение окна анализа (13 или 28 дней) ---\n    const last13DaysData = campaign.dailyData.slice(0, 13);\n    const last13DaysImpressions = last13DaysData.map(d => d.impressions);\n    const median13Days = getMedian(last13DaysImpressions);\n\n    let historicalImpressions = last13DaysImpressions;\n    let timeWindowUsed = 13;\n\n    if (median13Days < 80 && campaign.dailyData.length >= 28) {\n        historicalImpressions = campaign.dailyData.slice(0, 28).map(d => d.impressions);\n        timeWindowUsed = 28;\n    }\n\n    // --- Расчет волатильности (старая логика) ---\n    const mean = getMean(historicalImpressions);\n    const stdDev = getStandardDeviation(historicalImpressions);\n    const cv = mean === 0 ? 0 : stdDev / mean;\n    let volatilityCategory;\n    if (cv <= 0.25) {\n        volatilityCategory = 'Низкая';\n    } else if (cv > 0.25 && cv <= 0.45) {\n        volatilityCategory = 'Средняя';\n    } else {\n        volatilityCategory = 'Высокая';\n    }\n\n    // --- Шаг 6: Преобразование Анскомба ---\n    // Y = 2 * sqrt(impr + 3/8)\n    const yValues = historicalImpressions.map(impr => 2 * Math.sqrt(impr + 3/8));\n\n    // --- Шаг 7: Расчет MAD_Y (медианного абсолютного отклонения для Y) ---\n    // Берем медиану для Y, которая называется median_Y\n    const median_Y = getMedian(yValues);\n    \n    // Считаем отклонение от медианы для каждого дня\n    const absoluteDeviationsY = yValues.map(y => Math.abs(y - median_Y));\n    \n    // Из значений, что получились, посчитать свою медиану - это и будет MAD_Y\n    const mad_Y = getMedian(absoluteDeviationsY);\n    \n    // --- Шаг 8: Расчет параметра robust_z ---\n    // Берем данные за самый последний (сегодняшний) день.\n    // Так как массив отсортирован по убыванию даты, это первый элемент.\n    const impressions_today = campaign.dailyData[0].impressions;\n    const y_today = 2 * Math.sqrt(impressions_today + 3/8);\n\n    // Считаем robust_z, избегая деления на ноль\n    const robust_z_denominator = 1.4826 * mad_Y;\n    const robust_z = robust_z_denominator === 0 ? 0 : (y_today - median_Y) / robust_z_denominator;\n\n\n    // 3. ФОРМИРОВАНИЕ ВЫХОДНЫХ ДАННЫХ\n    categorizedCampaigns.push({\n        campaignId: campaign.id,\n        campaignName: campaign.name,\n        // --- Результаты старой логики ---\n        volatility: volatilityCategory,\n        coefficientOfVariation: parseFloat(cv.toFixed(4)),\n        meanImpressions: parseFloat(mean.toFixed(2)),\n        stdDevImpressions: parseFloat(stdDev.toFixed(2)),\n        median13Days: median13Days,\n        timeWindowUsed: timeWindowUsed,\n        // --- Результаты новой логики ---\n        impressions_today: impressions_today,\n        y_today: parseFloat(y_today.toFixed(4)),\n        median_Y: parseFloat(median_Y.toFixed(4)),\n        MAD_Y: parseFloat(mad_Y.toFixed(4)),\n        robust_z: parseFloat(robust_z.toFixed(4))\n    });\n}\n\n// Возвращаем результат для использования в следующих нодах n8n\nreturn categorizedCampaigns;\n\n// --- Конец кода для n8n ---"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        32
+      ],
+      "id": "69a2e48a-3f3d-4fd9-abd6-9678f7ec3d95",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1632,
+        32
+      ],
+      "id": "f6ff0a11-0f87-4df7-911a-68c2ded4746f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT \n    campaign.id,\n    campaign.name,\n    campaign.status,\n    segments.date,\n    metrics.impressions\n  FROM campaign \n  WHERE \n    segments.date BETWEEN '{{ new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}' AND '{{ new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}'\n    AND campaign.status IN ('ENABLED')\n  ORDER BY campaign.id, segments.date"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "58aae4de-cf4d-426c-9103-1f2e7fb91837",
+      "name": "Get companies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1184,
+        32
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        32
+      ],
+      "id": "4047e0de-3e11-475b-af46-be7b3889682e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Начало кода для n8n ---\n\n// Получаем единственный входящий элемент\nconst item = $input.first();\nconst campaign = item.json;\n\n// --- 1. Извлечение необходимых данных из объекта компании ---\nconst cv = campaign.coefficientOfVariation;\nconst robust_z = campaign.robust_z;\nconst impressions_today = campaign.impressions_today;\nconst meanImpressions = campaign.meanImpressions;\n\n// Проверка на наличие всех необходимых данных\nif (cv === undefined || robust_z === undefined || impressions_today === undefined || meanImpressions === undefined) {\n  item.json.alert = {\n    status: 'ERROR',\n    reason: 'Отсутствуют необходимые данные для анализа (cv, robust_z, impressions_today, meanImpressions).',\n    calculatedDropPercentage: null\n  };\n  return item; // Возвращаем элемент с сообщением об ошибке\n}\n\n// --- 2. Расчет падения (в долях, где 0.3 = 30%) ---\n// Формула: (Среднее - Сегодняшнее) / Среднее.\n// Положительное значение означает падение.\n// Если среднее равно 0, падение невозможно, считаем его равным 0.\nconst dropRatio = meanImpressions > 0 ? ((meanImpressions - impressions_today) / meanImpressions) : 0;\n\n// --- 3. Инициализация статуса по умолчанию ---\nlet alertStatus = 'OK';\nlet alertReason = 'Условия для тревоги не выполнены.';\n\n// --- 4. Определение категории волатильности и проверка условий ---\n\n// Категория: Низкая волатильность (CV <= 0.25)\nif (cv <= 0.25) {\n  // Сначала проверяем CRITICAL (условие \"ИЛИ\")\n  if (dropRatio >= 0.50 || robust_z <= -3) {\n    alertStatus = 'CRITICAL';\n    alertReason = `Низкая волатильность: Падение >= 50% или robust_z <= -3.`;\n  }\n  // Затем проверяем WARNING (условие \"И\")\n  else if (dropRatio >= 0.30 && robust_z <= -2) {\n    alertStatus = 'WARNING';\n    alertReason = `Низкая волатильность: Падение >= 30% и robust_z <= -2.`;\n  }\n}\n\n// Категория: Средняя волатильность (0.25 < CV <= 0.45)\nelse if (cv > 0.25 && cv <= 0.45) {\n  if (dropRatio >= 0.55 || robust_z <= -3) {\n    alertStatus = 'CRITICAL';\n    alertReason = `Средняя волатильность: Падение >= 55% или robust_z <= -3.`;\n  } else if (dropRatio >= 0.40 && robust_z <= -2) {\n    alertStatus = 'WARNING';\n    alertReason = `Средняя волатильность: Падение >= 40% и robust_z <= -2.`;\n  }\n}\n\n// Категория: Высокая волатильность (CV > 0.45)\nelse if (cv > 0.45) {\n  if (dropRatio >= 0.60 || robust_z <= -3) {\n    alertStatus = 'CRITICAL';\n    alertReason = `Высокая волатильность: Падение >= 60% или robust_z <= -3.`;\n  } else if (dropRatio >= 0.50 && robust_z <= -2) {\n    alertStatus = 'WARNING';\n    alertReason = `Высокая волатильность: Падение >= 50% и robust_z <= -2.`;\n  }\n}\n\n// --- 5. Добавление нового структурированного объекта в результат ---\nitem.json.alert = {\n  status: alertStatus,\n  reason: alertReason,\n  // Добавляем расчетное падение в % для удобства проверки и отладки\n  calculatedDropPercentage: parseFloat((dropRatio * 100).toFixed(2))\n};\n\n// Возвращаем измененный элемент для использования в следующих нодах\nreturn item;\n\n// --- Конец кода для n8n ---"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        -112
+      ],
+      "id": "86dd2257-0461-437a-8e40-a4b12923ba82",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.alert.status }}",
+                    "rightValue": "WARNING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a0bd5733-74a6-40f4-bf79-b62b7e431170"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "16004aeb-7833-4708-87ef-08ac7581d4ca",
+                    "leftValue": "={{ $json.alert.status }}",
+                    "rightValue": "CRITICAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "75fe6271-a2d9-4406-bca4-4ddf50650df6",
+                    "leftValue": "={{ $json.alert.status }}",
+                    "rightValue": "OK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "17c2492e-983e-48d2-8212-baac235fe813",
+                    "leftValue": "={{ $json.alert.status }}",
+                    "rightValue": "ERROR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2080,
+        -144
+      ],
+      "id": "9bf49a7e-3995-4eaf-967c-54507dbbd989",
+      "name": "Switch1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C098WHM2KD5",
+          "mode": "list",
+          "cachedResultName": "i9-local-notifications"
+        },
+        "text": "=Status: WARNING\nCampaign name: {{ $('Code1').item.json.campaignName }}\nVolatility: {{ $('Code1').item.json.volatility }}\nCoefficient of variation: {{ $('Code1').item.json.coefficientOfVariation }}\nMean impressions: {{ $('Code1').item.json.meanImpressions }}\nStandard deviation of impressions: {{ $('Code1').item.json.stdDevImpressions }}\nMedian 13 days: {{ $('Code1').item.json.median13Days }}\nTime window used: {{ $('Code1').item.json.timeWindowUsed }}\nImpressions today: {{ $('Code1').item.json.impressions_today }}\ny_today: {{ $('Code1').item.json.y_today }}\nmedian_Y: {{ $('Code1').item.json.median_Y }}\nMAD_Y: {{ $('Code1').item.json.MAD_Y }}\n\nПроблема просадка по показам:\n- падение {{ $('Code1').item.json.alert.calculatedDropPercentage }}% \n- robust_z {{ $('Code1').item.json.robust_z }}\n\n",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2976,
+        -448
+      ],
+      "id": "86273b5b-f04c-4107-a4e1-becc13e4c55d",
+      "name": "WARNING",
+      "webhookId": "6c318468-db3b-453c-a828-2aaff00de465",
+      "credentials": {
+        "slackApi": {
+          "id": "xzGeHM57eBQ6pACT",
+          "name": "i9 local notifications"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C098WHM2KD5",
+          "mode": "list",
+          "cachedResultName": "i9-local-notifications"
+        },
+        "text": "=Status: CRITICAL\nCampaign name: {{ $('Code1').item.json.campaignName }}\nVolatility: {{ $('Code1').item.json.volatility }}\nCoefficient of variation: {{ $('Code1').item.json.coefficientOfVariation }}\nMean impressions: {{ $('Code1').item.json.meanImpressions }}\nStandard deviation of impressions: {{ $('Code1').item.json.stdDevImpressions }}\nMedian 13 days: {{ $('Code1').item.json.median13Days }}\nTime window used: {{ $('Code1').item.json.timeWindowUsed }}\nImpressions today: {{ $('Code1').item.json.impressions_today }}\ny_today: {{ $('Code1').item.json.y_today }}\nmedian_Y: {{ $('Code1').item.json.median_Y }}\nMAD_Y: {{ $('Code1').item.json.MAD_Y }}\n\nПроблема просадка по показам:\n- падение {{ $('Code1').item.json.alert.calculatedDropPercentage }}% \n- robust_z {{ $('Code1').item.json.robust_z }}\n\n",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2976,
+        32
+      ],
+      "id": "a4aecd29-e5c4-4b0e-a39d-a8d20ac8e8bf",
+      "name": "CRITICAL",
+      "webhookId": "6c318468-db3b-453c-a828-2aaff00de465",
+      "credentials": {
+        "slackApi": {
+          "id": "xzGeHM57eBQ6pACT",
+          "name": "i9 local notifications"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        -128
+      ],
+      "id": "91c4c42c-ec82-4309-b7d2-a9e5f6ef5895",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    id,\n    company_id,\n    alert_level,\n    event_timestamp,\n    message\nFROM\n    public.alert_events\nWHERE\n    company_id = '{{ $json.campaignId }}'\n    AND event_timestamp >= NOW() - INTERVAL '3 days'\nORDER BY\n    event_timestamp DESC; -- Сортируем по дате, чтобы самые новые события были сверху",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2304,
+        -368
+      ],
+      "id": "7dfacefd-0ee4-49df-a701-8a6606e6e885",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "dfCgOXpriryVv18W",
+          "name": "i9-local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "832a94f7-8568-4baf-a382-e11c1756b5db",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2752,
+        -368
+      ],
+      "id": "6f239fec-fc6e-4e47-92a7-ee55901cf28c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем все входящие элементы\nconst items = $input.all();\n\n// Считаем их количество\nconst itemsCount = items.length;\n\n// Возвращаем МАССИВ с ОДНИМ объектом.\n// У объекта должно быть поле 'json', внутри которого будут ваши данные.\nreturn [\n  {\n    json: {\n      count: itemsCount\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        -368
+      ],
+      "id": "7d4e163e-c746-4baf-b53a-025ee9f6f308",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_events (company_id, alert_level, event_timestamp)\nVALUES\n    ('{{ $('Switch1').first().json.campaignId }}', 'WARNING', NOW());",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2976,
+        -256
+      ],
+      "id": "b573ca25-6fa5-41c6-9aa1-ce8b84ca9ddf",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "dfCgOXpriryVv18W",
+          "name": "i9-local"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google ads additional keys": {
+      "main": [
+        [
+          {
+            "node": "Get companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get companies": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CRITICAL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WARNING": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRITICAL": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "WARNING",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "count": 11
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Code1": [
+      {
+        "json": {
+          "campaignId": "22332690479",
+          "campaignName": "374 | Micah Nisley | FSBT",
+          "volatility": "Низкая",
+          "coefficientOfVariation": 0.2062,
+          "meanImpressions": 131.62,
+          "stdDevImpressions": 27.14,
+          "median13Days": 137,
+          "timeWindowUsed": 13,
+          "impressions_today": 176,
+          "y_today": 26.5612,
+          "median_Y": 23.4414,
+          "MAD_Y": 1.1655,
+          "robust_z": 1.8055,
+          "alert": {
+            "status": "WARNING",
+            "reason": "Условия для тревоги не выполнены.",
+            "calculatedDropPercentage": -33.72
+          }
+        }
+      }
+    ],
+    "Code3": [
+      {
+        "json": {
+          "count": 1
+        }
+      }
+    ]
+  },
+  "versionId": "c0c48b5f-34fc-48ad-a925-699d574e7a5f",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:36.398Z",
+      "updatedAt": "2025-08-28T14:30:36.398Z",
+      "role": "workflow:owner",
+      "workflowId": "GfdFDpGBEAJCu0CM",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
