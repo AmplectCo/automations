@@ -1,0 +1,232 @@
+{
+  "createdAt": "2025-08-16T22:28:56.416Z",
+  "updatedAt": "2025-08-18T09:15:38.254Z",
+  "id": "E2Da1I09KPpLAUeG",
+  "name": "Slack WordPress Dev Support Chatbot",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "event": "message",
+        "additionalFields": {}
+      },
+      "id": "b07efae6-ca92-4e0a-92df-6730b9642493",
+      "name": "Slack Trigger",
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred-id",
+          "name": "Slack API Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a helpful assistant specializing in WordPress development. Provide concise, accurate answers, code snippets, and references. If the question is too complex or outside your knowledge, escalate by flagging it with: ESCALATE.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI chatbot assisting Slack users with WordPress development questions. Give practical, developer-focused responses. For complex tasks, return 'ESCALATE'."
+        }
+      },
+      "id": "23b59bb2-62af-4821-8627-6d4bedacc988",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "73f33f53-e91e-4b8b-9d13-49b316191e3a",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        200
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "openrouter-cred-id",
+          "name": "OpenRouter API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "176fe9ec-6654-480d-ac62-df066daa4c19",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"response\": {\n      \"type\": \"string\",\n      \"description\": \"The chatbot's answer or escalation flag\"\n    }\n  },\n  \"required\": [\"response\"]\n}"
+      },
+      "id": "d975f573-aefc-4a46-85e1-c754e29e27e2",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "={{$json[\"body\"][\"event\"][\"channel\"]}}",
+        "text": "={{$json[\"response\"]}}"
+      },
+      "id": "091010b6-0d36-4943-9522-05f6e4639d1c",
+      "name": "Slack Respond",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred-id",
+          "name": "Slack API Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Slack Trigger\nThis node listens for incoming Slack messages and starts the chatbot workflow."
+      },
+      "id": "6495a32f-cfbd-4361-af76-cfc441c7324d",
+      "name": "Sticky Note Slack",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent\nThis node processes the user's question with the AI model specialized in WordPress development support."
+      },
+      "id": "a9c274d5-3af3-44e5-9f52-52d6573bf25e",
+      "name": "Sticky Note AI",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Escalation\nIf response contains 'ESCALATE', forward the issue to a human developer or support team for follow-up."
+      },
+      "id": "0c864871-2dc5-4904-9dfd-58905c03f0b2",
+      "name": "Sticky Note Escalation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "main": [
+        [
+          {
+            "node": "Slack Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "d9ca3e3d-b1f8-45de-8e91-b28cf01d08b8",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:09.728Z",
+      "updatedAt": "2025-08-28T14:30:09.728Z",
+      "role": "workflow:owner",
+      "workflowId": "E2Da1I09KPpLAUeG",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
