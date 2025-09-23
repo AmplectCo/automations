@@ -1,0 +1,120 @@
+{
+  "createdAt": "2025-07-10T14:35:45.611Z",
+  "updatedAt": "2025-07-16T06:31:48.365Z",
+  "id": "G6NBgTgn6pzMNiMf",
+  "name": "Create stripe price",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "unit_amount",
+              "type": "number"
+            },
+            {
+              "name": "interval"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a2615703-77c8-486f-97ab-de0c55a045ca",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/prices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "currency",
+              "value": "usd"
+            },
+            {
+              "name": "unit_amount",
+              "value": "={{ $json.unit_amount }}"
+            },
+            {
+              "name": "recurring[interval]",
+              "value": "={{ $json.interval }}"
+            },
+            {
+              "name": "product",
+              "value": "prod_SeHRraP9XxonRh"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "2821379f-6e54-420c-9581-aa24495f7364",
+      "name": "Stripe - Create Custom Price",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        },
+        "httpBasicAuth": {
+          "id": "ZPBU1cckaedyw6mb",
+          "name": "dizzain Stripe Basic Auth"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Stripe - Create Custom Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "352ef7f7-eb3b-4e23-b161-98a595549c80",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:32.576Z",
+      "updatedAt": "2025-08-28T14:30:32.576Z",
+      "role": "workflow:owner",
+      "workflowId": "G6NBgTgn6pzMNiMf",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-07-10T14:35:52.102Z",
+      "updatedAt": "2025-07-10T14:35:52.102Z",
+      "id": "jn6fkqUeQvBfj4B7",
+      "name": "stripe"
+    }
+  ]
+}
