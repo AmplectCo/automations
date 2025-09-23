@@ -1,0 +1,140 @@
+{
+  "createdAt": "2025-08-20T14:24:49.788Z",
+  "updatedAt": "2025-08-23T14:35:14.076Z",
+  "id": "sFDQ1yaAJcoEaRwD",
+  "name": "Git Repository Code Analysis Agent",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Manual trigger to start the workflow on demand. Click 'Execute Workflow' to begin the Git repository analysis process."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "ScheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        500
+      ],
+      "notesInFlow": true,
+      "notes": "Scheduled trigger that runs every 6 hours. Modify the interval as needed for your repository analysis frequency."
+    },
+    {
+      "parameters": {
+        "operation": "clone",
+        "repositoryPath": "/tmp/repo",
+        "repositoryUrl": "https://github.com/username/repository.git",
+        "options": {
+          "depth": 1
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "name": "GitCloneOrFetch",
+      "type": "n8n-nodes-base.git",
+      "typeVersion": 1,
+      "position": [
+        500,
+        400
+      ],
+      "notesInFlow": true,
+      "notes": "Clones the Git repository to /tmp/repo or fetches updates if it already exists. Configure the repository URL and path as needed."
+    },
+    {
+      "parameters": {
+        "command": "cd /tmp/repo && npm audit || echo 'No package.json found' && find . -name '*.js' -o -name '*.py' | head -20 | xargs wc -l",
+        "cwd": "/tmp/repo"
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
+      "name": "CodeAnalysis",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        780,
+        400
+      ],
+      "notesInFlow": true,
+      "notes": "Executes code analysis on the repository. Currently runs npm audit and counts lines in JS/Python files. Customize the command for your specific analysis needs."
+    }
+  ],
+  "connections": {
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "GitCloneOrFetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScheduleTrigger": {
+      "main": [
+        [
+          {
+            "node": "GitCloneOrFetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitCloneOrFetch": {
+      "main": [
+        [
+          {
+            "node": "CodeAnalysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "6737f09f-d5c5-40fd-8a44-98206afcc987",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:59.453Z",
+      "updatedAt": "2025-08-28T14:34:59.453Z",
+      "role": "workflow:owner",
+      "workflowId": "sFDQ1yaAJcoEaRwD",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
