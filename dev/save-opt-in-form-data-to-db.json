@@ -1,0 +1,94 @@
+{
+  "createdAt": "2025-07-14T11:20:53.525Z",
+  "updatedAt": "2025-07-16T06:28:56.687Z",
+  "id": "OdnxRkMgmtCSoMRx",
+  "name": "Save opt in form data to DB",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bff9d201-7f11-4aca-8d64-c5beacae4fd7",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "538ee1a5-ea96-4720-a3cc-9fbf44f3027c",
+      "name": "Webhook",
+      "webhookId": "bff9d201-7f11-4aca-8d64-c5beacae4fd7"
+    },
+    {
+      "parameters": {
+        "tableId": "users",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $json.body.respondentEmail || $json.body['AD Email'] }}"
+            },
+            {
+              "fieldId": "opt_in_json",
+              "fieldValue": "={{ JSON.stringify($json.body) }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $json.body['AD Name'] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "33855b53-f8f7-4267-b6ab-59982d3eae9a",
+      "name": "Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "wAygdhwRYpZviNG9",
+          "name": "Supabase i9 local"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "51d20a38-9cd2-4521-9a1b-b4be69ffea1b",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:33.938Z",
+      "updatedAt": "2025-08-28T14:31:33.938Z",
+      "role": "workflow:owner",
+      "workflowId": "OdnxRkMgmtCSoMRx",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
