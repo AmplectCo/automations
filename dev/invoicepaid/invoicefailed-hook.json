@@ -1,0 +1,535 @@
+{
+  "createdAt": "2025-07-10T10:26:32.989Z",
+  "updatedAt": "2025-07-16T06:30:09.226Z",
+  "id": "4v8LOI3InrtGkrZ0",
+  "name": "InvoicePaid/InvoiceFailed Hook",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -100
+      ],
+      "id": "6dfd54c8-c604-420e-8585-9a238dce9338",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6283207a-77fc-4314-bdb5-d7ff7e23b8f8",
+              "name": "customer_id",
+              "value": "={{ $json.customer_id }}",
+              "type": "string"
+            },
+            {
+              "id": "263a2774-a46e-460c-bdb8-331571a8fd10",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "f435ef26-3a4c-48cb-90c4-5fde3dbcf07f",
+              "name": "subscription_id",
+              "value": "={{ $json.subscription_id }}",
+              "type": "string"
+            },
+            {
+              "id": "2c20b394-1226-446d-89ad-038bfb068e4e",
+              "name": "price_id",
+              "value": "={{ $json.price_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8a8b1962-883c-4440-b979-bc7db1a7918e",
+              "name": "amount_paid",
+              "value": "={{ $json.amount_paid }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        0
+      ],
+      "id": "76b2d248-63fc-44d6-8302-a0c5fecdf990",
+      "name": "Invoice data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "lIBo5maVVG6wjO0F",
+          "mode": "list",
+          "cachedResultName": "Get customer sheet data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_id": "={{ $json.customer_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "c8b0321f-80b1-4fb6-89de-ed579fe4d59c",
+      "name": "Customer data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "eJ6iOKTSuaXPp2aM",
+          "mode": "list",
+          "cachedResultName": "Update customer sheet data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "Payment_Status": "={{ $('Invoice data').item.json.status.toLowerCase() === 'paid' ? 'Paid' : 'Failed' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "Stripe_Customer_ID",
+              "displayName": "Stripe_Customer_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "Stripe_Subscription_ID",
+              "displayName": "Stripe_Subscription_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "Payment_Method",
+              "displayName": "Payment_Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "Stripe_Price_ID",
+              "displayName": "Stripe_Price_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "Payment_Status",
+              "displayName": "Payment_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Stripe_Fee_Actual",
+              "displayName": "Stripe_Fee_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Ads_Spend_MTD",
+              "displayName": "Ads_Spend_MTD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Ads_Spend_Actual",
+              "displayName": "Ads_Spend_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            },
+            {
+              "id": "Adjustment",
+              "displayName": "Adjustment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2060,
+        0
+      ],
+      "id": "12555443-1c68-469b-8632-8dd08ff41c5b",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Periods",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        0
+      ],
+      "id": "ee3478d6-e534-40a8-99b2-71206cb76d0c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9c5f1903-c58c-43b4-993f-365fe49396e5",
+              "leftValue": "={{ $json.Stripe_Price_ID }}",
+              "rightValue": "={{ $('Invoice data').item.json.price_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        0
+      ],
+      "id": "0c60875d-7b03-4442-a3c4-d82e5b7f2276",
+      "name": "Filter"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        0
+      ],
+      "id": "330d858c-2a61-4ed7-8274-3eaab51d40aa",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dbd8fbd6-d674-4569-a9a3-5b38cd3cee89",
+              "leftValue": "={{ $json.Stripe_Subscription_ID }}",
+              "rightValue": "={{ $('Invoice data').item.json.subscription_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1180,
+        0
+      ],
+      "id": "929b74c3-8974-40fd-9633-0208f7edfcfa",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "customer_id"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "subscription_id"
+            },
+            {
+              "name": "price_id"
+            },
+            {
+              "name": "amount_paid",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        300,
+        100
+      ],
+      "id": "f006c7fc-69a7-49ef-a222-80894448d807",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "791fe02a-a357-411c-b417-cdfc5fecbff5",
+              "leftValue": "={{ $json.amount_paid }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        0
+      ],
+      "id": "45c9c401-b3a1-4488-be96-30bf9c877fdd",
+      "name": "Check amount_paid"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Invoice data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice data": {
+      "main": [
+        [
+          {
+            "node": "Check amount_paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer data": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Invoice data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check amount_paid": {
+      "main": [
+        [
+          {
+            "node": "Customer data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {
+          "customer_id": "cus_SeBIgVzxylVHCJ",
+          "status": "paid",
+          "subscription_id": "sub_1RjM6UKFYkhTMKD9TLfgdAk8",
+          "price_id": "price_1RjMXrKFYkhTMKD9KibaNCFq",
+          "amount_paid": 2200
+        }
+      }
+    ]
+  },
+  "versionId": "d2d26de9-f30a-41fe-a1f7-19162699cdd4",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:43.971Z",
+      "updatedAt": "2025-08-28T14:28:43.971Z",
+      "role": "workflow:owner",
+      "workflowId": "4v8LOI3InrtGkrZ0",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
