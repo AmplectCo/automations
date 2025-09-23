@@ -1,0 +1,211 @@
+{
+  "createdAt": "2025-08-24T13:10:34.763Z",
+  "updatedAt": "2025-09-22T15:19:03.944Z",
+  "id": "mYTvYziSV29nqAK5",
+  "name": "Генератор идей для Twitter из RSS",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "id": "18f2780c-e274-42f0-9b48-18e001c45f49",
+      "name": "Запуск раз в день",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Шаг 1: Чтение RSS-ленты\\n\\nЭта нода каждый день проверяет указанную RSS-ленту и забирает из нее последнюю опубликованную статью.\\n\\n**Что настроить:**\\n1.  **URL:** Вставьте ссылку на RSS-ленту вашего блога в поле `URL`.",
+        "height": 416,
+        "width": 352
+      },
+      "id": "99347201-1b77-4402-861f-135a513c0b1e",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Шаг 2: Генерация идей с помощью AI\\n\\nAI Agent получает текст статьи из RSS-ленты и генерирует на его основе три идеи для постов в Twitter. Промпт настроен так, чтобы сохранить оригинальный стиль и тон статьи.\\n\\n**Что настроить:**\\n1.  **OpenAI Credentials:** Подключите ваш аккаунт OpenAI в ноде `OpenAI Chat Model`.",
+        "height": 400
+      },
+      "id": "d8bf3fd1-8e8e-49b8-a6d5-a38f3223063f",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Основываясь на содержании следующей статьи, сгенерируй 3 уникальные идеи для постов в Twitter. Каждая идея должна быть краткой, вовлекающей и точно отражать тон и стиль оригинального текста. Отформатируй результат в виде нумерованного списка.\\n\\nСтатья:\\n{{$json[\\\"contentSnippet\\\"] || $json[\\\"content\\\"]}}",
+        "options": {}
+      },
+      "id": "92f159a2-58e1-4821-b3b3-c15764d7c080",
+      "name": "Сгенерировать идеи",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        880,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "70d79461-754d-48ef-b4e8-89c09191d4e7",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "ЗАМЕНИ_НА_СВОИ_CREDENTIALS",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Шаг 3: Отправка в Telegram\\n\\nЭта нода отправляет результат работы AI в ваш Telegram-чат.\\n\\n**Что настроить:**\\n1.  **Telegram API Credentials:** Подключите ваш Telegram Bot API.\\n2.  **Chat ID:** Укажите ID вашего чата или канала в поле `Chat ID`."
+      },
+      "id": "19b45e99-f472-4663-8a9d-5969cf6170d1",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        352
+      ],
+      "id": "14c23b4e-44b8-4ef7-90b2-f3c20d90fdea",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        352
+      ],
+      "id": "25a5ed1d-88fc-48fb-92b6-69fc3d19b476",
+      "name": "Execute Command"
+    }
+  ],
+  "connections": {
+    "Запуск раз в день": {
+      "main": [
+        [
+          {
+            "node": "Сгенерировать идеи",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Сгенерировать идеи": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Сгенерировать идеи",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7d447149-4c53-4220-a6cb-03ec29be0df0",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:17.806Z",
+      "updatedAt": "2025-08-28T14:34:17.806Z",
+      "role": "workflow:owner",
+      "workflowId": "mYTvYziSV29nqAK5",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-08-18T14:07:18.752Z",
+      "updatedAt": "2025-08-18T14:07:18.752Z",
+      "id": "QIfmyy7xTACF0ros",
+      "name": "aigenerated"
+    },
+    {
+      "createdAt": "2025-09-13T19:06:54.371Z",
+      "updatedAt": "2025-09-13T21:30:32.257Z",
+      "id": "kQXJeoyu5pqroZeK",
+      "name": "env:prod"
+    }
+  ]
+}
