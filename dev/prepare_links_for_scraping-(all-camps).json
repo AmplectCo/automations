@@ -1,0 +1,198 @@
+{
+  "createdAt": "2025-07-11T07:22:02.211Z",
+  "updatedAt": "2025-09-02T11:22:53.660Z",
+  "id": "DhVQzfB8PJTDOCul",
+  "name": "prepare_links_for_scraping (all camps)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.ussportscamps.com/sitemap.xml",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "Fetch sitemap.xml",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "7a6998a1-5592-434a-97d0-56c8f45f37a0"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This array will hold the output items.\nconst outputItems = [];\n\n// Loop over all input items (usually one item containing the full sitemap XML).\nfor (const item of $input.all()) {\n  const sitemapXmlString = item.json.data;\n  const extractedData = [];\n\n  if (sitemapXmlString && typeof sitemapXmlString === 'string') {\n    const urlBlockRegex = /<url>([\\s\\S]*?)<\\/url>/gs;\n\n    let urlMatch;\n    while ((urlMatch = urlBlockRegex.exec(sitemapXmlString)) !== null) {\n      const urlBlockContent = urlMatch[1];\n\n      const locRegex = /<loc>([^<]+)<\\/loc>/;\n      const locMatch = urlBlockContent.match(locRegex);\n      const link = locMatch ? locMatch[1].trim() : null;\n\n      const lastmodRegex = /<lastmod>([^<]+)<\\/lastmod>/;\n      const lastmodMatch = urlBlockContent.match(lastmodRegex);\n      const modificationDate = lastmodMatch ? lastmodMatch[1].trim() : null;\n\n      if (link) {\n        extractedData.push({\n          link: link,\n          modification_date: modificationDate\n        });\n      }\n    }\n  } else {\n    throw new Error(\"Sitemap content not found or is not a string in item.json.data\");\n  }\n\n  // Теперь мы возвращаем каждую запись как отдельный элемент выходного массива,\n  // чтобы дальше node Google Sheets мог принимать массив объектов.\n  for (const dataItem of extractedData) {\n    outputItems.push({ json: dataItem });\n  }\n}\n\nreturn outputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "2e75b8b8-8b62-4102-bc5c-b1c0ab853e53",
+      "name": "Parse and create JSON with links"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all().map(item => item.json);\n\nconst baseUrl = \"https://www.ussportscamps.com/\";\n\n// Список допустимых категорий\nconst allowedCategories = [\n  \"baseball\",\n  \"basketball\",\n  \"cross-country\",\n  \"dance\",\n  \"esports\",\n  \"fieldhockey\",\n  \"football\",\n  \"flag-football\",\n  \"golf\",\n  \"gymnastics\",\n  \"kids\",\n  \"lacrosse\",\n  \"multisport\",\n  \"pickleball\",\n  \"rowing\",\n  \"soccer\",\n  \"softball\",\n  \"sport-performance\",\n  \"swim\",\n  \"tennis\",\n  \"track-field\",\n  \"triathlon\",\n  \"volleyball\",\n  \"waterpolo\",\n  \"wrestling\"\n];\n\nconst filteredData = inputData.filter(item => {\n  const link = item.link || \"\";\n\n  // Исключаем нежелательные подстроки\n  if (\n    link.includes(\"https://www.ussportscamps.com/coaches/\") ||\n    link.includes(\"/nbc/\") || link.includes(\"evolve1\") || \nlink.includes(\"https://www.ussportscamps.com/tips/\")\n  ) {\n    return false;\n  }\n\n  // Проверяем, что ссылка начинается с baseUrl\n  if (!link.startsWith(baseUrl)) {\n    return false;\n  }\n\n  // Получаем часть URL после baseUrl\n  const pathAfterBase = link.slice(baseUrl.length);\n\n  // Разбиваем путь по слешу и фильтруем пустые части\n  const parts = pathAfterBase.split('/').filter(part => part.length > 0);\n\n  // Проверяем, что есть минимум 2 части: category + page\n  if (parts.length < 2) {\n    return false;\n  }\n\n  const category = parts[0]; // первая часть после baseUrl - категория\n\n  // Проверяем, что категория есть в списке разрешённых\n  if (!allowedCategories.includes(category)) {\n    return false;\n  }\n\n  return true;\n});\n\nreturn filteredData.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -16
+      ],
+      "id": "c0a20ac5-f10d-4428-978d-62dc3514d801",
+      "name": "Filter data"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "exclude-links",
+          "mode": "list",
+          "cachedResultName": "exclude-links"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "link",
+              "condition": "!=",
+              "value": "NULL"
+            }
+          ]
+        },
+        "options": {
+          "outputColumns": [
+            "link"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        -16
+      ],
+      "id": "2612bd06-fc17-499a-950c-2c19df840584",
+      "name": "Not camps links from DB",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all().map(item => item.json);\nconst filterData = $('Filter data').all().map(item => item.json);\nconst notCampsData = $('Not camps links from DB').all().map(item => item.json);\n\nfunction normalizeLink(link) {\n  return link ? link.trim().replace(/\\/$/, '').toLowerCase() : '';\n}\n\n// Функция для получения временной метки (timestamp) из даты или null\nfunction parseDateToTimestamp(dateStr) {\n  if (!dateStr) return null;\n  const d = new Date(dateStr);\n  return isNaN(d.getTime()) ? null : d.getTime();\n}\n\nconst notCampsLinksNormalized = new Set(notCampsData.map(item => normalizeLink(item.link)));\n\nconst inputMap = new Map();\n// Сохраняем в Map: ключ = ссылка, значение = timestamp modification_date\ninputData.forEach(item => {\n  const normalized = normalizeLink(item.link);\n  const ts = parseDateToTimestamp(item.modification_date);\n  if (ts !== null) inputMap.set(normalized, ts);\n});\n\nconst filtered = filterData.filter(item => {\n  const normalized = normalizeLink(item.link);\n\n  if (notCampsLinksNormalized.has(normalized)) {\n    return false;\n  }\n\n  const inputTimestamp = inputMap.get(normalized);\n  const filterTimestamp = parseDateToTimestamp(item.modification_date);\n\n  // Если оба timestamps есть и совпадают — исключаем\n  if (inputTimestamp !== undefined && filterTimestamp !== null && inputTimestamp === filterTimestamp) {\n    return false;\n  }\n\n  return true;\n});\n\nreturn filtered.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -16
+      ],
+      "id": "90233be5-39a9-40c3-989d-af4112e16c4d",
+      "name": "Combine data",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "df56220e-b97d-4ef1-aa0a-0b3a6080eda3",
+      "name": "Start"
+    }
+  ],
+  "connections": {
+    "Fetch sitemap.xml": {
+      "main": [
+        [
+          {
+            "node": "Parse and create JSON with links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and create JSON with links": {
+      "main": [
+        [
+          {
+            "node": "Filter data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter data": {
+      "main": [
+        [
+          {
+            "node": "Not camps links from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not camps links from DB": {
+      "main": [
+        [
+          {
+            "node": "Combine data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Fetch sitemap.xml",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "5a30109b-71fa-4a1e-8896-69f3fa923d36",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:05.920Z",
+      "updatedAt": "2025-08-28T14:30:05.920Z",
+      "role": "workflow:owner",
+      "workflowId": "DhVQzfB8PJTDOCul",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
