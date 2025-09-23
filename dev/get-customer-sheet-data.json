@@ -1,0 +1,383 @@
+{
+  "createdAt": "2025-07-09T15:35:48.867Z",
+  "updatedAt": "2025-07-16T06:29:20.774Z",
+  "id": "lIBo5maVVG6wjO0F",
+  "name": "Get customer sheet data",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "email"
+            },
+            {
+              "name": "customer_id"
+            },
+            {
+              "name": "getAllCustomersData",
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        -140
+      ],
+      "id": "e0d00afc-bac1-4713-af76-12a245289cf6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/19ErmkNNnyxmWmer7ZfYCYKwToEzNkdqZYEpsbdh2CgQ/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/19ErmkNNnyxmWmer7ZfYCYKwToEzNkdqZYEpsbdh2CgQ/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        660,
+        -40
+      ],
+      "id": "9d964add-39c2-4538-951d-73530e82e300",
+      "name": "All sheet data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all() || [];\nconst output = [];\nlet currentCustomer = {};\n\nfor (const row of rows) {\n  const rowData = row.json;\n  if(!!row.json.Email) {\n    currentCustomer = {};\n    const {row_number, Franchisee_ID, Email, Portal_Link, Stripe_Customer_ID, Stripe_Subscription_ID, Stripe_Sub_Item_ID, Payment_Method, ...other} = rowData\n    currentCustomer = {\n      row_number,\n      Franchisee_ID,\n      Email,\n      Portal_Link,\n      Stripe_Customer_ID,\n      Stripe_Subscription_ID,\n      Stripe_Sub_Item_ID,\n      Payment_Method,\n      Periods: [\n        {\n          row_number,\n          ...other\n        }\n      ]\n    }\n    output.push(currentCustomer);\n  } else {\n    const {row_number, Franchisee_ID, Portal_Link, Email, Stripe_Customer_ID, Stripe_Subscription_ID, Stripe_Sub_Item_ID, Payment_Method, ...other} = rowData;\n    currentCustomer.Periods.push({\n      row_number,\n      ...other\n    })\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -40
+      ],
+      "id": "29feb2a5-a4cb-42fb-91f8-21ffdf1186dc",
+      "name": "Structured data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "98a86e1e-3b2a-4f70-ad2c-5d903ebdb1bd",
+              "leftValue": "={{ !!$('Params').first().json.email ? $('Params').first().json.email : 'no-value' }}",
+              "rightValue": "={{ $json.Email }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "06dfaf74-ad03-451c-85ba-dbe49d78c6c2",
+              "leftValue": "={{ !!$('Params').first().json.customer_id ? $('Params').first().json.customer_id : 'no-value' }}",
+              "rightValue": "={{ $json.Stripe_Customer_ID }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        40
+      ],
+      "id": "77c76963-14c3-45db-a44b-adcaeaedace9",
+      "name": "Filter",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        40
+      ],
+      "id": "8d5950ee-2cd8-4955-908f-f26c734d69e4",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "71def8d0-e93d-418d-829b-8497e1ad3081",
+              "leftValue": "={{ $('Params').first().json.getAllCustomersData }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -40
+      ],
+      "id": "9406194d-c829-48b0-8c24-25cd425232af",
+      "name": "Get all data?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -40
+      ],
+      "id": "19e17899-39f4-4121-adf9-19f0c597b2cf",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9c198163-afe5-4838-8c08-83c6d13494d8",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        60,
+        40
+      ],
+      "id": "b9b9269c-3af6-454e-8808-b17e7dd362d3",
+      "name": "Webhook",
+      "webhookId": "9c198163-afe5-4838-8c08-83c6d13494d8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0c1dd7c-1081-4334-84f5-d7422ef51f7f",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        40
+      ],
+      "id": "581d8e34-dd96-41ba-96e3-8ba1aacb9e18",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "541751e7-c2a9-4201-9e29-32d513f70285",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "92b351d8-b987-4523-8ea8-17e57dee33bf",
+              "name": "customer_id",
+              "value": "={{ $json.customer_id }}",
+              "type": "string"
+            },
+            {
+              "id": "872b3b90-4229-4036-b663-8670343d6358",
+              "name": "getAllCustomersData",
+              "value": "={{ $json.getAllCustomersData }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        -40
+      ],
+      "id": "448a4ba3-f382-4d0f-851e-faada9c025da",
+      "name": "Params"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All sheet data": {
+      "main": [
+        [
+          {
+            "node": "Structured data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured data": {
+      "main": [
+        [
+          {
+            "node": "Get all data?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all data?": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Params": {
+      "main": [
+        [
+          {
+            "node": "All sheet data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "d540efe5-8aac-4428-99c7-2d9c43383684",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:14.050Z",
+      "updatedAt": "2025-08-28T14:34:14.050Z",
+      "role": "workflow:owner",
+      "workflowId": "lIBo5maVVG6wjO0F",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
