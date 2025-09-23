@@ -1,0 +1,214 @@
+{
+  "createdAt": "2025-08-27T14:32:02.639Z",
+  "updatedAt": "2025-09-02T11:19:11.533Z",
+  "id": "iWiR8VeatERhYKB9",
+  "name": "Get main context",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "session"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "655b8421-567d-4fec-aa72-bdce25cd02de",
+      "name": "When Executed by Another Workflow",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1lEurB8CrAIUD1irk7zRL338RwOvH4_08",
+          "mode": "list",
+          "cachedResultName": "BOLD Rewards Rebuild Spec 2025 8.26.docx",
+          "cachedResultUrl": "https://docs.google.com/document/d/1lEurB8CrAIUD1irk7zRL338RwOvH4_08/edit?usp=drivesdk&ouid=109307410393738985109&rtpof=true&sd=true"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        96,
+        0
+      ],
+      "id": "d1cc7522-7a32-4440-b2e1-bf432f37ef46",
+      "name": "Main context (file 1)",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eSNqSATRHln2HTCD",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1rNFbMGMWNtpGAPMNI3D6Rl3_dNFQ2b6f",
+          "mode": "list",
+          "cachedResultName": "MASTER KOHLER BOLD Rewards Platform Features & Specifications Outline INTERNAL.docx",
+          "cachedResultUrl": "https://docs.google.com/document/d/1rNFbMGMWNtpGAPMNI3D6Rl3_dNFQ2b6f/edit?usp=drivesdk&ouid=109307410393738985109&rtpof=true&sd=true"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        576,
+        32
+      ],
+      "id": "33b0c297-4ce6-43ad-b82c-21245f9e0241",
+      "name": "Main context (file 2)",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eSNqSATRHln2HTCD",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "8e22ae2b-f4e2-4910-8f08-5a0906f00aae",
+      "name": "Extract file for main context 1"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        800,
+        16
+      ],
+      "id": "68171e44-cd2f-46a3-82fd-2e5a4234b71a",
+      "name": "Extract file for main context 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const final_message = `MAIN CONTEXT (base64 format): \n\nFile 1 (BOLD Rewards Rebuild Spec 2025 8.26.docx): \n${$('Extract file for main context 1').first().json.data}\n\nFile 2 (MASTER KOHLER BOLD Rewards Platform Features & Specifications Outline INTERNAL.docx):\n${$('Extract file for main context 2').first().json.data}`;\n\nreturn [\n  {\n    json: {\n      message: final_message\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        16
+      ],
+      "id": "77ec2c9c-ef2c-4261-8654-73ad2cc25fc7",
+      "name": "Final message"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Main context (file 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main context (file 1)": {
+      "main": [
+        [
+          {
+            "node": "Extract file for main context 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main context (file 2)": {
+      "main": [
+        [
+          {
+            "node": "Extract file for main context 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract file for main context 1": {
+      "main": [
+        [
+          {
+            "node": "Main context (file 2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract file for main context 2": {
+      "main": [
+        [
+          {
+            "node": "Final message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "session": "First item"
+        }
+      }
+    ]
+  },
+  "versionId": "1ca216a7-5708-4473-8c2c-9d1a2f662cb9",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:54.954Z",
+      "updatedAt": "2025-08-28T14:33:54.954Z",
+      "role": "workflow:owner",
+      "workflowId": "iWiR8VeatERhYKB9",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
