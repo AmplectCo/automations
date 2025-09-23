@@ -1,0 +1,483 @@
+{
+  "createdAt": "2025-08-18T14:04:56.629Z",
+  "updatedAt": "2025-08-23T14:35:04.104Z",
+  "id": "8ojaZP1kM5yzKdqJ",
+  "name": "GitHub Repository Scraper to Vector Database",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        384
+      ],
+      "id": "f8d3e4b2-1a3c-4e5d-9b7f-2c8a9d4e6f0a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger\nRuns every 6 hours to check for updates in the GitHub repository.\n\nYou can also trigger this manually.",
+        "height": 180,
+        "width": 260,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        288,
+        240
+      ],
+      "id": "sticky-trigger",
+      "name": "Trigger Note"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "owner": "={{ $json.github_owner }}",
+        "repository": "={{ $json.github_repo }}",
+        "filePath": "={{ $json.github_folder }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        736,
+        448
+      ],
+      "id": "github-list-files",
+      "name": "List GitHub Files",
+      "webhookId": "96eeab45-e756-4889-9901-4daeddbd7719",
+      "credentials": {
+        "githubApi": {
+          "id": "github_credentials",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## GitHub Configuration\nConfigure your GitHub credentials here.\n\nSet the owner, repository, and folder path in the Edit Fields node.",
+        "height": 180,
+        "width": 260,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        752,
+        240
+      ],
+      "id": "sticky-github",
+      "name": "GitHub Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "github-owner",
+              "name": "github_owner",
+              "value": "your-github-username",
+              "type": "string"
+            },
+            {
+              "id": "github-repo",
+              "name": "github_repo",
+              "value": "your-repository-name",
+              "type": "string"
+            },
+            {
+              "id": "github-folder",
+              "name": "github_folder",
+              "value": "path/to/folder",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        384
+      ],
+      "id": "config-node",
+      "name": "Configure GitHub Settings"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": "={{ $('Configure GitHub Settings').item.json.github_owner }}",
+        "repository": "={{ $('Configure GitHub Settings').item.json.github_repo }}",
+        "filePath": "={{ $json.path }}",
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        352
+      ],
+      "id": "github-get-content",
+      "name": "Get File Content",
+      "webhookId": "25a77d7c-34b5-465e-8e36-d390c6d9bd3c",
+      "credentials": {
+        "githubApi": {
+          "id": "github_credentials",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "You are an AI assistant that processes GitHub repository content and prepares it for vector database storage. Extract key information, create meaningful embeddings, and structure the data properly. Focus on:\n\n1. File metadata (name, path, type)\n2. Code analysis if applicable\n3. Documentation extraction\n4. Key concepts and relationships\n\nOutput a structured JSON with:\n- title: filename\n- content: processed content\n- metadata: relevant metadata\n- embedding_text: text suitable for embedding generation"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        384
+      ],
+      "id": "ai-processor",
+      "name": "AI Content Processor"
+    },
+    {
+      "parameters": {
+        "content": "## AI Processing\nThe AI agent analyzes each file and prepares structured data for vector storage.\n\nConnect your preferred AI model (OpenAI, Anthropic, etc.)",
+        "height": 180,
+        "width": 260,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        240
+      ],
+      "id": "sticky-ai",
+      "name": "AI Processing Note"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        592
+      ],
+      "id": "openai-model",
+      "name": "OpenAI Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "vector-id",
+              "name": "id",
+              "value": "={{ $('Configure GitHub Settings').item.json.github_repo }}_{{ $json.path.replace(/[^a-zA-Z0-9]/g, '_') }}",
+              "type": "string"
+            },
+            {
+              "id": "vector-content",
+              "name": "content",
+              "value": "={{ $json.output.content }}",
+              "type": "string"
+            },
+            {
+              "id": "vector-metadata",
+              "name": "metadata",
+              "value": "={{ JSON.stringify({repository: $('Configure GitHub Settings').item.json.github_repo, path: $json.path, processed_at: new Date().toISOString()}) }}",
+              "type": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1536,
+        608
+      ],
+      "id": "prepare-vector-data",
+      "name": "Prepare Vector Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/collections/github_data/points",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "points",
+              "value": "={{ [{\"id\": $json.id, \"vector\": null, \"payload\": {\"content\": $json.content, \"metadata\": $json.metadata}}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        384
+      ],
+      "id": "qdrant-insert",
+      "name": "Push to Qdrant"
+    },
+    {
+      "parameters": {
+        "content": "## Vector Database\nUsing Qdrant (free, self-hosted).\n\nAlternatives:\n- Pinecone (free tier)\n- Weaviate\n- ChromaDB\n\nUpdate the URL to your vector DB instance.",
+        "height": 180,
+        "width": 260,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        240
+      ],
+      "id": "sticky-vector",
+      "name": "Vector DB Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "file"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        448
+      ],
+      "id": "filter-files",
+      "name": "Filter Files Only"
+    },
+    {
+      "parameters": {
+        "content": "## Success Notification\nOptionally add email or Slack notification here to confirm successful data push.",
+        "height": 180,
+        "width": 260,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        240
+      ],
+      "id": "sticky-notification",
+      "name": "Notification Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "summary",
+              "name": "summary",
+              "value": "={{ 'Successfully processed ' + $items().length + ' files from GitHub repository' }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "completed_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        384
+      ],
+      "id": "completion-summary",
+      "name": "Completion Summary"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configure GitHub Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configure GitHub Settings": {
+      "main": [
+        [
+          {
+            "node": "List GitHub Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List GitHub Files": {
+      "main": [
+        [
+          {
+            "node": "Filter Files Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Files Only": {
+      "main": [
+        [
+          {
+            "node": "Get File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Content": {
+      "main": [
+        [
+          {
+            "node": "AI Content Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Processor": {
+      "main": [
+        [
+          {
+            "node": "Prepare Vector Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Vector Data": {
+      "main": [
+        [
+          {
+            "node": "Push to Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Push to Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Completion Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Content Processor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "7f153c7a-4b0f-4c3f-ae8a-3023ef951575",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:18.848Z",
+      "updatedAt": "2025-08-28T14:29:18.848Z",
+      "role": "workflow:owner",
+      "workflowId": "8ojaZP1kM5yzKdqJ",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-08-18T14:07:18.752Z",
+      "updatedAt": "2025-08-18T14:07:18.752Z",
+      "id": "QIfmyy7xTACF0ros",
+      "name": "aigenerated"
+    }
+  ]
+}
