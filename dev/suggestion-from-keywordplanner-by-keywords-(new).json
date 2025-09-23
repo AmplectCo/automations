@@ -1,0 +1,633 @@
+{
+  "createdAt": "2025-08-12T07:12:12.862Z",
+  "updatedAt": "2025-09-02T11:20:06.729Z",
+  "id": "VsnrVNr7vq5qTjip",
+  "name": "Suggestion from keywordPlanner by keywords (new)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://googleads.googleapis.com/v19/customers/2400614295:generateKeywordIdeas",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "developer-token",
+              "value": "vNsmUkml55K8cqbmUzxKiw"
+            },
+            {
+              "name": "login-customer-id",
+              "value": "6234909705"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"geoTargetConstants\": [\"geoTargetConstants/{{ $json.output.country_id }}\"],\n  \"language\": \"languageConstants/{{ $json.output.language_id }}\",\n  \"keywordSeed\": {\n    \"keywords\": {{ JSON.stringify($json.output.seeds) }}\n\n  },\n  \"keywordPlanNetwork\": \"GOOGLE_SEARCH\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        -48
+      ],
+      "id": "abdb4bc1-9320-421e-abfa-79b240c22a3a",
+      "name": "Suggestion from keywordPlanner by keywords",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "DxObVy2L2DiRkJ3x",
+          "name": "Google Ads account (amplect test account)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Определи id страны и id языка.\nСтрана: {{ $('When Executed by Another Workflow').item.json.country }}\nЯзык: {{ $('When Executed by Another Workflow').item.json.language }}\n\nТак же тебе нужно преобразовать массив с ключевыми словами в правильный формат.\nВот ключевые слова: {{ $('When Executed by Another Workflow').item.json.seeds }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Ты помощник, который умеет определять id страны и id языка.\n\nЧтобы определить id страны тебе нужно воспользоваться инструментом \"Get country id\".\n\nЧтобы получить id языка, тебе нужно найти его в таблице.\nВот таблица всех возможных id для языков (если запрашиваемого языка нет в таблице сообщи это пользователю и ничего не придумывай)\n\nТАБЛИЦА ЯЗЫКОВ:\n\nLanguage name,Language code,Criterion ID\nArabic,ar,1019\nBengali,bn,1056\nBulgarian,bg,1020\nCatalan,ca,1038\nChinese (simplified),zh_CN,1017\nChinese (traditional),zh_TW,1018\nCroatian,hr,1039\nCzech,cs,1021\nDanish,da,1009\nDutch,nl,1010\nEnglish,en,1000\nEstonian,et,1043\nFilipino,tl,1042\nFinnish,fi,1011\nFrench,fr,1002\nGerman,de,1001\nGreek,el,1022\nGujarati,gu,1072\nHebrew,iw,1027\nHindi,hi,1023\nHungarian,hu,1024\nIcelandic,is,1026\nIndonesian,id,1025\nItalian,it,1004\nJapanese,ja,1005\nKannada,kn,1086\nKorean,ko,1012\nLatvian,lv,1028\nLithuanian,lt,1029\nMalay,ms,1102\nMalayalam,ml,1098\nMarathi,mr,1101\nNorwegian,no,1013\nPersian,fa,1064\nPolish,pl,1030\nPortuguese,pt,1014\nPunjabi,pa,1110\nRomanian,ro,1032\nRussian,ru,1031\nSerbian,sr,1035\nSlovak,sk,1033\nSlovenian,sl,1034\nSpanish,es,1003\nSwedish,sv,1015\nTamil,ta,1130\nTelugu,te,1131\nThai,th,1044\nTurkish,tr,1037\nUkrainian,uk,1036\nUrdu,ur,1041\nVietnamese,vi,1040\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -208
+      ],
+      "id": "1af59ce2-0a7f-45a9-aec9-a2936277b431",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp-01-21",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        48
+      ],
+      "id": "0df8f617-0bd1-463f-a4bd-aa5429893bc7",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        112
+      ],
+      "id": "bb5c1fbf-a7e8-4aa5-be64-89abc6477d18",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"country_id\":\"2616\",\n  \"language_id\": \"1038\",\n  \"seeds\": [\"keyword 1\", \"keyword 2\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        80
+      ],
+      "id": "8b2fff7d-373d-4ebd-92b5-1d3f9556be43",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "seeds"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "country"
+            },
+            {
+              "name": "language"
+            },
+            {
+              "name": "brand"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        -320
+      ],
+      "id": "faf87409-6514-413f-8de9-eb871ead7d6d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "description": "Используй этот инструмент когда тебе нужно получить id страны.",
+        "workflowId": {
+          "__rl": true,
+          "value": "0hJYnZxkhfmyaTAm",
+          "mode": "list",
+          "cachedResultName": "Get geo"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "country": "={{ $('When Executed by Another Workflow').item.json.country }}"
+          },
+          "matchingColumns": [
+            "country"
+          ],
+          "schema": [
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        96
+      ],
+      "id": "b0624af4-bb2d-4886-a438-20ce2e26fe29",
+      "name": "Get country id"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Входные данные\nconst input = $input.all();\n\n// Данные, которые нам нужно разделить\nconst seeds = input[0].json.output.seeds;\n\n// Функция для разделения массива на части\nconst chunkArray = (array, size) => {\n  const result = [];\n  for (let i = 0; i < array.length; i += size) {\n    result.push(array.slice(i, i + size));\n  }\n  return result;\n};\n\n// Разделяем на части по 5 элементов\nconst chunkedSeeds = chunkArray(seeds, 5);\n\n// Массив для хранения результатов\nconst output = [];\n\n// Создаём новый объект для каждого куска\nchunkedSeeds.forEach((chunk, index) => {\n  output.push({\n    json: {\n      output: {\n        country_id: input[0].json.output.country_id,\n        language_id: input[0].json.output.language_id,\n        seeds: chunk\n      }\n    }\n  });\n});\n\n// Возвращаем массив объектов\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -208
+      ],
+      "id": "1d01c941-2edd-4da6-bb8b-458c1275ab73",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1072,
+        -208
+      ],
+      "id": "646c4264-cb45-4462-a0a5-4e6d465a322b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "=Report by keyword-generation-tool ({{ $('When Executed by Another Workflow').item.json.session }})",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "keywords"
+            },
+            {
+              "title": "negative_words"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -48,
+        -320
+      ],
+      "id": "51cf5339-0653-485c-b063-5894fc1c0a8b",
+      "name": "Create new sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create new sheet').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "keywords",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "keywordIdeaMetrics",
+              "displayName": "keywordIdeaMetrics",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "keywordAnnotations",
+              "displayName": "keywordAnnotations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closeVariants",
+              "displayName": "closeVariants",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2496,
+        -240
+      ],
+      "id": "c8976a4d-acd9-415c-b7b0-57edf46507e0",
+      "name": "Update keywords table",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"text\": \"ymca basketball classes\",\n    \"competition\": \"LOW\",\n    \"avgMonthlySearches\": \"390\",\n    \"competitionIndex\": \"11\",\n    \"lowTopOfPageBidMicros\": \"580000\",\n    \"highTopOfPageBidMicros\": \"3190000\"\n  },\n  {\n    \"text\": \"jesuit basketball camp\",\n    \"competition\": \"LOW\",\n    \"avgMonthlySearches\": \"90\",\n    \"competitionIndex\": \"14\",\n    \"lowTopOfPageBidMicros\": \"2300000\",\n    \"highTopOfPageBidMicros\": \"2500000\"\n  },\n  {\n    \"text\": \"best basketball training programs\",\n    \"competition\": \"LOW\",\n    \"avgMonthlySearches\": \"260\",\n    \"competitionIndex\": \"7\",\n    \"lowTopOfPageBidMicros\": \"660000\",\n    \"highTopOfPageBidMicros\": \"2860000\"\n  }\n]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        -640
+      ],
+      "id": "a2d6f801-a218-4a15-b77a-089f52245c07",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "agent": "reActAgent",
+        "promptType": "define",
+        "text": "=Тебе нужно отфильтровать данные (списки keywords). \nНужно удалить:\n- некоммерческие запросы и информационные запросы\n- запросы с упоминанием конкретных локаций, городов\n- в запросах с годом, год заменить на актуальный (сейчас {{ $now }})  \nИсходная таблица: {{ $json.data }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "62219d39-289f-4f57-bd78-1badbc4eb74c",
+      "name": "Orchestrator agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1728,
+        -928
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        -768
+      ],
+      "id": "2d4606f3-9e47-4ba0-8ad7-40b00c270832",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const link = `https://docs.google.com/spreadsheets/d/${$('Create new sheet').first().json.spreadsheetId\n}/edit?gid=${$('Create new sheet').first().json.sheets[0].properties.sheetId }#gid=${$('Create new sheet').first().json.sheets[0].properties.sheetId }`;\n\nreturn {\"link_keywords\": link};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        -240
+      ],
+      "id": "697feb2a-58d9-4dfd-9ca0-93d7ceeac6c3",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node - JavaScript\n// Извлечение, форматирование и фильтрация данных из поля \"results\"\n\nconst inputData = $input.all();\nconst formattedResults = [];\n\n// Проходим по всем входным элементам\nfor (const item of inputData) {\n  const data = item.json;\n  \n  // Проверяем, есть ли поле results и является ли оно массивом\n  if (data.results && Array.isArray(data.results)) {\n    // Обрабатываем каждый результат\n    for (const result of data.results) {\n      \n      // --- НАЧАЛО ИЗМЕНЕНИЙ ---\n      // Проверяем наличие метрик и что avgMonthlySearches > 0.\n      // Функция parseInt() надежно преобразует значение в число для сравнения.\n      // Если avgMonthlySearches отсутствует, null или не является числом, parseInt вернет NaN,\n      // и условие (NaN > 0) будет ложным, что корректно отфильтрует такой объект.\n      if (result && result.keywordIdeaMetrics && parseInt(result.keywordIdeaMetrics.avgMonthlySearches, 10) > 0) {\n        const metrics = result.keywordIdeaMetrics;\n        \n        const formattedObject = {\n          text: result.text || '',\n          competition: metrics.competition || '',\n          avgMonthlySearches: metrics.avgMonthlySearches, // Сохраняем исходное значение\n          competitionIndex: metrics.competitionIndex || '',\n          lowTopOfPageBidMicros: metrics.lowTopOfPageBidMicros || '',\n          highTopOfPageBidMicros: metrics.highTopOfPageBidMicros || ''\n        };\n        \n        formattedResults.push(formattedObject);\n      }\n      // --- КОНЕЦ ИЗМЕНЕНИЙ ---\n    }\n  }\n}\n\nconst jsonString = formattedResults;\n\nreturn formattedResults.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -240
+      ],
+      "id": "7698de29-6929-4d57-9091-046c7fec9405",
+      "name": "Code1"
+    }
+  ],
+  "connections": {
+    "Suggestion from keywordPlanner by keywords": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Create new sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get country id": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Suggestion from keywordPlanner by keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create new sheet": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator agent": {
+      "main": [
+        []
+      ]
+    },
+    "Update keywords table": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Update keywords table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "target_site": "https://www.dizzain.com",
+          "session": "1752657733.899859",
+          "country": "US",
+          "language": "en",
+          "brand": "nike",
+          "seeds": [
+            "basketball training programs",
+            "basketball academy",
+            "youth basketball training",
+            "summer basketball programs",
+            "basketball camps near me",
+            "elite basketball camps",
+            "advanced basketball camps",
+            "basketball training camps",
+            "basketball skills camp",
+            "overnight basketball camps",
+            "high school basketball camps",
+            "girls basketball camps",
+            "boys basketball camps",
+            "basketball shooting camps",
+            "basketball dribbling camps",
+            "point guard camps",
+            "basketball defense camps",
+            "vertical jump training basketball",
+            "holiday basketball camps",
+            "spring break basketball camps",
+            "winter basketball camps",
+            "college basketball exposure camps",
+            "basketball recruiting camps",
+            "NCAA certified basketball camps",
+            "how to get a basketball scholarship",
+            "Nike basketball camps"
+          ]
+        }
+      }
+    ]
+  },
+  "versionId": "c578873d-46d4-4ad7-b0d8-dc2af7f43fd9",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:15.989Z",
+      "updatedAt": "2025-08-28T14:32:15.989Z",
+      "role": "workflow:owner",
+      "workflowId": "VsnrVNr7vq5qTjip",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
