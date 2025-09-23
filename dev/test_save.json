@@ -1,0 +1,65 @@
+{
+  "createdAt": "2025-06-16T15:14:09.545Z",
+  "updatedAt": "2025-08-14T15:01:08.503Z",
+  "id": "HVNOaNCkhMwTozBh",
+  "name": "test_save",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b05cb00-2e86-44b5-b008-11d4a8863e82",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "0f083a1e-361e-4ce2-8502-285d78d28403",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "87dd2b1e-aa83-4721-b02b-492f48b763a3",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:43.958Z",
+      "updatedAt": "2025-08-28T14:30:43.958Z",
+      "role": "workflow:owner",
+      "workflowId": "HVNOaNCkhMwTozBh",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
