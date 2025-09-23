@@ -1,0 +1,161 @@
+{
+  "createdAt": "2025-09-13T22:01:22.118Z",
+  "updatedAt": "2025-09-13T22:18:26.830Z",
+  "id": "44rmoGveqvKd3e2w",
+  "name": "Create stripe subscription",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "customer"
+            },
+            {
+              "name": "price"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        80
+      ],
+      "id": "583372f7-e109-4c77-b48a-0933fd9c6a97",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/subscriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer",
+              "value": "={{ $json.customer }}"
+            },
+            {
+              "name": "items[0][price]",
+              "value": "={{ $json.price }}"
+            },
+            {
+              "name": "billing_cycle_anchor",
+              "value": "={{ Math.floor((DateTime.now().day < 25 ? DateTime.now() : DateTime.now().plus({ months: 1 })).set({ day: 25, hour: 0, minute: 0, second: 0, millisecond: 0 }).toSeconds()) }}"
+            },
+            {
+              "name": "trial_end",
+              "value": "={{ Math.floor((DateTime.now().day < 25 ? DateTime.now() : DateTime.now().plus({ months: 1 })).set({ day: 25, hour: 0, minute: 0, second: 0, millisecond: 0 }).toSeconds()) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        80
+      ],
+      "id": "31122fb9-6942-4547-8722-d8884e1ce898",
+      "name": "Stripe - Create Subscription",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        },
+        "httpBasicAuth": {
+          "id": "ZPBU1cckaedyw6mb",
+          "name": "dizzain Stripe Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/subscription_schedules",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer",
+              "value": "={{ $json.customer }}"
+            },
+            {
+              "name": "start_date",
+              "value": "={{ Math.floor((DateTime.now().day < 25 ? DateTime.now() : DateTime.now().plus({ months: 1 })).set({ day: 25, hour: 0, minute: 0, second: 0, millisecond: 0 }).toSeconds()) }}"
+            },
+            {
+              "name": "phases[0][items][0][price]",
+              "value": "={{ $json.price }}"
+            },
+            {
+              "name": "phases[0][proration_behavior]",
+              "value": "=none"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        -180
+      ],
+      "id": "327efb7d-992a-4ecc-8761-db15b0fb7887",
+      "name": "Stripe - Create Subscription with delay",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        },
+        "httpBasicAuth": {
+          "id": "ZPBU1cckaedyw6mb",
+          "name": "dizzain Stripe Basic Auth"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Stripe - Create Subscription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "ab7a8f14-e3e1-4dee-9793-79b0dea19f94",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-13T22:01:22.118Z",
+      "updatedAt": "2025-09-13T22:01:22.118Z",
+      "role": "workflow:owner",
+      "workflowId": "44rmoGveqvKd3e2w",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
