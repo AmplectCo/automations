@@ -1,0 +1,1254 @@
+{
+  "createdAt": "2025-07-11T07:20:36.507Z",
+  "updatedAt": "2025-09-02T11:20:35.226Z",
+  "id": "u4cYrMUrRMfspb6Q",
+  "name": "Scraping (all camps)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{$json[\"link\"]}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        1008
+      ],
+      "id": "af9a20aa-0a5c-447a-89f4-f11ee634f80b",
+      "name": "HTTP Request to camp page",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.data || \"\";\nconst link = $('Loop Over Items2').first().json.link;\nconst modification_date = $('Loop Over Items2').first().json.modification_date;\n\nconst baseUrl = \"https://www.ussportscamps.com/\";\n\nfunction extractCategory(link) {\n  if (!link.startsWith(baseUrl)) {\n    return \"\";\n  }\n  const pathAfterBase = link.slice(baseUrl.length);\n  const parts = pathAfterBase.split('/').filter(part => part.length > 0);\n  if (parts.length < 1) {\n    return \"\";\n  }\n  return parts[0];\n}\n\nconst sport = extractCategory(link);\n\nfunction extractContent(html, prop) {\n  const regex = new RegExp(`<span[^>]*itemprop=[\"']${prop}[\"'][^>]*>([^<]+)<\\\\/span>`, 'i');\n  const match = html.match(regex);\n  return match ? match[1].trim() : \"\";\n}\n\nconst street_address = extractContent(html, 'streetAddress');\nconst locality = extractContent(html, 'addressLocality');\nconst region = extractContent(html, 'addressRegion');\nconst postal_code = extractContent(html, 'postalCode');\n\n// tags из <ul class=\"campTags\">\nlet tags = [];\nconst tagsRegex = /<ul[^>]*class=[\"'][^\"']*campTags[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/ul>/i;\nconst ulMatch = html.match(tagsRegex);\nif (ulMatch && ulMatch[1]) {\n  const liRegex = /<li[^>]*>([^<]+)<\\/li>/gi;\n  let match;\n  while ((match = liRegex.exec(ulMatch[1])) !== null) {\n    tags.push(match[1].trim().toLowerCase());\n  }\n}\n\n// state из <div class=\"gtm-state-code\">\nlet state = \"\";\nconst stateRegex = /<div[^>]*class=[\"'][^\"']*gtm-state-code[^\"']*[\"'][^>]*>([^<]+)<\\/div>/i;\nconst stateMatch = html.match(stateRegex);\nif (stateMatch && stateMatch[1]) {\n  state = stateMatch[1].trim();\n}\n\n// sport_code из <div class=\"gtm-sport-code\">\nlet sport_code = \"\";\nconst sportCodeRegex = /<div[^>]*class=[\"'][^\"']*gtm-sport-code[^\"']*[\"'][^>]*>([^<]+)<\\/div>/i;\nconst sportCodeMatch = html.match(sportCodeRegex);\nif (sportCodeMatch && sportCodeMatch[1]) {\n  sport_code = sportCodeMatch[1].trim();\n}\n\n// camp из <div class=\"hc-camp-code\">\nlet camp = \"\";\nconst campCodeRegex = /<div[^>]*class=[\"'][^\"']*hc-camp-code[^\"']*[\"'][^>]*>([^<]+)<\\/div>/i;\nconst campCodeMatch = html.match(campCodeRegex);\nif (campCodeMatch && campCodeMatch[1]) {\n  camp = campCodeMatch[1].trim();\n}\n\n// description из <div class=\"gtm-item-list-name\">\nlet description = \"\";\nconst descRegex = /<div[^>]*class=[\"'][^\"']*gtm-item-list-name[^\"']*[\"'][^>]*>([^<]+)<\\/div>/i;\nconst descMatch = html.match(descRegex);\nif (descMatch && descMatch[1]) {\n  description = descMatch[1].trim();\n}\n\n// Проверка наличия \"Add to cart\" внутри .cta--register\nconst ctaRegisterRegex = /<[^>]*class=[\"'][^\"']*cta--register[^\"']*[\"'][^>]*>[\\s\\S]*?Add to cart[\\s\\S]*?<\\/[^>]+>/i;\nconst hasAddToCart = ctaRegisterRegex.test(html);\n\n// ======== Сезоны из всех header-add ========\nlet foundSeasons = new Set();\n\nconst headerAddRegex = /<div[^>]*class=[\"'][^\"']*header-add[^\"']*[\"'][^>]*>([^<]+)<\\/div>/gi;\nlet headerMatch;\nwhile ((headerMatch = headerAddRegex.exec(html)) !== null) {\n  const dateText = headerMatch[1];\n  if (/jun|jul|aug|may/i.test(dateText)) {\n    foundSeasons.add(\"summer\");\n  }\n  if (/sep|oct|nov|dec|jan|feb|mar|apr/i.test(dateText)) {\n    foundSeasons.add(\"fall/winter\");\n  }\n}\n\nconst season = Array.from(foundSeasons);\n\n// ======== Разбор сессий, поиск сессии с самой поздней начальной датой из .gtm-item-variant ========\n\n// Функция для парсинга даты в формате mm/dd/yy\nfunction parseDate(str) {\n  const parts = str.split('/');\n  if(parts.length !== 3) return null;\n  const month = parseInt(parts[0],10);\n  const day = parseInt(parts[1],10);\n  const year = 2000 + parseInt(parts[2],10);\n  return new Date(year, month - 1, day);\n}\n\n// Регулярное выражение для поиска всех сессий\nconst sessionRegex = /<div[^>]*class=[\"'][^\"']*session[^\"']*[\"'][^>]*>[\\s\\S]*?<div[^>]*class=[\"'][^\"']*gtm-item-data[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/div>\\s*<\\/div>/gi;\n\nlet sessions = [];\nlet sessionMatch;\n\nwhile ((sessionMatch = sessionRegex.exec(html)) !== null) {\n  const sessionHtml = sessionMatch[1];\n  // Извлекаем необходимые поля из gtm-item-data\n\n  function extractTagContent(className) {\n    const regex = new RegExp(`<div[^>]*class=[\"'][^\"']*${className}[^\"']*[\"'][^>]*>([^<]+)<\\/div>`, 'i');\n    const match = sessionHtml.match(regex);\n    return match ? match[1].trim() : \"\";\n  }\n\n  // Извлечь дату периода begins-ends\n  let variant = extractTagContent(\"gtm-item-variant\"); // пример: 06/30/25-07/3/25\n  let begins = \"\";\n  let ends = \"\";\n\n  if(variant.includes(\"-\")) {\n    const parts = variant.split(\"-\");\n    begins = parts[0];\n    ends = parts[1];\n  }\n\n  // Парсим дату для сравнения\n  const beginsDate = parseDate(begins);\n\n  // Собираем остальные поля\n  let cost = extractTagContent(\"gtm-item-price\");\n  if (cost) {\n    cost = cost.replace(',', '.');\n  }\n  const minMaxAge = extractTagContent(\"gtm-item-cat-5\"); // пример: 10-17 или 12-17\n  let minAge = \"\";\n  let maxAge = \"\";\n  if(minMaxAge.includes(\"-\")) {\n    const ages = minMaxAge.split(\"-\");\n    minAge = ages[0].trim();\n    maxAge = ages[1].trim();\n  }\n\n  const classNo = extractTagContent(\"gtm-classno\");\n\n  // Проверяем все элементы с классом session--program для наличия \"Overnight\"\n  let overnight = false; // По умолчанию значение FALSE\n  const sessionProgramRegex = /<div[^>]*class=[\"'][^\"']*session--program[^\"']*[\"'][^>]*>[\\s\\S]*?<strong>[^<]+<\\/strong>\\s*\\|?\\s*Overnight\\s*<\\/div>/i;\n  const allSessionPrograms = html.match(sessionProgramRegex);\n  if (allSessionPrograms && allSessionPrograms.length > 0) {\n    overnight = true; // Если хотя бы один элемент содержит \"Overnight\", устанавливаем TRUE\n  }\n\n  sessions.push({\n    beginsDate,\n    begins,\n    ends,\n    cost,\n    minAge,\n    maxAge,\n    classNo,\n    overnight\n  });\n}\n\n// Находим сессию с самой поздней датой начала\nsessions = sessions.filter(s => s.beginsDate !== null);\nsessions.sort((a,b) => b.beginsDate - a.beginsDate);\nconst latestSession = sessions.length > 0 ? sessions[0] : null;\n\n// ======== Проверка для region и установка status в FALSE, если совпадает с определёнными значениями ========\n\n// Преобразуем region в нижний регистр для сравнения\nconst regionLower = region.toLowerCase();\nlet status = hasAddToCart; // Начальное значение status - как раньше\n\n// Проверяем region и изменяем статус\nif ([\"united kingdom\", \"barbados\", \"scotland\"].includes(regionLower)) {\n  status = false; // Устанавливаем status в FALSE\n}\n\n// Возвращаем результат\nreturn [{\n  json: {\n    link,\n    sport,\n    sport_code,\n    camp,\n    description,\n    status,\n    state,\n    zip: postal_code,\n    street_address,\n    locality,\n    region,\n    tags,\n    season,\n    add_to_cart: hasAddToCart,\n    modification_date: modification_date,\n    class: latestSession ? latestSession.classNo : \"\",\n    cost: latestSession ? latestSession.cost : \"\",\n    begins: latestSession ? latestSession.begins : \"\",\n    ends: latestSession ? latestSession.ends : \"\",\n    minAge: latestSession ? latestSession.minAge : \"\",\n    maxAge: latestSession ? latestSession.maxAge : \"\",\n    overnight: latestSession ? latestSession.overnight : false\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        944
+      ],
+      "id": "2a27eedb-d8a7-4d42-bec7-f1b7a91132ed",
+      "name": "Checking camp page"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем все входные элементы (массив объектов)\nconst items = $input.all();\n\n// Фильтруем: удаляем объекты, у которых все 4 поля пустые или отсутствуют\nconst filtered = items.filter(item => {\n  const json = item.json;\n  const emptyZip = !json.zip || json.zip.trim() === \"\";\n  const emptyStreet = !json.street_address || json.street_address.trim() === \"\";\n  const emptyLocality = !json.locality || json.locality.trim() === \"\";\n  const emptyRegion = !json.region || json.region.trim() === \"\";\n\n  // Оставляем объект, если хотя бы одно поле не пустое\n  return !(emptyZip && emptyStreet && emptyLocality && emptyRegion);\n});\n\n// Возвращаем отфильтрованный массив\nreturn filtered; \n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        624
+      ],
+      "id": "13f2de07-f482-4760-ac20-8f5027d403ad",
+      "name": "Remove pages without camp info",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "=https://maps.googleapis.com/maps/api/geocode/json?address= {{ $json.street_address }} {{ $json.locality }} {{ $json.region }} {{ $json.zip }},&key=AIzaSyC8nmFtk7eOhBNGVa53N7MpUNUNLS_qqEk",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        864
+      ],
+      "id": "da27517c-a284-4133-8233-ec40f2d7d499",
+      "name": "Get coordinates from Google Map API",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b667ec85-300a-4fe8-85c6-91d114bbcdf2",
+              "leftValue": "={{ $('Checking camp page').first().json.street_address }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9b678d55-275a-47a5-9ae4-1546f638c292",
+              "leftValue": "={{ $json.street_address }}",
+              "rightValue": "={{ $('Checking camp page').first().json.street_address }}\n",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "883139d3-3583-40c1-8a18-a7c40e73288e",
+              "leftValue": "={{ $json.coordinates }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        944
+      ],
+      "id": "b6975f94-4403-4691-8c9d-468f2b532463",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "link",
+              "value": "={{ $json.link }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        944
+      ],
+      "id": "657b32e3-bc9d-45a0-80ee-ee381a101923",
+      "name": "Postgres",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -704,
+        912
+      ],
+      "id": "47056368-5655-46cb-8441-61d0ef4a5d40",
+      "name": "Loop Over Items2",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "261d22ae-73ab-4021-a97b-cbc5b41e1b68",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1248,
+        912
+      ],
+      "id": "f6933364-fae5-4f3c-8a08-2bbb226f8a5f",
+      "name": "Webhook",
+      "webhookId": "261d22ae-73ab-4021-a97b-cbc5b41e1b68"
+    },
+    {
+      "parameters": {
+        "jsCode": "const bodyData = $input.first().json.body;\nreturn bodyData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        912
+      ],
+      "id": "26808b61-d31d-413c-b627-91ecd6558c18",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $('Loop Over Items').item.json.status }}",
+            "add_to_cart": "={{ $('Loop Over Items').item.json.add_to_cart }}",
+            "link": "={{ $('Loop Over Items').item.json.link }}",
+            "sport": "={{ $('Loop Over Items').item.json.sport }}",
+            "state": "={{ $('Loop Over Items').item.json.state }}",
+            "zip": "={{ $('Loop Over Items').item.json.zip }}",
+            "street_address": "={{ $('Loop Over Items').item.json.street_address }}",
+            "locality": "={{ $('Loop Over Items').item.json.locality }}",
+            "region": "={{ $('Loop Over Items').item.json.region }}",
+            "season": "={{ $('Loop Over Items').item.json.season }}",
+            "tags": "={{ $('Loop Over Items').item.json.tags }}",
+            "class": "={{ $('Loop Over Items').item.json.class }}",
+            "cost": "={{ $('Loop Over Items').item.json.cost }}",
+            "begins": "={{ $('Loop Over Items').item.json.begins }}",
+            "ends": "={{ $('Loop Over Items').item.json.ends }}",
+            "minAge": "={{ $('Loop Over Items').item.json.minAge }}",
+            "maxAge": "={{ $('Loop Over Items').item.json.maxAge }}",
+            "camp": "={{ $('Loop Over Items').item.json.camp }}",
+            "description": "={{ $('Loop Over Items').item.json.description }}",
+            "modification_date": "={{ $('Loop Over Items').item.json.modification_date }}",
+            "sport_code": "={{ $('Loop Over Items').item.json.sport_code }}",
+            "google_ads_synced": "={{ false }}",
+            "google_ads_feed_url_status": "NULL",
+            "google_ads_location_status": "NULL",
+            "overnight": "={{ $('Loop Over Items').item.json.overnight }}",
+            "coordinates": "={{ $('Loop Over Items').item.json.coordinates }}"
+          },
+          "matchingColumns": [
+            "link"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "additional_companies",
+              "displayName": "additional_companies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "additional_feeds",
+              "displayName": "additional_feeds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "overnight",
+              "displayName": "overnight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        784,
+        304
+      ],
+      "id": "496506a2-0da6-422b-a012-d25f8ae03883",
+      "name": "Save (update) data to DB ",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $('Loop Over Items').item.json.status }}",
+            "add_to_cart": "={{ $('Loop Over Items').item.json.add_to_cart }}",
+            "link": "={{ $('Loop Over Items').item.json.link }}",
+            "sport": "={{ $('Loop Over Items').item.json.sport }}",
+            "state": "={{ $('Loop Over Items').item.json.state }}",
+            "zip": "={{ $('Loop Over Items').item.json.zip }}",
+            "street_address": "={{ $('Loop Over Items').item.json.street_address }}",
+            "locality": "={{ $('Loop Over Items').item.json.locality }}",
+            "region": "={{ $('Loop Over Items').item.json.region }}",
+            "season": "={{ $('Loop Over Items').item.json.season }}",
+            "tags": "={{ $('Loop Over Items').item.json.tags }}",
+            "class": "={{ $('Loop Over Items').item.json.class }}",
+            "cost": "={{ $('Loop Over Items').item.json.cost }}",
+            "begins": "={{ $('Loop Over Items').item.json.begins }}",
+            "ends": "={{ $('Loop Over Items').item.json.ends }}",
+            "minAge": "={{ $('Loop Over Items').item.json.minAge }}",
+            "maxAge": "={{ $('Loop Over Items').item.json.maxAge }}",
+            "camp": "={{ $('Loop Over Items').item.json.camp }}",
+            "description": "={{ $('Loop Over Items').item.json.description }}",
+            "modification_date": "={{ $('Loop Over Items').item.json.modification_date }}",
+            "coordinates": "={{ $('Loop Over Items').item.json.coordinates }}",
+            "sport_code": "={{ $('Loop Over Items').item.json.sport_code }}",
+            "google_ads_synced": "={{ false }}",
+            "google_ads_feed_url_status": "NULL",
+            "google_ads_location_status": "NULL",
+            "overnight": "={{ $('Loop Over Items').item.json.overnight }}"
+          },
+          "matchingColumns": [
+            "link"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "additional_companies",
+              "displayName": "additional_companies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "additional_feeds",
+              "displayName": "additional_feeds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "overnight",
+              "displayName": "overnight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        800,
+        464
+      ],
+      "id": "9ad44d48-b353-42e2-b5f5-324472e90717",
+      "name": "Save (create) data to DB",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT EXISTS (\n  SELECT 1 FROM camps WHERE link = '{{ $json.link }}'\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        368
+      ],
+      "id": "6577f738-6502-4d1f-aed3-3e1cef5816ef",
+      "name": "Check current camps",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9863802d-5e37-457d-a69b-58b6aedc39c1",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        480
+      ],
+      "id": "8034ddd0-e9fa-48d8-8d80-8a51cffc7ca1",
+      "name": "logs"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5035ca0a-e3b7-4cc8-88be-1e0b15aba52e",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": "'true'",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        320
+      ],
+      "id": "25f233f1-e545-490e-a713-b4ee3c2a5d15",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campPage = $('Checking camp page').first().json;\n\nconst results = $input.first().json.results || [];\nconst geometry = (results.length > 0 && results[0].geometry) ? results[0].geometry : null;\n\nconst latitude = geometry?.location?.lat;\nconst longitude = geometry?.location?.lng;\n\nfunction roundCoord(coord) {\n  return Math.round(Number(coord) * 1_000_000) / 1_000_000;\n}\n\nconst isNum = v => typeof v === 'number' && !isNaN(v);\n\nif (isNum(latitude) && isNum(longitude)) {\n  // Есть валидные координаты из results[0]\n  const lat = roundCoord(latitude);\n  const lng = roundCoord(longitude);\n  campPage.coordinates = `${lat},${lng}`;\n} else {\n  // Нет координат — берём из Postgres\n  const pgCoords = $('Postgres').first().json.coordinates;\n  campPage.coordinates = pgCoords || \"\";\n}\n\nreturn [{ json: campPage }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        1008
+      ],
+      "id": "84adde0f-8605-4bce-a86a-690c082740dc",
+      "name": "Adding coordinates to json"
+    }
+  ],
+  "connections": {
+    "HTTP Request to camp page": {
+      "main": [
+        [
+          {
+            "node": "Checking camp page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking camp page": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove pages without camp info": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get coordinates from Google Map API": {
+      "main": [
+        [
+          {
+            "node": "Adding coordinates to json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get coordinates from Google Map API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Adding coordinates to json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Remove pages without camp info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request to camp page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save (update) data to DB ": {
+      "main": [
+        [
+          {
+            "node": "logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save (create) data to DB": {
+      "main": [
+        [
+          {
+            "node": "logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check current camps": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Check current camps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "logs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Save (update) data to DB ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save (create) data to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adding coordinates to json": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "amplect.app.n8n.cloud",
+            "user-agent": "axios/1.8.3",
+            "content-length": "7316",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "20.218.174.1",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "DE",
+            "cf-ray": "952ae082c234dc88-FRA",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "20.218.174.1, 172.71.148.36",
+            "x-forwarded-host": "amplect.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-66-55c5c9b85f-gjmb4",
+            "x-is-trusted": "yes",
+            "x-real-ip": "20.218.174.1"
+          },
+          "params": {},
+          "query": {},
+          "body": [
+            {
+              "link": "https://www.ussportscamps.com/pickleball/nike/nike-junior-pickleball-camp-at-picklecon",
+              "modification_date": "2025-04-16T17:56:01-04:00"
+            },
+            {
+              "link": "https://www.ussportscamps.com/fieldhockey/nike/nike-field-hockey-camp-sandhill",
+              "modification_date": "2025-04-16T17:56:01-04:00"
+            }
+          ],
+          "webhookUrl": "https://amplect.app.n8n.cloud/webhook/261d22ae-73ab-4021-a97b-cbc5b41e1b68",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "versionId": "01a49389-368f-49fb-b31a-53ccf2869ccf",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:15.031Z",
+      "updatedAt": "2025-08-28T14:35:15.031Z",
+      "role": "workflow:owner",
+      "workflowId": "u4cYrMUrRMfspb6Q",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
