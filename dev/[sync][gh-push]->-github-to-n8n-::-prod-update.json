@@ -1,0 +1,339 @@
+{
+  "createdAt": "2025-09-14T21:02:14.428Z",
+  "updatedAt": "2025-09-23T11:13:35.532Z",
+  "id": "nTDAV6l0XsiNXc68",
+  "name": "[SYNC][gh-push] > Github to N8N :: PROD update",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "filters": {
+          "tags": "env:prod"
+        },
+        "requestOptions": {}
+      },
+      "id": "e50dba76-d526-4719-8b94-936a49d60e7d",
+      "name": "n8n",
+      "type": "n8n-nodes-base.n8n",
+      "position": [
+        -1024,
+        160
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "7ZJB9gIi1brEzbh1",
+          "name": "dev n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "850e7497-0f2f-470e-a5a2-a85a0c12aaa2",
+              "name": "github_account_name",
+              "type": "string",
+              "value": "AmplectCo"
+            },
+            {
+              "id": "5c2be15a-cb93-4fe4-a512-03a1880b8713",
+              "name": "github_repo_name",
+              "type": "string",
+              "value": "automations"
+            },
+            {
+              "id": "f4f1f0c3-7a89-427c-942f-d0e74ba4583f",
+              "name": "repo_workflows_path",
+              "type": "string",
+              "value": "prod"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6ec2b7f-49c6-4088-a367-3b11a733c46d",
+      "name": "Set GitHub Details",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1808,
+        160
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Set GitHub Details').item.json.github_account_name }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Set GitHub Details').item.json.github_repo_name }}"
+        },
+        "filePath": "={{ $('Webhook').item.json.body.head_commit.modified[0] || $('Webhook').item.json.body.head_commit.added[0]}}",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "id": "753c4e78-c7a5-40fa-af43-fb0ffb64a7f2",
+      "name": "GitHub",
+      "type": "n8n-nodes-base.github",
+      "position": [
+        -1568,
+        160
+      ],
+      "webhookId": "be79008c-f955-4aad-a0ab-403cf31fee67",
+      "typeVersion": 1.1,
+      "credentials": {
+        "githubApi": {
+          "id": "7VQNHerCV03uma6z",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fc277dd4-af13-408f-806f-859d3d2c8ebc",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2080,
+        160
+      ],
+      "id": "a8768429-1372-4418-945e-dfaf6ceb6954",
+      "name": "Webhook",
+      "webhookId": "fc277dd4-af13-408f-806f-859d3d2c8ebc"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{  $json.content.base64Decode() }}",
+        "options": {}
+      },
+      "id": "91735308-e6fa-4eba-82ca-4e8dc02e7e78",
+      "name": "Decode to json",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1328,
+        160
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "workflowObject": "={{ $json.toJsonString()  }}",
+        "requestOptions": {}
+      },
+      "id": "109c447e-539b-473b-b404-5e1585c56b6f",
+      "name": "Create new workflow in n8n",
+      "type": "n8n-nodes-base.n8n",
+      "position": [
+        -272,
+        304
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "7ZJB9gIi1brEzbh1",
+          "name": "dev n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $('Code').first().json.id }}",
+          "mode": "id"
+        },
+        "workflowObject": "={{ $('Decode to json').first().json.toJsonString() }}",
+        "requestOptions": {}
+      },
+      "id": "539a9017-84e3-4e9d-86ca-b7bad00a41c0",
+      "name": "Update workflow in n8n",
+      "type": "n8n-nodes-base.n8n",
+      "position": [
+        -272,
+        16
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "7ZJB9gIi1brEzbh1",
+          "name": "dev n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "88da6d0c-d645-4437-8784-4e1c651fe841",
+              "leftValue": "={{ $json.existingId }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        160
+      ],
+      "id": "69292709-5597-43f1-9b56-1143080dc0bb",
+      "name": "If github before n8n prod"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем данные нового воркфлоу из файла\nconst newWorkflowData = $('Decode to json').first().json;\n\n// Получаем список всех существующих воркфлоу\nconst allExistingWorkflows = $('n8n').all();\n\n// Ищем совпадение по имени\nconst foundWorkflow = allExistingWorkflows.find(\n  item => item.json.name === newWorkflowData.name\n);\n\n// Добавляем к данным из файла новый ключ: ID существующего воркфлоу (или null, если не найден)\nnewWorkflowData.existingId = foundWorkflow ? foundWorkflow.json.id : null;\n\n// Возвращаем данные из файла, но уже с новой информацией\nreturn newWorkflowData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        160
+      ],
+      "id": "7505ed41-164c-4ea4-9a96-2eb891cbcd47",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "n8n": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set GitHub Details": {
+      "main": [
+        [
+          {
+            "node": "GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub": {
+      "main": [
+        [
+          {
+            "node": "Decode to json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set GitHub Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decode to json": {
+      "main": [
+        [
+          {
+            "node": "n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If github before n8n prod": {
+      "main": [
+        [
+          {
+            "node": "Update workflow in n8n",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create new workflow in n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If github before n8n prod",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "2dfe6959-6638-4f31-ad48-e0eb60de1745",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-14T21:02:14.428Z",
+      "updatedAt": "2025-09-14T21:02:14.428Z",
+      "role": "workflow:owner",
+      "workflowId": "nTDAV6l0XsiNXc68",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-09-14T17:31:40.239Z",
+      "updatedAt": "2025-09-14T17:31:40.239Z",
+      "id": "YcGyjE46Grw4JuED",
+      "name": "system"
+    }
+  ]
+}
