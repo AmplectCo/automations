@@ -1,0 +1,212 @@
+{
+  "createdAt": "2025-08-19T12:57:49.697Z",
+  "updatedAt": "2025-08-23T14:35:06.326Z",
+  "id": "qS5CI3HzsZ6VR9D5",
+  "name": "AI Chatbot Support for WordPress Development",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8f5e1b2c-4a3d-4e7f-9b1a-2c3d4e5f6a7b",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "chat-wordpress-support"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a helpful AI assistant specialized in WordPress development. You have extensive knowledge of:\n- WordPress core functionality\n- Theme development and customization\n- Plugin development and integration\n- WordPress REST API\n- WooCommerce and e-commerce solutions\n- Performance optimization\n- Security best practices\n- Debugging and troubleshooting\n- PHP, JavaScript, CSS, and MySQL as they relate to WordPress\n\nProvide clear, actionable advice and code examples when appropriate. Be friendly and professional in your responses."
+        }
+      },
+      "id": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+      "name": "AI WordPress Expert",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        550,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "7f6e5d4c-3b2a-1a0b-9c8d-7e6f5a4b3c2d",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        550,
+        500
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "5d4c3b2a-1f0e-9d8c-7b6a-5f4e3d2c1b0a",
+      "name": "Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        350,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Chat Trigger\nThis node listens for incoming chat messages from users. When a message is received, it triggers the workflow and passes the message content to the AI processor.",
+        "height": 200,
+        "width": 280,
+        "color": 3
+      },
+      "id": "sticky-1",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AI Processing\nThe AI agent processes the user's WordPress-related question using GPT-4 with specialized context. It maintains conversation memory to provide contextual responses.",
+        "height": 200,
+        "width": 280,
+        "color": 4
+      },
+      "id": "sticky-2",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Configuration Required\n1. Add OpenAI API credentials\n2. Configure chat webhook URL\n3. Test with sample WordPress questions",
+        "height": 200,
+        "width": 280,
+        "color": 5
+      },
+      "id": "sticky-3",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "name": "WordPress Code Snippets",
+        "description": "Search for WordPress code snippets and best practices",
+        "func": "async function searchWordPressSnippets(query) {\n  // This function would typically search a knowledge base\n  // For now, it returns example snippets based on common queries\n  const snippets = {\n    'custom post type': `register_post_type('custom_type', array(\n  'labels' => array(\n    'name' => 'Custom Types',\n    'singular_name' => 'Custom Type'\n  ),\n  'public' => true,\n  'has_archive' => true,\n  'supports' => array('title', 'editor', 'thumbnail')\n));`,\n    'custom field': `get_post_meta($post_id, 'custom_field_key', true);`,\n    'hook': `add_action('init', 'my_custom_function');\nadd_filter('the_content', 'modify_content');`\n  };\n  \n  for (const [key, value] of Object.entries(snippets)) {\n    if (query.toLowerCase().includes(key)) {\n      return value;\n    }\n  }\n  return 'No specific snippet found. Please be more specific about what WordPress functionality you need help with.';\n}",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\"query\": \"custom post type\"}"
+      },
+      "id": "4c3b2a1f-0e9d-8c7b-6a5f-4e3d2c1b0a9f",
+      "name": "WordPress Code Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        750,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI WordPress Expert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI WordPress Expert",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI WordPress Expert",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress Code Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI WordPress Expert",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "ff04caf4-1a8e-43af-ad60-6d03d5480c42",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:32.804Z",
+      "updatedAt": "2025-08-28T14:34:32.804Z",
+      "role": "workflow:owner",
+      "workflowId": "qS5CI3HzsZ6VR9D5",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
