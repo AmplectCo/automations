@@ -1,0 +1,247 @@
+{
+  "createdAt": "2025-08-24T13:56:46.129Z",
+  "updatedAt": "2025-08-24T13:56:46.129Z",
+  "id": "cZrN3PhbrjdZOH6z",
+  "name": "Daily RSS to Twitter Ideas via Telegram",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Daily Trigger 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 9
+            }
+          ]
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "Get RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "url": "={{$credentials.rssUrl}}",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "rss-feed-creds",
+          "name": "RSS Feed URL"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "name": "Extract Full Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json.link}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
+      "name": "Generate Tweet Ideas",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4-turbo-preview",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "Ты — SMM-эксперт. Проанализируй следующую статью и на ее основе сгенерируй 3 уникальные идеи для постов в Twitter. Сохрани стиль и тон оригинальной статьи. Каждая идея должна быть в формате, готовом к публикации (максимум 280 символов). Отформатируй ответ так:\\n\\n🐦 Идея 1:\\n[текст первой идеи]\\n\\n🐦 Идея 2:\\n[текст второй идеи]\\n\\n🐦 Идея 3:\\n[текст третьей идеи]\\n\\nВот текст статьи:\\n\\nЗаголовок: {{$node['Get RSS Feed'].json['title']}}\\n\\nТекст: {{$node['Extract Full Article'].json['data']}}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      },
+      "typeVersion": 1.3
+    },
+    {
+      "id": "e5f6a7b8-c9d0-1234-efab-567890123456",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$credentials.chatId}}",
+        "text": "📰 *Новые идеи для Twitter на основе статьи:*\\n\\n*Источник:* {{$node['Get RSS Feed'].json['title']}}\\n*Ссылка:* {{$node['Get RSS Feed'].json['link']}}\\n\\n{{$node['Generate Tweet Ideas'].json['choices'][0]['message']['content']}}",
+        "additionalFields": {
+          "parse_mode": "Markdown",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-api",
+          "name": "Telegram Bot"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "note1-2345-6789-0abc-def123456789",
+      "name": "RSS Stage Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "content": "## 📡 RSS Feed Stage\\nЭтот блок отвечает за получение новых статей из RSS-ленты.\\n\\n**Настройка:**\\n- В credentials укажите URL вашей RSS-ленты\\n- Воркфлоу запускается ежедневно в 9:00\\n- Обрабатываются только новые статьи",
+        "height": 160,
+        "width": 400
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "note2-3456-7890-abcd-ef1234567890",
+      "name": "AI Generation Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "content": "## 🤖 AI Generation Stage\\nИзвлечение полного текста статьи и генерация идей для Twitter.\\n\\n**Настройка:**\\n- Убедитесь, что у вас есть действующий OpenAI API ключ\\n- Модель: GPT-4 Turbo\\n- Temperature: 0.7 для креативности",
+        "height": 160,
+        "width": 400
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "note3-4567-8901-bcde-f23456789012",
+      "name": "Telegram Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1080,
+        100
+      ],
+      "parameters": {
+        "content": "## 📱 Telegram Notification\\nОтправка готовых идей в Telegram.\\n\\n**Настройка:**\\n- Создайте бота через @BotFather\\n- Получите токен бота и Chat ID\\n- Добавьте их в credentials",
+        "height": 160,
+        "width": 300
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Daily Trigger 9:00": {
+      "main": [
+        [
+          {
+            "node": "Get RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Extract Full Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Full Article": {
+      "main": [
+        [
+          {
+            "node": "Generate Tweet Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Tweet Ideas": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 900,
+    "timezone": "Europe/Moscow"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "3e32318d-cf01-4923-8fc4-7a97e1b792e3",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:05.816Z",
+      "updatedAt": "2025-08-28T14:33:05.816Z",
+      "role": "workflow:owner",
+      "workflowId": "cZrN3PhbrjdZOH6z",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
