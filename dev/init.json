@@ -1,5 +1,10 @@
 {
+  "createdAt": "2025-09-14T19:38:41.472Z",
+  "updatedAt": "2025-09-14T20:29:11.329Z",
+  "id": "pB2YyfYksa9d2GPw",
   "name": "init",
+  "active": false,
+  "isArchived": true,
   "nodes": [
     {
       "parameters": {},
@@ -26,7 +31,6 @@
       "name": "Code"
     }
   ],
-  "pinData": {},
   "connections": {
     "When clicking ‘Execute workflow’": {
       "main": [
@@ -40,14 +44,22 @@
       ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "e381c718-be17-47af-9684-a3a263911b2f",
-  "meta": {
-    "instanceId": "e7e0d49ff2f6660a82fe24a6f7e66000cd5bcc78ef32ce502a636cf21f240990"
-  },
-  "id": "pB2YyfYksa9d2GPw",
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "a9bfabc2-f16f-47fb-9e84-3eaa7fe5a480",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-14T19:38:41.472Z",
+      "updatedAt": "2025-09-14T19:38:41.472Z",
+      "role": "workflow:owner",
+      "workflowId": "pB2YyfYksa9d2GPw",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
   "tags": []
 }
