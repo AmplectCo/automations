@@ -1,0 +1,237 @@
+{
+  "createdAt": "2025-07-15T07:50:58.024Z",
+  "updatedAt": "2025-07-16T06:28:09.311Z",
+  "id": "w4yrO16FquB6ALmJ",
+  "name": "Process single image tool",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_context",
+              "type": "object"
+            },
+            {
+              "name": "image_object",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -260,
+        -160
+      ],
+      "id": "411ccc06-3239-45a3-aef6-0d76fa8d24bb",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        280,
+        40
+      ],
+      "id": "a7d698e9-3372-4007-924a-fb2b59e967b5",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        220,
+        180
+      ],
+      "id": "b3b266d4-f35f-4189-ab0d-e0a8043305b6",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"extracted_text\": \"Full raw text extracted from the image, exactly as it appears (after applying any 'ignore_text' rules)\",\n  \"issues_found\": [\n    {\n      \"type\": \"spelling | grammar | punctuation | speech | style\",\n      \"original\": \"Text with the issue\",\n      \"suggestion\": \"Suggested correction\",\n      \"comment\": \"Explanation of the issue\"\n    }\n  ],\n  \"final_corrected_version\": \"Fully corrected version of the banner text\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        180
+      ],
+      "id": "9227325a-55b9-43d3-b6da-e4a327ea62cd",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_object.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        -160
+      ],
+      "id": "6cae2341-6bba-4c9e-8149-1b68e0ea0548",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={\n\"user_context\": {{ $('When Executed by Another Workflow').item.json.user_context }}\n}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert AI Visual Content Analyst and Advertising Copy Editor.  **HIGHEST PRIORITY: USER-DEFINED RULES** Before you begin, check for a `user_context` object. If it exists, its rules override all other instructions. Apply them as follows: -   If `user_context.rules.brand_names` exists (e.g., [\"FlexiForm\"]), you must treat these words as correct and not flag them as spelling errors. -   If `user_context.rules.ignore_text` exists (e.g., [\"лицензия №123\"]), you must find and remove these exact text strings from the extracted overlay text *before* you start your analysis. They should not appear in the `extracted_text` or `final_corrected_version`. -   If `user_context.rules.check_only` exists (e.g., [\"spelling\"]), you must ONLY perform the specified checks. Ignore all other error types (grammar, punctuation, etc.).  After applying these rules, proceed with your standard tasks.  **Your Tasks:**  **1. Isolate the True Advertising Overlay Text. This is your most critical task.** *   **Step A: Initial Scan:** Locate all recognizable text fragments in the image. *   **Step B: The Critical Filter:** Determine if text is **Overlay Text (KEEP)** or **Scene Text (IGNORE)**.     *   **Overlay Text (KEEP):** Text on the top-most design layer (on color blocks, buttons, banners). It looks \"flat\" and crisp. This includes text in headers, footers, and feature lists.     *   **Scene Text (IGNORE):** Text on physical objects within the photo, especially **Product Packaging & Labels (bottles, jars, boxes)** and background elements (signs, posters). *   **Step C: Final Selection:** Extract ONLY the confidently identified Overlay Text.  **2. Apply User Rules to Extracted Text:** Before analysis, filter the extracted text based on the `ignore_text` rule from the `user_context` if it was provided.  **3. Analyze the Filtered Text:** Automatically detect the language and analyze the remaining text with high strictness for issues: spelling, grammar, punctuation, speech, and style (unless limited by the `check_only` rule).  **4. Handle Brand Names:** Do not flag or correct brand names, especially those provided in the `user_context`.  **5. Respect Intentional Formatting:** Treat words in ALL CAPS as intentional. Do not add punctuation where it is clearly omitted for design purposes.  **6. Report Only Real Issues:** Only include confirmed errors in your output. Do not include text that is already correct or \"no issue\" messages.  **7. Provide Suggestions:** For each issue, provide the type, original text, suggestion, and a short comment.  Return your result in the following strict JSON format.  **Important**: Output only the JSON object above. Do not include any additional text, comments, or characters before or after the JSON."
+            },
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            }
+          ]
+        }
+      },
+      "id": "7aadbc24-1c48-4406-81f3-f8e986542094",
+      "name": "Process single image",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        200,
+        -160
+      ],
+      "typeVersion": 1.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8766ec92-4626-4527-9294-233bc9bc1941",
+              "name": "id",
+              "value": "={{ $('When Executed by Another Workflow').item.json.image_object.id }}",
+              "type": "string"
+            },
+            {
+              "id": "6f08db20-8dc0-4fcb-8a81-a4f4015d5563",
+              "name": "report",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        -160
+      ],
+      "id": "590a7585-309c-4088-92b2-395c71480e45",
+      "name": "Edit Fields"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Process single image",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Process single image",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Process single image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process single image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "09f265e9-f075-442a-b3bc-92929ce5141a",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:41.807Z",
+      "updatedAt": "2025-08-28T14:35:41.807Z",
+      "role": "workflow:owner",
+      "workflowId": "w4yrO16FquB6ALmJ",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
