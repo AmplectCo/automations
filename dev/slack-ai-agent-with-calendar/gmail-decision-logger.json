@@ -1,0 +1,293 @@
+{
+  "createdAt": "2025-08-15T12:02:58.891Z",
+  "updatedAt": "2025-08-18T09:15:42.590Z",
+  "id": "dezxy7qQNZ9uTudt",
+  "name": "Slack AI Agent with Calendar/Gmail Decision Logger",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "event": "message",
+        "team": ""
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "slack-trigger-1",
+      "name": "Slack Trigger",
+      "credentials": {
+        "slackApi": {
+          "id": "your-slack-credential-id",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Analyze the Slack message and determine if the user request relates to calendar scheduling or sending email. Respond with a structured JSON containing `tool` with one of: 'calendar' or 'gmail', and `details` describing the action.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI that routes Slack requests to either Google Calendar or Gmail tool based on the intent."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ],
+      "id": "ai-agent-1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        420,
+        160
+      ],
+      "id": "memory-1",
+      "name": "Conversation Memory"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"tool\": {\n      \"type\": \"string\",\n      \"description\": \"The tool chosen, either 'calendar' or 'gmail'\"\n    },\n    \"details\": {\n      \"type\": \"string\",\n      \"description\": \"Details about the action to perform\"\n    }\n  },\n  \"required\": [\"tool\", \"details\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "parser-1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "channel": "={{$json[\"channel\"]}}",
+        "text": "={{\"Processing your request to use the \" + $json[\"tool\"] + \". Details: \" + $json[\"details\"]}}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        0
+      ],
+      "id": "slack-send-1",
+      "name": "Send Slack Confirmation",
+      "credentials": {
+        "slackApi": {
+          "id": "your-slack-credential-id",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sheetId": "your-google-sheet-id",
+        "range": "Logs!A:D",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsAppend",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ],
+      "id": "gsheets-1",
+      "name": "Log to Google Sheets",
+      "credentials": {
+        "googleApi": {
+          "id": "your-google-api-credential-id",
+          "name": "Google API Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendar": "primary",
+        "start": "={{$json[\"start\"] || $now}}",
+        "end": "={{$json[\"end\"] || $now.plus(1,'hour')}}",
+        "summary": "={{$json[\"details\"]}}"
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        -160
+      ],
+      "id": "gcal-1",
+      "name": "Create Calendar Event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "your-gcal-credential-id",
+          "name": "Google Calendar Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "to": "recipient@example.com",
+        "subject": "={{$json[\"details\"]}}",
+        "message": "Message generated from Slack request."
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        160
+      ],
+      "id": "gmail-1",
+      "name": "Send Email with Gmail",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "your-gmail-credential-id",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Slack Trigger → AI Agent analyzes intent → If tool=='calendar', go to Google Calendar; If tool=='gmail', go to Gmail → Log details in Google Sheets → Send Slack confirmation",
+        "color": "green"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -200
+      ],
+      "id": "note-1",
+      "name": "Workflow Overview"
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Conversation Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0,
+            "conditions": {
+              "field": "tool",
+              "operator": "=",
+              "value": "calendar"
+            }
+          },
+          {
+            "node": "Send Email with Gmail",
+            "type": "main",
+            "index": 0,
+            "conditions": {
+              "field": "tool",
+              "operator": "=",
+              "value": "gmail"
+            }
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email with Gmail": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "e1e37a4e-dc01-4aab-8064-cac9694e59e3",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:13.379Z",
+      "updatedAt": "2025-08-28T14:33:13.379Z",
+      "role": "workflow:owner",
+      "workflowId": "dezxy7qQNZ9uTudt",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
