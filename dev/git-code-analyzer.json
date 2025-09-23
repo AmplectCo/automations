@@ -1,0 +1,128 @@
+{
+  "createdAt": "2025-08-20T15:25:28.603Z",
+  "updatedAt": "2025-08-23T14:35:18.115Z",
+  "id": "PXX3LSPE5VzWkiaE",
+  "name": "Git Code Analyzer",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Manually initiates the workflow whenever the user chooses to start it."
+    },
+    {
+      "parameters": {
+        "operation": "getFile",
+        "owner": "={{$json.owner}}",
+        "repository": "={{$json.repository}}",
+        "filePath": "={{$json.filePath}}"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "FetchFileFromGitHub",
+      "type": "n8n-nodes-base.gitHub",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Fetches the content of a specified file from a GitHub repository.",
+      "credentials": {
+        "gitHubApi": {
+          "id": "1",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chatCompletion",
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "content": "You are a code analysis expert. Analyze the following code for readability, potential code smells, and provide suggestions for improvement:\n\n{{$json.content}}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "name": "AnalyzeFileContent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Analyzes the fetched file content (e.g., readability, code smells, or suggestions) using an AI model.",
+      "credentials": {
+        "openAiApi": {
+          "id": "2",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [
+          {
+            "node": "FetchFileFromGitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FetchFileFromGitHub": {
+      "main": [
+        [
+          {
+            "node": "AnalyzeFileContent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "245bab33-7ef1-4007-92a0-f634ecf10b18",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:45.334Z",
+      "updatedAt": "2025-08-28T14:31:45.334Z",
+      "role": "workflow:owner",
+      "workflowId": "PXX3LSPE5VzWkiaE",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
