@@ -1,0 +1,200 @@
+{
+  "createdAt": "2025-06-23T10:09:48.344Z",
+  "updatedAt": "2025-09-02T11:22:11.756Z",
+  "id": "1kGGTvyOu7OJHqas",
+  "name": "Python env tool",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.task }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an assistant generating Python code to analyze data from dataset. The code must be formatted as an analyze() function, and the result saved to the result variable:\n\ndef analyze():\n    import json, os, subprocess  # можно любые модули\n    with open(\"semrush.json\", \"r\", encoding=\"utf-8\") as f:\n        data = json.load(f)\n    # ... любая логика анализа ...\n    subprocess.call([\"echo\", \"done\"])  # полный доступ\n    return {\"count\": len(data), \"cwd\": os.getcwd()}\n\nresult = analyze()\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -80
+      ],
+      "id": "044faae2-7f02-4ebc-abb1-9bbdf02a9bd9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        192
+      ],
+      "id": "97b2e6fd-13eb-4b09-b728-37cc47b8660b",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://54.226.177.163:8003/run-code",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"sessionId\":\"{{ $('When Executed by Another Workflow').item.json.session }}\", \"code\": {{ JSON.stringify($json.output.code) }} }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        -80
+      ],
+      "id": "d671f708-ef43-40e9-b856-5f7b32b83610",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"code\":\"import json\\nwith open(\\\"semrush.json\\\",\\\"r\\\",encoding=\\\"utf-8\\\") as f:\\n    data=json.load(f)\\ncount=len(data)\\ntags=set()\\nfor item in data:\\n    ctx=item.get(\\\"context\\\",{})\\n    ah=ctx.get(\\\"ahrefs\\\",{})\\n    if isinstance(ah,list): ah=ah[0] if ah else {}\\n    tag=ah.get(\\\"tag\\\")\\n    if tag: tags.add(tag)\\nreturn {\\\"count\\\": count, \\\"unique_tags\\\": list(tags)}\"}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        160
+      ],
+      "id": "8d0784af-91be-4a47-bdef-26f017fd3b42",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        176
+      ],
+      "id": "1a1e05f0-04c6-4631-a97b-9c4e54c295d2",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "task"
+            },
+            {
+              "name": "session"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -64
+      ],
+      "id": "e3881223-db95-4745-abc1-5739c2409209",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "task": "analyza bd",
+          "session": "1752657733.899859"
+        }
+      }
+    ]
+  },
+  "versionId": "39e81558-21bd-490f-ad68-34383183fcf3",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:17.563Z",
+      "updatedAt": "2025-08-28T14:28:17.563Z",
+      "role": "workflow:owner",
+      "workflowId": "1kGGTvyOu7OJHqas",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
