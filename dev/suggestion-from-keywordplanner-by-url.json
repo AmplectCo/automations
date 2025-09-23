@@ -1,0 +1,252 @@
+{
+  "createdAt": "2025-06-20T09:41:37.531Z",
+  "updatedAt": "2025-09-02T11:21:55.963Z",
+  "id": "1S8mzr1AIUeG9ltC",
+  "name": "Suggestion from keywordPlanner by URL",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "context",
+        "fields": "=context",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        -96
+      ],
+      "id": "0bf3070e-c98d-4d04-82f9-f07ce5a65985",
+      "name": "MongoDB",
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst google_ads_keyword_by_url = $input.first().json.results;\n\nreturn [\n  {\n    context: {\n      session: $('When Executed by Another Workflow').first().json.session,\n      date: new Date(),\n      google_ads_keyword_by_url: google_ads_keyword_by_url\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -96
+      ],
+      "id": "6b7e05a1-b341-4484-aae0-2f4a5288f11e",
+      "name": "Formating"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://googleads.googleapis.com/v19/customers/2400614295:generateKeywordIdeas",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "developer-token",
+              "value": "vNsmUkml55K8cqbmUzxKiw"
+            },
+            {
+              "name": "login-customer-id",
+              "value": "6234909705"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"geoTargetConstants\": [\"geoTargetConstants/2840\"],\n  \"language\": \"languageConstants/1000\",\n   \"url_seed\": {\n    \"url\": \"{{ $json.target_site }}\"\n  },\n  \"keywordPlanNetwork\": \"GOOGLE_SEARCH\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -96
+      ],
+      "id": "132b45e2-937d-4f40-8bcc-91f57a304a96",
+      "name": "Suggestion from keywordPlanner by URL",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "DxObVy2L2DiRkJ3x",
+          "name": "Google Ads account (amplect test account)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      message: \"Successfully completed\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        -96
+      ],
+      "id": "fe6cfb64-312a-48a7-b396-dbcbb528f102",
+      "name": "Result message"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "=Suggestion from keywordPlanner by URL is ready.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('When Executed by Another Workflow').first().json.timestamp }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1552,
+        -96
+      ],
+      "id": "fa2a6d7c-51c1-4330-b4c3-d6b8d037e29b",
+      "name": "Send a message",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "target_site"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "buissenes_goal"
+            },
+            {
+              "name": "user"
+            },
+            {
+              "name": "timestamp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "42c8b1e8-812a-479e-bcc3-4cefa584a8ef",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "MongoDB": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suggestion from keywordPlanner by URL": {
+      "main": [
+        [
+          {
+            "node": "Formating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Result message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Suggestion from keywordPlanner by URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "target_site": "https://www.dizzain.com",
+          "session": "1752657733.899859",
+          "buissenes_goal": "attract similar high-profile clients who are interested in our services",
+          "user": "U01QLUNCNF4",
+          "timestamp": "1752657736.104179"
+        }
+      }
+    ]
+  },
+  "versionId": "f65b6a84-1f13-4e49-afc3-d913fb615edd",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:09.847Z",
+      "updatedAt": "2025-08-28T14:28:09.847Z",
+      "role": "workflow:owner",
+      "workflowId": "1S8mzr1AIUeG9ltC",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
