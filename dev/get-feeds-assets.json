@@ -1,0 +1,484 @@
+{
+  "createdAt": "2025-07-25T11:19:33.095Z",
+  "updatedAt": "2025-09-02T11:21:20.908Z",
+  "id": "zEpJx4n9JJ8O0OE4",
+  "name": "Get feeds assets",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "**Получение assetSetAssets, assetSet, asset\n**Подготовка финального объекта со всеми assets для каждого фида",
+        "height": 80,
+        "width": 400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -64
+      ],
+      "typeVersion": 1,
+      "id": "0e7469b2-86f5-4092-96eb-1c32ce07a5f4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        176
+      ],
+      "id": "addfe290-a3ca-4ed3-8886-b8e17e738705",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $json.googleAdsKeys.version }}/customers/{{$json.googleAdsKeys.customerId}}/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"SELECT asset_set.resource_name, asset_set.name FROM asset_set WHERE asset_set.type = PAGE_FEED\"\n}",
+        "options": {}
+      },
+      "id": "7da75d7c-7343-4942-8071-ad571ad9608a",
+      "name": "Get all feeds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        352,
+        80
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $json.googleAdsKeys.version }}/customers/{{ $json.googleAdsKeys.customerId }}/googleAds:searchStream",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT asset_set_asset.asset,asset_set_asset.asset_set FROM asset_set_asset WHERE asset_set_asset.status = ENABLED\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "bb7b2e46-dab7-45ce-bcff-8a3ecb9874c0",
+      "name": "Get all assetSetAsset",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        304
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $json.googleAdsKeys.version }}/customers/{{ $json.googleAdsKeys.customerId }}/googleAds:searchStream",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT asset.resource_name, asset.page_feed_asset.page_url FROM asset\"\n}",
+        "options": {}
+      },
+      "id": "64852d76-e5c7-44c2-8cb1-09a4dd8319a0",
+      "name": "Get all assets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        640
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "numberInputs": 3,
+        "output": "empty"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        576,
+        288
+      ],
+      "id": "8efb3dba-8b83-4a19-b1a9-712f54f68040",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allFeeds = $(\"Get all feeds\").first().json.results || [];\nconst allAssetSetAssets = $(\"Get all assetSetAsset\").first().json.results || [];\n// const allAssets = $(\"Get all assets\").first().json.results || [];\nconst allAssetsMap = $(\"All Assets Map\").first().json.allAssetsMap || [];\n\n// const allAssetsMap = {};\n// for (const asset of allAssets) {\n//   const url = asset.asset.pageFeedAsset?.pageUrl || '';\n//   if(!url) continue;\n//   allAssetsMap[asset.asset.resourceName] = url;\n// }\n\nconst feeds = {};\n\nfor (const assetSet of allFeeds) {\n  const assetSetAssets = allAssetSetAssets.filter(el => el.assetSetAsset.assetSet === assetSet.assetSet.resourceName);\n\n  const assetSetAssetsWithURL = assetSetAssets.map(assetSetAsset => {\n    const pageURL = allAssetsMap[assetSetAsset.assetSetAsset.asset] || '';\n    return {\n      ...assetSetAsset.assetSetAsset,\n      pageURL\n    }\n  })\n\n  feeds[assetSet.assetSet.name] = {\n    ...assetSet.assetSet,\n    assetSetAssets: assetSetAssetsWithURL\n  }\n\n}\n\nreturn [{ json: { feeds } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        304
+      ],
+      "id": "a979dee3-875d-4fdf-8f6a-c74653212b7f",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "items = _input.all()\n\n# Создаем словарь сразу, итерируя по всем входящим элементам и фильтруя их \"на лету\"\nall_assets_map = {}\nfor item in items:\n    # Безопасно получаем нужный объект, чтобы избежать ошибок\n    asset_data = item.json.get('asset', {})\n    page_feed_asset = asset_data.get('pageFeedAsset', {})\n\n    # Если pageUrl существует, добавляем запись в словарь\n    if page_feed_asset and page_feed_asset.get('pageUrl'):\n        resource_name = asset_data.get('resourceName')\n        page_url = page_feed_asset.get('pageUrl')\n        \n        # Убедимся, что resourceName тоже есть, чтобы не было ключа None\n        if resource_name:\n            all_assets_map[resource_name] = page_url\n\n# Возвращаем результат\nreturn [{'json': {'allAssetsMap': all_assets_map}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        464
+      ],
+      "id": "0a3d2f3d-30cb-4792-b64e-1bb6c7588eb8",
+      "name": "All Assets Map"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "684f3748-ac64-4121-84bd-0707340b292c",
+              "leftValue": "={{ $json.asset.pageFeedAsset }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1dbb480d-b868-41eb-bc28-9c52821e6506",
+              "leftValue": "={{ $json.asset.pageFeedAsset.pageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        736
+      ],
+      "id": "005768cc-aa12-47e8-bdb9-8c9196e5d8c5",
+      "name": "Filter",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        688
+      ],
+      "id": "e8af192e-fa47-4eb2-8580-e432efc7d310",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.first().json.results || [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        656
+      ],
+      "id": "e506575e-e47f-4b1b-99f9-f71182f1b2bf",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        128,
+        640
+      ],
+      "id": "2003c067-31a5-42cc-9ad8-b3b069af049b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "results"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        128,
+        304
+      ],
+      "id": "af39a67a-8952-4dbc-8769-5256d9afb640",
+      "name": "Aggregate"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get all feeds",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get all assetSetAsset",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get all assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all assetSetAsset": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all assets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Assets Map": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get all assetSetAsset",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get all assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "All Assets Map",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {
+          "googleAdsKeys": {
+            "developerToken": "vNsmUkml55K8cqbmUzxKiw",
+            "mccCustomerId": "6234909705",
+            "customerId": "2400614295",
+            "version": "v18"
+          }
+        }
+      }
+    ]
+  },
+  "versionId": "4fd9bbd0-c3c5-4230-a6b9-9ab64ff81d16",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:36:20.648Z",
+      "updatedAt": "2025-08-28T14:36:20.648Z",
+      "role": "workflow:owner",
+      "workflowId": "zEpJx4n9JJ8O0OE4",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
