@@ -1,0 +1,864 @@
+{
+  "createdAt": "2025-07-22T10:46:48.664Z",
+  "updatedAt": "2025-09-02T11:19:58.928Z",
+  "id": "tQt4ajKj1wslcpuk",
+  "name": "Parse some links",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "links",
+              "type": "array"
+            },
+            {
+              "name": "db_links",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        112
+      ],
+      "id": "30ba94f9-218e-41b5-b215-cb12d3dfb1cf",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbCamps = $('When Executed by Another Workflow').first().json.db_links || [];\nconst input = $input.all() || [];\nconst add = [];\nconst update = [];\n\nfor (const item of input) {\n  // Проверяем, что у item есть json и json.link\n  if (!item || !item.json || !item.json.link) {\n    console.log('Пропускаем элемент без link:', item);\n    continue;\n  }\n  \n  const foundCamp = dbCamps.find(camp => \n    camp && camp.json && camp.json.link === item.json.link\n  );\n  \n  if (foundCamp) {\n    update.push({\n      id: foundCamp.json.id,\n      ...item.json\n    });\n  } else {\n    add.push(item.json);\n  }\n}\n\nreturn {\n  add,\n  update\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        112
+      ],
+      "id": "f287162e-4d57-4fd4-b6be-97ba940e6bd1",
+      "name": "add/update"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractNextDataFromString(htmlString) {\n\n  const regex = /<script id=\"__NEXT_DATA__\" type=\"application\\/json\">(.*?)<\\/script>/s;\n  const match = htmlString.match(regex);\n\n  if (match && match[1]) {\n    try {\n\n      const jsonData = JSON.parse(match[1]);\n      return jsonData;\n    } catch (error) {\n      console.log(\"Error parsing JSON from __NEXT_DATA__:\", error);\n      return null;\n    }\n  } else {\n    console.log(\"Tag __NEXT_DATA__ or content not found with regex.\");\n    return null;\n  }\n}\n\nconst htmlTexts = $input.all() || [];\n\nconst output = htmlTexts.map(item => extractNextDataFromString(item.json.data))\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        112
+      ],
+      "id": "20b2993a-4f54-4268-b198-560c1d804751",
+      "name": "Parse props"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "25cabbb2-4582-48a0-a4af-d2ea863bc70d",
+              "leftValue": "={{ $input.first().json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        0
+      ],
+      "id": "dc80feb5-563a-4f52-9266-37ead502a323",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "25cabbb2-4582-48a0-a4af-d2ea863bc70d",
+              "leftValue": "={{ $input.first().json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        240
+      ],
+      "id": "960f3093-48cd-4049-b609-922cdcb4b713",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "={{$json[\"link\"]}}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 3000
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        112
+      ],
+      "id": "05a452b5-9a21-4b63-b18d-45baf672aab1",
+      "name": "HTTP Request to get page props",
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function createNewJsonFromInput(inputJsonContent) {\n    const programData = inputJsonContent?.props?.pageProps?.program;\n    // Дефолтные значения для всех not-null полей\n    const defaults = {\n        isProgramAvailable: false,\n        indoors: false,\n        outdoors: false,\n        latitude: 0,\n        longitude: 0,\n        address: \"\",\n        link: \"\",\n        city: \"\",\n        programStatus: \"[]\",\n        sportName: \"\",\n        sportsOffered: \"\",\n        state: \"\",\n        zipCode: \"\",\n        gendersPlaying: \"\",\n        parsedDate: DateTime.now(),\n        is404: false\n    };\n    \n    // Если programData отсутствует — возвращаем только дефолты + is404\n    if (!programData) {\n        return { ...defaults, is404: true };\n    }\n    \n    // Определяем isProgramAvailable на основе registrationCutoffDate\n    let isProgramAvailable = false;\n    if (programData.registrationCutoffDate) {\n        try {\n            const cutoffDate = new Date(programData.registrationCutoffDate);\n            const currentDate = new Date();\n            // Программа доступна, если дедлайн регистрации еще не прошел\n            isProgramAvailable = cutoffDate > currentDate;\n        } catch (e) {\n            console.log(`Error: Could not parse registrationCutoffDate. Details: ${e.message}. Setting isProgramAvailable to false.`);\n            isProgramAvailable = false;\n        }\n    }\n    \n    // Парсим programStatus для сохранения в БД (но не используем для определения доступности)\n    let programStatusArray = [];\n    try {\n        programStatusArray = JSON.parse(programData.programStatus) || [];\n    } catch (e) {\n        console.log(`Error: Could not parse programStatus field. Details: ${e.message}.`);\n        programStatusArray = [];\n    }\n    \n    // Обязательно сохраняем programStatus как строку!\n    return {\n        isProgramAvailable: isProgramAvailable,\n        indoors: programData.indoors ?? false,\n        outdoors: programData.outdoors ?? false,\n        latitude: programData.latitude ?? 0,\n        longitude: programData.longitude ?? 0,\n        address: programData.address ?? \"\",\n        link: \"\", // Подставим позже\n        city: programData.city ?? \"\",\n        programStatus: JSON.stringify(programStatusArray), // строка!\n        sportName: programData.sportName ?? \"\",\n        sportsOffered: Array.isArray(programData.sportsOffered)\n            ? programData.sportsOffered.join(\", \")\n            : (programData.sportsOffered ?? \"\"),\n        state: programData.state ?? \"\",\n        zipCode: programData.zipCode ?? \"\",\n        gendersPlaying: programData.gendersPlaying ?? \"\",\n        parsedDate: DateTime.now(),\n        is404: false\n    };\n}\n\nconst links = $('When Executed by Another Workflow').first().json.links;\nconst parsedJSON = $input.all() || [];\n\nreturn parsedJSON\n  .map((item, key) => {\n    const data = createNewJsonFromInput(item.json);\n    // Линк обязательно строка\n    data.link = links && links[key] ? (links[key].link || \"\") : \"\";\n    return { json: data };\n  })\n  // Если не хочешь пускать is404 в БД:\n  .filter(el => !el.json.is404);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        112
+      ],
+      "id": "98cca613-a184-4c87-8a9b-cf2192752dd4",
+      "name": "Create Final JSON"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "add",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        688,
+        0
+      ],
+      "id": "470f51c9-e487-407a-a1ff-23ad0ccdbe5f",
+      "name": "To add",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "update",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        688,
+        240
+      ],
+      "id": "77925d74-25de-4641-ad2c-4e822566480c",
+      "name": "To update",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "isProgramAvailable": false,
+            "indoors": false,
+            "outdoors": false
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "isProgramAvailable",
+              "displayName": "isProgramAvailable",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "programStatus",
+              "displayName": "programStatus",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sportName",
+              "displayName": "sportName",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sportsOffered",
+              "displayName": "sportsOffered",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "indoors",
+              "displayName": "indoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "outdoors",
+              "displayName": "outdoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gendersPlaying",
+              "displayName": "gendersPlaying",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "zipCode",
+              "displayName": "zipCode",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "parsedDate",
+              "displayName": "parsedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is404",
+              "displayName": "is404",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1136,
+        -80
+      ],
+      "id": "06b75507-3245-409b-a5ec-94d37b24dce2",
+      "name": "Add to db",
+      "credentials": {
+        "postgres": {
+          "id": "guKVmeN2CuQNmXi0",
+          "name": "i9 db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "output": "empty"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1360,
+        112
+      ],
+      "id": "4286e7dc-127c-4232-84dc-5606291a2fa8",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "isProgramAvailable": "={{ $json.isProgramAvailable }}",
+            "id": "={{ $json.id }}",
+            "programStatus": "={{ $json.programStatus }}",
+            "parsedDate": "={{ DateTime.now() }}",
+            "is404": false,
+            "google_ads_synced": false
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "isProgramAvailable",
+              "displayName": "isProgramAvailable",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "programStatus",
+              "displayName": "programStatus",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sportName",
+              "displayName": "sportName",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sportsOffered",
+              "displayName": "sportsOffered",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "indoors",
+              "displayName": "indoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "outdoors",
+              "displayName": "outdoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "gendersPlaying",
+              "displayName": "gendersPlaying",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zipCode",
+              "displayName": "zipCode",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "parsedDate",
+              "displayName": "parsedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is404",
+              "displayName": "is404",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1136,
+        304
+      ],
+      "id": "de5f142b-d4da-48b5-ae13-c46ad3fc49d6",
+      "name": "Update in db",
+      "credentials": {
+        "postgres": {
+          "id": "guKVmeN2CuQNmXi0",
+          "name": "i9 db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "links",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        112
+      ],
+      "id": "fe10c9a0-c8d5-4e6b-947a-0fc4384492dc",
+      "name": "Split Out"
+    }
+  ],
+  "connections": {
+    "add/update": {
+      "main": [
+        [
+          {
+            "node": "To add",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "To update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse props": {
+      "main": [
+        [
+          {
+            "node": "Create Final JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Add to db",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Update in db",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request to get page props": {
+      "main": [
+        [
+          {
+            "node": "Parse props",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Final JSON": {
+      "main": [
+        [
+          {
+            "node": "add/update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To add": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To update": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to db": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update in db": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request to get page props",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "links": [
+            {
+              "link": "https://www.i9sports.com/programs/orangetown-dominican-college-nike-kids-camp-nike-kids-camp-july-2025/130452"
+            },
+            {
+              "link": "https://www.i9sports.com/programs/the-woodlands-rec--center---rob-fleming-soccer-training-sessions-august-2025/155767"
+            }
+          ],
+          "db_links": [
+            {
+              "link": "https://www.i9sports.com/programs/orangetown-dominican-college-nike-kids-camp-nike-kids-camp-july-2025/130452"
+            },
+            {
+              "link": "https://www.i9sports.com/programs/the-woodlands-rec--center---rob-fleming-soccer-training-sessions-august-2025/155767"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "versionId": "8b814c76-117a-46ad-9a3f-5e5f30c7ca99",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:11.314Z",
+      "updatedAt": "2025-08-28T14:35:11.314Z",
+      "role": "workflow:owner",
+      "workflowId": "tQt4ajKj1wslcpuk",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
