@@ -1,0 +1,153 @@
+{
+  "createdAt": "2025-07-13T21:02:24.942Z",
+  "updatedAt": "2025-07-16T06:29:00.695Z",
+  "id": "EDFb09I9pSRzysp6",
+  "name": "Generate customer portal link",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "customer_id"
+            },
+            {
+              "name": "return_url"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        80
+      ],
+      "id": "b4ca69f8-1137-4ac5-8be8-85ee867faa1f",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/billing_portal/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer",
+              "value": "={{ $json.customer_id }}"
+            },
+            {
+              "name": "return_url",
+              "value": "={{ $json.return_url || \"http://localhost:3000/dashboard/budget\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        80
+      ],
+      "id": "c2840211-3bb8-499f-98e7-5ae3d7eb9836",
+      "name": "Stripe - Generate customer portal link",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        },
+        "httpBasicAuth": {
+          "id": "ZPBU1cckaedyw6mb",
+          "name": "dizzain Stripe Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40e92cb6-0a6e-418c-b047-e7cfaa352b69",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        80
+      ],
+      "id": "36fd921c-d6d5-466c-b971-8fc198167555",
+      "name": "Edit Fields"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Stripe - Generate customer portal link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe - Generate customer portal link": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "customer_id": "cus_SeBIgVzxylVHCJ"
+        }
+      }
+    ]
+  },
+  "versionId": "ceae3654-2269-4111-a78f-7bd5b0fac0bf",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:13.470Z",
+      "updatedAt": "2025-08-28T14:30:13.470Z",
+      "role": "workflow:owner",
+      "workflowId": "EDFb09I9pSRzysp6",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-07-10T14:35:52.102Z",
+      "updatedAt": "2025-07-10T14:35:52.102Z",
+      "id": "jn6fkqUeQvBfj4B7",
+      "name": "stripe"
+    }
+  ]
+}
