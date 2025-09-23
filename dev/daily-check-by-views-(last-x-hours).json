@@ -1,0 +1,724 @@
+{
+  "createdAt": "2025-08-08T10:18:25.923Z",
+  "updatedAt": "2025-09-02T11:21:17.836Z",
+  "id": "j7ICarjTUTQofk0y",
+  "name": "Daily check by views (last x hours)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"x4a0TMYbaSw1SCXSFrtRyQ\",\n    \"mccCustomerId\": \"1331716219\",\n    \"customerId\": \"3700886370\",\n    \"version\": \"v20\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        -272
+      ],
+      "id": "c273f026-afa3-44f5-8884-ad5dbf2db0cd",
+      "name": "Google ads additional keys"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = [];\n\nfor (const item of items) {\n  const rows = item.json.results || [];\n  for (const row of rows) {\n    if (row.campaign.status === 'PAUSED' || row.campaign.status === 'REMOVED') {\n      continue;\n    }\n\n    const costMicrosStr = row.metrics?.costMicros ?? '0';\n    const totalCost = parseInt(costMicrosStr, 10) / 1e6;\n    const avgDailyCost = totalCost / 7;\n\n    result.push({\n      id: row.campaign.id,\n      name: row.campaign.name,\n      status: row.campaign.status,\n      totalCost,\n      avgDailyCost,\n      type: avgDailyCost < 15 ? 'micro' : 'standard'\n    });\n  }\n}\n\n// Возвращаем один элемент, в json которого лежит объект с массивом campaigns\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -272
+      ],
+      "id": "a0909407-edd5-41a6-9b27-d905691d8152",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1616,
+        -272
+      ],
+      "id": "b313585b-93a0-4f7e-a357-3b03591e3e78",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "SELECT       campaign.id,       campaign.name,       campaign.status,       metrics.cost_micros     FROM campaign     WHERE segments.date DURING LAST_7_DAYS"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "f3b123d4-32b0-45f3-9770-5cfb587a5acb",
+      "name": "Get companies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        -272
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1d8c38da-8025-4906-8042-11be81d55db1",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "standard",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        -336
+      ],
+      "id": "c53b7416-7ebb-4830-bd88-d14541949ad0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C098WHM2KD5",
+          "mode": "list",
+          "cachedResultName": "i9-local-notifications"
+        },
+        "text": "=Компания: {{ $('Loop Over Items').item.json.name }}\nТип: Standard\nПроблема просадка по показам:\n0 показов за последние 4 часа: {{ $json.isLast4hZero }}\n≤ 10 % к полудню: {{ $json.isByNoonTooLow }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2960,
+        -432
+      ],
+      "id": "087541d2-cef9-4b13-b99a-d1f2f2259a93",
+      "name": "Send a message",
+      "webhookId": "6555e6c8-a637-4272-a222-2e572e5a9b45",
+      "credentials": {
+        "slackApi": {
+          "id": "xzGeHM57eBQ6pACT",
+          "name": "i9 local notifications"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Function node\n\nfunction toNumber(x) {\n  const n = Number(x);\n  return Number.isFinite(n) ? n : 0;\n}\n\n\nconst hourlyRaw = Array.isArray($('Last 24 hours').first().json.results) ? $('Last 24 hours').first().json.results : [];\n\nif (hourlyRaw.length === 0) {\n  throw new Error('Передайте массив hourly с почасовой статистикой за последние 24 часа.');\n}\n\n// Суммируем все показы\nconst totalImpressions = hourlyRaw.reduce((sum, h) => {\n  return sum + toNumber(h.impressions ?? h.metrics?.impressions ?? h.value);\n}, 0);\n\n// Проверяем условие\nconst allZero = totalImpressions === 0;\n\nreturn [\n  {\n    json: {\n      totalImpressions,\n      allZero\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        -240
+      ],
+      "id": "f38bef28-fd3c-4188-97a7-e6fcf933f208",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1f27cb39-ab76-45e5-9799-83fee36b4b98",
+              "leftValue": "={{ $json.isLast4hZero }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ae9f380e-b640-45d7-a85d-ceff8e567f9c",
+              "leftValue": "={{ $json.isByNoonTooLow }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2752,
+        -448
+      ],
+      "id": "ec0fe313-9ea9-4d02-842d-130fbc01324d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C098WHM2KD5",
+          "mode": "list",
+          "cachedResultName": "i9-local-notifications"
+        },
+        "text": "=Компания: {{ $('Loop Over Items').item.json.name }}\nТип: Micro\nПроблема просадка по показам:\n0 показов за последние 24 часа: {{ $json.allZero }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2960,
+        -240
+      ],
+      "id": "df1eb5cb-d44f-4784-81a1-6d0076d698f7",
+      "name": "Send a message1",
+      "webhookId": "0ccfd889-9ae2-4c97-abf1-e2ed440d9009",
+      "credentials": {
+        "slackApi": {
+          "id": "xzGeHM57eBQ6pACT",
+          "name": "i9 local notifications"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1f27cb39-ab76-45e5-9799-83fee36b4b98",
+              "leftValue": "={{ $json.allZero }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2736,
+        -240
+      ],
+      "id": "6b341a9a-be52-40d4-b657-6431e325c0ca",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        -240
+      ],
+      "id": "e0a3c11c-4116-4f3c-8ddc-c91d65e5c6d8",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Function node\n\nfunction toNumber(x) {\n  const n = Number(x);\n  return Number.isFinite(n) ? n : 0;\n}\n\n// Нормализуем запись часа из GA: достаём date, hour, impressions\nfunction normalizeHour(h) {\n  const imps = toNumber(h.impressions ?? h.metrics?.impressions ?? h.value);\n  const date = h.date ?? h.segments?.date;\n  const hour = Number(h.hour ?? h.segments?.hour);\n  return { date, hour, imps };\n}\n\n// \"Вчера\" в Нью-Йорке как YYYY-MM-DD\nfunction getYesterdayNyStr() {\n  const nowNy = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));\n  nowNy.setDate(nowNy.getDate() - 1);\n  const y = nowNy.getFullYear();\n  const m = String(nowNy.getMonth() + 1).padStart(2, '0');\n  const d = String(nowNy.getDate()).padStart(2, '0');\n  return `${y}-${m}-${d}`;\n}\n\n// ==== ВХОДНЫЕ ДАННЫЕ ====\n// массив почасовой статистики (как в ответе Google Ads API: results[])\nconst hourlyRaw = Array.isArray($('Last 4 hours').first().json.results)\n  ? $('Last 4 hours').first().json.results\n  : [];\n\n// сумма показов за 7 дней (для расчёта среднего за сутки)\n// если у тебя другой источник, подставь свой путь\nconst last7Days = Number($input.first().json.results?.[0]?.metrics?.impressions);\n\nif (!Number.isFinite(last7Days)) {\n  throw new Error('Передайте числовое поле last7Days.');\n}\nif (hourlyRaw.length === 0) {\n  throw new Error('Передайте массив hourly из последних 24 часов.');\n}\n\n// Нормализуем и сортируем по (date, hour)\nconst hourly = hourlyRaw\n  .map(normalizeHour)\n  .filter(h => h.date && Number.isFinite(h.hour))\n  .sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);\n\n// 1) Среднее количество показов в сутки за последние 7 дней\nconst avgPerDay = last7Days / 7;\n\n// 2) Последние 4 часа = 0?\nlet last4hSum = 0;\nconst take = Math.min(4, hourly.length);\nfor (let i = hourly.length - take; i < hourly.length; i++) {\n  last4hSum += hourly[i].imps;\n}\nconst isLast4hZero = last4hSum === 0;\n\n// 3) Сумма с 00:00 по 11:59 NY (часы 0..11 включительно) за ВЧЕРА по NY\nconst yesterdayNy = getYesterdayNyStr();\nconst byNoonNySum = hourly\n  .filter(h => h.date === yesterdayNy && h.hour >= 0 && h.hour <= 11)\n  .reduce((acc, h) => acc + h.imps, 0);\n\n// Порог 10% от среднего за сутки\nconst tenPercentOfAvg = avgPerDay * 0.10;\nconst isByNoonTooLow = byNoonNySum <= tenPercentOfAvg;\n\n// Итоговый флаг\nconst trigger = isLast4hZero || isByNoonTooLow;\n\nreturn [\n  {\n    json: {\n      avgPerDay,\n      last4hSum,\n      isLast4hZero,\n      byNoonNySum,\n      tenPercentOfAvg,\n      isByNoonTooLow,\n      trigger,\n      yesterdayNy\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        -448
+      ],
+      "id": "a9d84039-ac3f-4d74-bd6e-920cb9988875",
+      "name": "Filter2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT\n  campaign.id,\n  segments.date,\n  segments.hour,\n  metrics.impressions\nFROM\n  campaign\nWHERE\n  campaign.id = {{ $json.id }}\n  AND segments.date BETWEEN '{{ new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}' AND '{{ new Date(Date.now() - 0 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}'"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "076df843-3666-46e2-af05-59693c46150b",
+      "name": "Last 4 hours",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2112,
+        -448
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT\n  campaign.id,\n  campaign.name,\n  metrics.impressions\nFROM\n  campaign\nWHERE\n  campaign.id = {{ $('If').item.json.id }}\n  AND segments.date DURING LAST_7_DAYS"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "08ae953f-a404-4ce2-9f56-6b945a2e9374",
+      "name": "Last 7 days",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2352,
+        -464
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/v20/customers/3700886370/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=SELECT\n  campaign.id,\n  segments.date,\n  segments.hour,\n  metrics.impressions\nFROM\n  campaign\nWHERE\n  campaign.id = {{ $json.id }}\n  AND segments.date BETWEEN '{{ new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}' AND '{{ new Date(Date.now() - 0 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }}'"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "41b6c0ad-3f74-44c6-9df0-d7fe9d8022a9",
+      "name": "Last 24 hours",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2144,
+        -224
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        -272
+      ],
+      "id": "4be67a54-e4d0-482a-aba2-d913ecb2cd2a",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "connections": {
+    "Google ads additional keys": {
+      "main": [
+        [
+          {
+            "node": "Get companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get companies": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Last 4 hours",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Last 24 hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Last 4 hours": {
+      "main": [
+        [
+          {
+            "node": "Last 7 days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Last 7 days": {
+      "main": [
+        [
+          {
+            "node": "Filter2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Last 24 hours": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "count": 11
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "d342ccdd-d627-4b27-bfe8-32e120728a47",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:58.779Z",
+      "updatedAt": "2025-08-28T14:33:58.779Z",
+      "role": "workflow:owner",
+      "workflowId": "j7ICarjTUTQofk0y",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
