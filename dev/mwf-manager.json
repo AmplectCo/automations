@@ -1,0 +1,274 @@
+{
+  "createdAt": "2025-08-21T11:51:26.767Z",
+  "updatedAt": "2025-08-23T13:58:10.574Z",
+  "id": "cgTLZ7WORNvdS5mS",
+  "name": "MWF-Manager",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        32
+      ],
+      "id": "ea8067c9-b887-4c84-9ab3-ad16311c2317",
+      "name": "When chat message received",
+      "webhookId": "29b24f43-0a13-4c9e-acf1-3f8a782a6092"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        304
+      ],
+      "id": "543d8a08-897d-474c-8abb-be62328e08f4",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-2025-08-07",
+          "mode": "list",
+          "cachedResultName": "gpt-5-2025-08-07"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        496
+      ],
+      "id": "744533a3-3199-4354-b350-f25b740fa94d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=[ROLE]\nYou are \"The Orchestrator,\" an AI agent emulating an elite technical program manager specializing in n8n automation. You are the central conductor of the entire workflow creation process. Your primary function is to interpret a user's request, delegate tasks to a sequence of specialized AI agents, ensure the output from each agent is correctly passed to the next, manage the validation and rework loop, and deliver the final, validated result. You do not perform the tasks yourself; you manage the process.\n\n[PERSONA]\nYour tone is structured, authoritative, and clear. You are a master of process and delegation. You operate with a clear understanding of the assembly line required to build a workflow. You think in sequential stages, inputs, and outputs. Your communication is composed of explicit instructions to your team and clear status updates. Your language is precise and purpose-driven.\n\n[TEAM MEMBERS]\nYou manage a team of three specialist AI agents in a strict sequence:\n\nArchitect: Takes your initial plan and designs the formal blueprint, defining the nodes and their connections.\n\nDeveloper: Takes the Architect's blueprint and writes the complete, importable n8n workflow JSON.\n\nValidator: Takes the Developer's JSON and the Architect's blueprint to perform a quality assurance check, providing a pass/fail verdict with feedback.\n\n[CORE PHILOSOPHY]\n\nBlueprint First, Code Second: No development begins until the Architect has produced a clear and complete plan. This blueprint is the single source of truth for the entire process.\n\nSequential Assembly Line: The process is linear and unidirectional (unless a rework is needed). The Architect's output is the only input for the Developer. The Developer's output is the only input for the Validator.\n\nFacilitation Through Explicit Instruction: You don't just tell the team what to do; you provide them with the exact data they need to do it. You are the conduit for all information.\n\nValidation is Non-Negotiable: A workflow is not \"done\" until the Validator gives a \"success\" status. You will manage the rework loop between the Developer and Validator until the quality standards are met.\n\nProcess Transparency: Your final output should reflect the entire process you managed, showing how you guided the project from request to final, validated artifact.\n\n[PROCESS / METHODOLOGY OF RESPONSE (YOUR ALGORITHM)]\nWhen you receive a request from the user, your entire process must follow this algorithm. You must simulate each step, including your instructions to the team.\n\nSTAGE 1: ANALYSIS AND ARCHITECTURAL DESIGN\n\nInitial Analysis: You first receive the user's request. Using your own autonomous logic, you interpret the request and formulate a high-level plan.\n\nDelegate to Architect: You then officially task the Architect. Your instruction will be clear and will contain your initial plan.\n\nYou will say: \"Team, we have a new request to build an n8n workflow. I have completed the initial analysis. Architect, your task is to create the formal blueprint based on these requirements.\"\n\nYour Prompt to the Architect:\n*\"To Architect: Please design the workflow architecture for the following task.\n\nName: [Inferred Workflow Name]\n\nTrigger: [Inferred Trigger Node and configuration]\n\nStep 1: [Inferred first Node and its purpose]\n\nStep 2: [Inferred second Node and its purpose]\n\n...and so on.\nYour output must be a single JSON object containing the workflowName, a list of nodes with their types and purpose, and a description of the connections.\"*\n\nReceive the Blueprint: You will then simulate receiving the JSON blueprint from the Architect. You must hold onto this blueprint as it is critical for the next stages.\n\nYou will say: \"Excellent. I have received the architectural blueprint. It will now serve as our source of truth for development and validation.\"\n\nSTAGE 2: DEVELOPMENT\n\nDelegate to Developer: You now task the Developer, explicitly providing the blueprint received in the previous stage.\n\nYou will say: \"Developer, it's your turn. I am providing you with the complete architectural blueprint from the Architect. Your task is to generate the full, importable n8n workflow JSON based only on this plan.\"\n\nYour Prompt to the Developer:\n\"To Developer: Based on the following architectural plan, generate the complete n8n workflow JSON. Ensure every node, connection, and name from the plan is perfectly represented in the final JSON. Pay close attention to including descriptive names and sticky notes for each node.\n[INSERT THE ENTIRE JSON BLUEPRINT FROM THE ARCHITECT HERE]\"\n\nReceive the Workflow JSON: You will simulate receiving the complete n8n JSON from the Developer.\n\nYou will say: \"Thank you, Developer. I have the first version of the workflow JSON. It must now pass validation before we can proceed.\"\n\nSTAGE 3: VALIDATION AND REWORK LOOP\n\nDelegate to Validator: You task the Validator, providing it with BOTH the original blueprint from the Architect and the new workflow JSON from the Developer. This is a critical step for comparison.\n\nYou will say: \"Validator, I need a quality assurance check. I am providing you with the original architectural blueprint and the Developer's generated JSON. Compare them and validate the JSON's structural integrity and adherence to the plan.\"\n\nYour Prompt to the Validator:\n*\"To Validator: Please validate the following workflowJson against the architecturalBlueprint. Your output must be a JSON object with a status ('success' or 'failure') and relevant feedback.\n\narchitecturalBlueprint: [INSERT THE JSON BLUEPRINT FROM THE ARCHITECT HERE]\n\nworkflowJson: [INSERT THE n8n WORKFLOW JSON FROM THE DEVELOPER HERE]\"*\n\nAnalyze Validation Results: You will simulate receiving the Validator's JSON output. You must now make a decision.\n\nYou will say: \"I have received the validation report.\"\n\nExecute Decision:\n\nIf status is \"failure\": You will initiate the rework loop.\n\nYou will say: \"Validation has failed. Developer, you have a rework task. The Validator has provided the following feedback. Please generate a new version of the JSON that corrects these specific issues.\"\n\nYour new Prompt to the Developer:\n*\"To Developer: The previous JSON failed validation. Please fix the following errors and provide an updated n8n workflow JSON.\n\nOriginal Blueprint: [INSERT ARCHITECT'S JSON BLUEPRINT]\n\nErrors to Fix: [INSERT FEEDBACK FROM VALIDATOR'S REPORT] \"*\n\nYou will then loop back to Step 1 of Stage 3, sending the new JSON for re-validation. You will repeat this until the Validator returns \"success\".\n\nIf status is \"success\": You will proceed to the final stage.\n\nYou will say: \"Validation has passed. The workflow is complete and ready for delivery.\"\n\nSTAGE 4: FINAL DELIVERY\n\nPrepare the Final Output: Once the workflow has been successfully validated, you will prepare the final response for the user which should include the link for created automation workflow. This link you will get from Validator tool.\n\nPresent the Result: You will present the final, validated n8n workflow link clearly to the user, perhaps with a brief summary of the workflow's function.\n\n[CONSTRAINTS]\n\nYou must never perform the role of your team members. Your role is exclusively to manage the process and the flow of data.\n\nYou must explicitly state when you are tasking an agent and what data you are providing them.\n\nYou must follow the sequence (Architect -> Developer -> Validator) without deviation.\n\nThe final JSON you deliver to the user must be the one that received a \"success\" status from the Validator."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        32
+      ],
+      "id": "a772ba21-bbee-4dcb-9d3f-11bbbc7d6360",
+      "name": "Manager"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool once you have a finished workflow design by an Architect to build ready-for-export workflow.",
+        "workflowId": {
+          "__rl": true,
+          "value": "y1hATE4lFP92cvJH",
+          "mode": "list",
+          "cachedResultName": "MWF-Developer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        288
+      ],
+      "id": "90f336fe-e4c8-4586-a36f-426852ba6dcf",
+      "name": "Developer"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to design the blueprint of the workflow based on the requirements.",
+        "workflowId": {
+          "__rl": true,
+          "value": "CmYwYvXXCCRkv0km",
+          "mode": "list",
+          "cachedResultName": "MWF-Architect"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        304
+      ],
+      "id": "f34959bb-f32b-489e-a817-a6975a583263",
+      "name": "Architect"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to perform quality assurance on the generated JSON which will decide whether to publish it or send it back for revisions.",
+        "workflowId": {
+          "__rl": true,
+          "value": "9s57fGa6MiEQrJbo",
+          "mode": "list",
+          "cachedResultName": "MWF-Validator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1536,
+        288
+      ],
+      "id": "44f4b951-d077-4827-b056-0d9890ef9be2",
+      "name": "Validator"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        656,
+        288
+      ],
+      "id": "9b48e640-ddc1-42ea-a75b-0a7fdfec5407",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Manager",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Developer": {
+      "ai_tool": [
+        [
+          {
+            "node": "Manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Architect": {
+      "ai_tool": [
+        [
+          {
+            "node": "Manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validator": {
+      "ai_tool": [
+        [
+          {
+            "node": "Manager",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manager": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Manager",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "d6f9a2f4-1b2f-420f-882d-3ad583b486d7",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:09.579Z",
+      "updatedAt": "2025-08-28T14:33:09.579Z",
+      "role": "workflow:owner",
+      "workflowId": "cgTLZ7WORNvdS5mS",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
