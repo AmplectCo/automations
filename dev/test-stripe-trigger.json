@@ -1,0 +1,51 @@
+{
+  "createdAt": "2025-07-09T08:29:50.719Z",
+  "updatedAt": "2025-07-16T06:32:25.699Z",
+  "id": "vyRAdjar7WrSQtBA",
+  "name": "test stripe trigger",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "setup_intent.succeeded"
+        ]
+      },
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4b3be923-d9c6-49bd-8ca1-5c25c6428fd1",
+      "name": "Stripe Trigger",
+      "webhookId": "3ee9ea98-317c-4296-be87-b9e40fc62f00",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "ddecce4c-21ee-4551-8584-1c694be7731c",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:38.018Z",
+      "updatedAt": "2025-08-28T14:35:38.018Z",
+      "role": "workflow:owner",
+      "workflowId": "vyRAdjar7WrSQtBA",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
