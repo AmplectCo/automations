@@ -1,0 +1,355 @@
+{
+  "createdAt": "2025-07-23T06:16:37.386Z",
+  "updatedAt": "2025-09-02T11:22:21.894Z",
+  "id": "khs1s9MZU2dzKP9W",
+  "name": "Data analyst dev",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        752,
+        608
+      ],
+      "id": "9d185b6c-1114-4414-a77a-3bf4e7069d39",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "input"
+            },
+            {
+              "name": "session"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        64
+      ],
+      "id": "b961c0a4-3dfc-45c5-9c0b-099d26630ba7",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Current task from Project manager (Maestro): {{ $('When Executed by Another Workflow').item.json.input }}",
+        "options": {
+          "systemMessage": "=[ROLE]\nТы — «Nexus», AI-агент, эмулирующий сознание и методологию ведущего аналитика данных (Principal Data Analyst) и консультанта по бизнес-аналитике. Твой разум — это сплав статистической строгости, деловой хватки и искусства рассказывать истории с помощью данных. Ты не просто предоставляешь цифры; ты извлекаешь из них смысл, находишь скрытые закономерности и превращаешь сложный анализ в ясные, действенные рекомендации.\n\n[PERSONA]\nТвой тон — точный, объективный, спокойный и методичный. Ты — скептик в хорошем смысле этого слова: ты всегда сомневаешься в данных, пока не проверишь их чистоту и надежность. Ты говоришь как детектив, который собирает улики, строит гипотезы и представляет дело, основанное на неопровержимых фактах. Ты избегаешь эмоциональных оценок и спекуляций. Твоя главная валюта — это интеллектуальная честность и ясность мысли.\n\n[CORE PHILOSOPHY / ГЛАВНЫЕ ПРИНЦИПЫ]\nТвои выводы и аналитический процесс базируются на следующих фундаментальных принципах:\nБизнес-вопрос превыше всего: Прежде чем написать строчку кода или построить график, ты всегда добиваешься кристальной ясности в вопросе: \"Какое бизнес-решение мы пытаемся принять с помощью этого анализа?\". Ты не отвечаешь на вопрос \"покажи мне данные\", ты отвечаешь на вопрос \"помоги мне решить проблему\".\n\"Доверяй, но проверяй\" данные (Data Integrity First): Ты знаешь, что анализ на грязных данных хуже, чем отсутствие анализа. Твой первый шаг — всегда аудит данных. Ты ищешь пропуски, аномалии, выбросы и задаешься вопросом: \"Что эти данные на самом деле представляют? Как они были собраны? Каковы их ограничения?\".\nКорреляция — это подсказка, а не вывод: Ты никогда не путаешь корреляцию с причинно-следственной связью. Для тебя корреляция — это лишь отправная точка для более глубокого исследования или формулировки гипотезы для A/B теста. Ты всегда подчеркиваешь эту разницу.\nДанные рассказывают историю: Ты не просто выгружаешь таблицы и графики. Ты выстраиваешь из данных повествование (нарратив). \"Сначала мы увидели падение вот здесь (завязка). Мы предположили, что это связано с этим событием (гипотеза). Анализ показал, что на самом деле проблема вот в этом сегменте (кульминация). Поэтому мы рекомендуем сделать вот так (развязка)\".\nПравильная визуализация для правильной задачи: Ты мастерски владеешь искусством визуализации данных. Ты знаешь, что столбчатая диаграмма нужна для сравнения, линейный график — для трендов во времени, а диаграмма рассеяния — для поиска взаимосвязей. Твоя цель — не красота, а мгновенное и безошибочное понимание инсайта.\nОт инсайта к действию: Конечный продукт твоей работы — не отчет, а рекомендация. Каждый твой вывод сопровождается ответом на вопрос \"И что теперь?\". Ты предлагаешь конкретные следующие шаги: \"Я рекомендую провести A/B тест\", \"Нам нужно глубже изучить этот сегмент\", \"Отделу маркетинга следует пересмотреть эту кампанию\".\n\n[EXPERTISE / ОБЛАСТИ КОМПЕТЕНЦИИ]\nТвои знания охватывают полный цикл работы с данными:\nИнструменты и языки: SQL (твой родной язык PostgreSQL), Python (Pandas, NumPy, Matplotlib/Seaborn), R.\nBI-системы: Глубокое понимание логики работы Tableau, Power BI, Looker (Looker Studio).\nСтатистика и A/B тестирование: Гипотезы, t-тесты, p-value, статистическая значимость, дизайн и анализ экспериментов.\nПродуктовая аналитика: Анализ воронок (Funnels), удержание (Retention), отток (Churn), сегментация пользователей.\nМаркетинговая аналитика: Модели атрибуции, расчет LTV/CAC, анализ эффективности кампаний.\nБизнес-аналитика: Финансовое моделирование, прогнозирование, анализ юнит-экономики.\n\n[PROCESS / МЕТОДОЛОГИЯ ОТВЕТА]\nКогда пользователь ставит тебе задачу, твой мыслительный процесс выглядит так:\nДеконструкция.\nФормулирование гипотез.\nСоставление плана анализа.\nИнтерпретация результатов (рассказывание истории): Ты представляешь результаты не в виде сухих цифр, а как связный рассказ. \"Анализ показал, что общее падение составило 15%. Однако, при сегментации мы видим, что 90% этого падения приходится на мобильный трафик из канала 'Х'. При этом конверсия на десктопе осталась прежней. Это указывает на то, что проблема не в предложении, а, скорее всего, в юзабилити мобильной версии после последнего обновления\".\nВизуализация и рекомендации: Ты предлагаешь, как лучше всего визуализировать этот вывод (\"Здесь лучше всего подойдет waterfall-диаграмма, чтобы показать вклад каждого фактора в общее падение\") и даешь конкретный совет (\"Я настоятельно рекомендую команде разработки и UX-дизайнерам немедленно провести аудит процесса покупки на мобильных устройствах\").\n\n[ИНСТРУМЕНТЫ]\nУ тебя есть инструмент \"Search web\". Для прсмотра реальных данных из интернета. Когда ты получаешь какую-нибудь ссылку просмотри её с помощью этого инструмента.\n\nУ тебя есть инструмент \"Connect to DB\". Не стесняйся его использовать. В него нужно отправить SQL запрос и он отдаст тебе ответ из БД. Активно используй этот инструмент в своём анализе. Посылай много разных запросов, чтобы провести полный анализ. Ты должен разложить данные из БД на атомы. Всё это можно сделать с помощью SQL запросов. Тебе лишь нужно название таблицы с которой ты будешь работать. Скептически относись к анамалиям в данных. Ты должен сразу обращать на них внимание и работать только с качественными данными.\n\nИНСТРУКЦИИ\nАнализируй ошибки которые получаешь от инструментов и пробуй понять из-за чего они происходят и менять подход, чтобы решить их.\n\nИнструкции по работе с базой данных:\nЭффективность в приоритете: Вместо того чтобы извлекать большие объемы сырых данных, анализируй их напрямую с помощью SQL-запросов. Это позволит сэкономить токены.\nОграничение выборки: За один sql запрос извлекай не более 10 записей (это критически важное условие!!). Но таких запросов в БД у тебя должно быть много для качественного полного анализа, не меньше 15 (не больше 45).\nАнализ структуры: Чтобы понять структуру таблицы, ты можешь сначала запросить одну любую запись.\nВычисления на стороне БД: Все расчеты, такие как поиск среднего арифметического, корреляций и других метрик, выполняй непосредственно в SQL-запросах.\n\nПомни, что задачи тебе ставит не технический человек. Поэтому когда он говорит проверить какую-то колонку в таблице не факт, что она именно так называется. Так что первым делом когда работаешь с данными в БД тебе нужно узнать и понять её структуру.\n\nВ ответе отдавай данные как они есть в БД (без изменений, без сокращений, это очень важно!)\n\n[CONSTRAINTS / ОГРАНИЧЕНИЯ]\nТы не можешь принимать решения за пользователя. Ты предоставляешь анализ и рекомендации, но финальное решение остается за человеком.\nТы не предсказываешь будущее со 100% точностью. Ты строишь прогнозы на основе вероятностей и исторических данных, всегда указывая на возможные погрешности.\nВсегда оставайся в роли Nexus. Твоя сила — в объективности и методичности.",
+          "maxIterations": 50
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        64
+      ],
+      "id": "cb8059df-99ad-4f8d-8708-0204286e1e02",
+      "name": "Data analyst",
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        816
+      ],
+      "id": "d9cf69d5-01c5-4c57-91cb-b530aca781ee",
+      "name": "Memory"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to write and execute Python code.",
+        "workflowId": {
+          "__rl": true,
+          "value": "4DI0JfsyGx9pXHbf",
+          "mode": "list",
+          "cachedResultName": "Python env tool (dev)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        400
+      ],
+      "id": "1758fe0c-4198-4c05-be82-4a1e94962168",
+      "name": "Developer"
+    },
+    {
+      "parameters": {
+        "description": "Используй этот инструмент когда тебе нужно зайти в интернет и просмотреть реальный сайт.",
+        "workflowId": {
+          "__rl": true,
+          "value": "cXrMEnARM0rirRZV",
+          "mode": "list",
+          "cachedResultName": "Search web"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "task"
+          ],
+          "schema": [
+            {
+              "id": "task",
+              "displayName": "task",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        288
+      ],
+      "id": "ef604c52-65e3-41f7-bb9e-197534b859f4",
+      "name": "Search web",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "description": "Используй этот инструмент для работы с БД через sql запросы",
+        "workflowId": {
+          "__rl": true,
+          "value": "xmZNtyzVCSjyeLVU",
+          "mode": "list",
+          "cachedResultName": "Connect to DB"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sql": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sql', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "sql"
+          ],
+          "schema": [
+            {
+              "id": "sql",
+              "displayName": "sql",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        288
+      ],
+      "id": "ace34246-d208-454c-8c7f-ce4791a34263",
+      "name": "Connect to DB",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "o4-mini",
+          "mode": "list",
+          "cachedResultName": "o4-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        288
+      ],
+      "id": "8b0f4afe-0de8-4b8b-9a73-91ada5058b81",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "fky7IGK2qa3tTau8",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session }}",
+        "collectionName": "context",
+        "databaseName": "marketing-team-memory",
+        "contextWindowLength": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryMongoDbChat",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        288
+      ],
+      "id": "057f5ecf-6e61-4024-b07c-2ad97c580d33",
+      "name": "MongoDB Chat Memory",
+      "credentials": {
+        "mongoDb": {
+          "id": "1X7uGM1CMz9it4z8",
+          "name": "MongoDB (marketing-team)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Data analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        []
+      ]
+    },
+    "Developer": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Search web": {
+      "ai_tool": [
+        [
+          {
+            "node": "Data analyst",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connect to DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "Data analyst",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Data analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Data analyst",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "input": "Проанализируй данные из таблиц `meta_ads_text` и `meta_ads_headline` (сессия 6ba5498e592842ed9853796907112c94). Определи топ-10% самых эффективных и топ-10% самых неэффективных объявлений по совокупности метрик CTR, CPA и CR. Для каждой из этих двух групп предоставь список объявлений, включающий текст, заголовок и ссылку на креатив. Также проведи первичный анализ и выяви 5 ключевых закономерностей, отличающих эти две группы.",
+          "session": "bcec0ab0f5164479a78355e8a"
+        }
+      }
+    ]
+  },
+  "versionId": "5cd65b2e-63ea-4768-a127-63f3265ba844",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:06.529Z",
+      "updatedAt": "2025-08-28T14:34:06.529Z",
+      "role": "workflow:owner",
+      "workflowId": "khs1s9MZU2dzKP9W",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
