@@ -1,0 +1,247 @@
+{
+  "createdAt": "2025-08-25T10:23:51.138Z",
+  "updatedAt": "2025-08-25T10:30:35.587Z",
+  "id": "DfKRNfuVaFvQWYDU",
+  "name": "Invoice Processing Automation",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "forceReconnect": 300
+        }
+      },
+      "id": "3f9e7a1b-0dc4-47c9-8b7e-a4d6f2c9e1d3",
+      "name": "Email Trigger",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        224,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Получение писем\nПроверяет почтовый ящик каждые 5 минут.\nОтбирает только письма с темой 'Счет'.\n\n⚠️ Необходимо настроить IMAP credentials",
+        "height": 304
+      },
+      "id": "b8e4f5a2-1ef5-4a8d-9c1f-b5e7d3c8f2a1",
+      "name": "Email Trigger Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c4d5e6f7-3gf7-4c0a-be3g-d7g9f5e8g4c3",
+              "leftValue": "={{ $binary.attachment_0 ? true : false }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "e5f6g7h8-4hg8-5d1b-cf4h-e8h0g6f9h5d4",
+              "leftValue": "={{ $binary.attachment_0?.fileName }}",
+              "rightValue": "={{ $binary.attachment_0?.fileName?.endsWith('.pdf') || $binary.attachment_0?.fileName?.endsWith('.docx') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "rightValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d2c7e8f3-2fe6-4b9e-ad2f-c6f8e4d9f3b2",
+      "name": "Check Attachment",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        464,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Проверка вложений\nПроверяет:\n1. Есть ли вложение в письме\n2. Является ли вложение PDF или DOCX файлом\n\nТолько подходящие файлы проходят дальше",
+        "height": 336
+      },
+      "id": "3c8f4e5d-2af7-49be-9d3f-d7e8f5d9e3c2",
+      "name": "Attachment Check Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "keepSource": false
+        }
+      },
+      "id": "a3d5f7e9-3bf8-4ac0-ae4g-e8f9g7f0f4d3",
+      "name": "Rename File",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [
+        704,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Переименование файла\nФормирует новое имя по шаблону:\nСчет_[ИмяОтправителя]_[ДатаYYYY-MM-DD].pdf\n\nИмя отправителя берется из поля 'from',\nдата генерируется автоматически",
+        "height": 288
+      },
+      "id": "b4e6g8f0-4cg9-5bd1-bf5h-f9g0h8g1g5e4",
+      "name": "Rename File Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        528,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "jsonToBinary",
+        "options": {
+          "fileName": "={{ $json.fileName }}"
+        }
+      },
+      "id": "c5f7h9g1-5dh0-6ce2-cg6i-g0h1i9h2h6f5",
+      "name": "Convert Back to Binary",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [
+        944,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "id": "e6g8i0h2-6ei1-7df3-dh7j-h1i2j0i3i7g6",
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1184,
+        208
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eSNqSATRHln2HTCD",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Загрузка на Google Drive\n⚠️ ВАЖНО: Необходимо указать ID папки!\n\n1. Настройте Google Drive credentials\n2. В поле 'Parent Folder ID' укажите ID\n   папки для сохранения счетов\n3. Имя файла берется автоматически\n   из предыдущего шага",
+        "height": 368
+      },
+      "id": "f7h9j1i3-7fj2-8eg4-ei8k-i2j3k1j4j8h7",
+      "name": "Google Drive Upload Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        416
+      ]
+    }
+  ],
+  "connections": {
+    "Email Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Attachment": {
+      "main": [
+        [
+          {
+            "node": "Rename File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename File": {
+      "main": [
+        [
+          {
+            "node": "Convert Back to Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Back to Binary": {
+      "main": [
+        [
+          {
+            "node": "Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "d7baf992-4f72-4e94-83b6-3ea28204847d",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:30:00.691Z",
+      "updatedAt": "2025-08-28T14:30:00.691Z",
+      "role": "workflow:owner",
+      "workflowId": "DfKRNfuVaFvQWYDU",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
