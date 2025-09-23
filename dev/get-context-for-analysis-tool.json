@@ -1,0 +1,197 @@
+{
+  "createdAt": "2025-07-15T07:51:24.139Z",
+  "updatedAt": "2025-07-16T06:28:11.347Z",
+  "id": "6AW53Aoyr2Lr43yZ",
+  "name": "Get context for analysis tool",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_message"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        300,
+        -40
+      ],
+      "id": "19aadb75-667c-430a-a694-ae9079b026d2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert at parsing user requests to extract specific, high-priority instructions for an image analysis task.  Your input is a single string: `user_message`.  Your task is to carefully read the message and identify any rules that should override the standard analysis. These rules can include: - Instructions to check only for specific types of errors (e.g., \"проверь только орфографию\"). - Instructions to ignore certain text on the banner (e.g., \"не обращай внимания на текст в футере\", \"игнорируй 'Скидка 50%'\"). - Declarations that a specific word is not an error (e.g., \"слово 'СуперКреп' - это наш бренд, не исправляй его\"). - Any other direct command that modifies the analysis logic.  You must return a JSON object with the extracted rules. If no specific rules are found, return an empty JSON object `{}`.  **Example 1:** - Input `user_message`: \"Привет, проверь эти баннеры. Только орфографию, пожалуйста.\" - Output JSON: `{\"rules\": {\"check_only\": [\"spelling\"]}}`  **Example 2:** - Input `user_message`: \"Вот пара креативов. Название 'FlexiForm' - это бренд. И не проверяй текст 'лицензия №123'.\" - Output JSON: `{\"rules\": {\"ignore_text\": [\"лицензия №123\"], \"brand_names\": [\"FlexiForm\"]}}`  **Example 3:** - Input `user_message`: \"Зацени, что получилось\" - Output JSON: `{}`  Output only the JSON object."
+            }
+          ]
+        }
+      },
+      "id": "42aab91d-b08e-4974-aa68-9651586f171d",
+      "name": "Get context for analysis",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        500,
+        -40
+      ],
+      "typeVersion": 1.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        580,
+        160
+      ],
+      "id": "570211dc-cdbd-4bdc-ac1f-d4397472a548",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        520,
+        300
+      ],
+      "id": "df634223-32c2-40b4-8c40-0a212071a96c",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"rules\": {}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        300
+      ],
+      "id": "1d38c2a3-be1a-4abf-a431-443fabee438e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6f08db20-8dc0-4fcb-8a81-a4f4015d5563",
+              "name": "rules",
+              "value": "={{ $json.output.rules }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        860,
+        -40
+      ],
+      "id": "7044c17e-8186-4d99-b215-b992fc66048d",
+      "name": "Edit Fields"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get context for analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Get context for analysis",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Get context for analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get context for analysis": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "fd6f5ae3-502b-4bac-9fe9-a3f88bb9c499",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:59.448Z",
+      "updatedAt": "2025-08-28T14:28:59.448Z",
+      "role": "workflow:owner",
+      "workflowId": "6AW53Aoyr2Lr43yZ",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
