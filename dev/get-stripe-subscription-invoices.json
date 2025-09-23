@@ -1,0 +1,112 @@
+{
+  "createdAt": "2025-07-14T14:16:47.459Z",
+  "updatedAt": "2025-07-16T06:28:47.693Z",
+  "id": "B31Q4QLT6HxEefSK",
+  "name": "Get stripe subscription invoices",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "subscription_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        80
+      ],
+      "id": "2a45aaf4-e84a-4e78-bf54-60993d29a1e7",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/invoices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "subscription",
+              "value": "={{ $json.subscription_id }}"
+            },
+            {
+              "name": "status",
+              "value": "paid"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        80
+      ],
+      "id": "1c520e8b-f576-45b0-9717-db00bb33668e",
+      "name": "Get invoices",
+      "credentials": {
+        "stripeApi": {
+          "id": "79r4zQhpshSQJToZ",
+          "name": "dizzain Stripe account"
+        },
+        "httpBasicAuth": {
+          "id": "ZPBU1cckaedyw6mb",
+          "name": "dizzain Stripe Basic Auth"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "9cf8a7d6-4623-4ae1-ae01-296aa802435c",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:41.548Z",
+      "updatedAt": "2025-08-28T14:29:41.548Z",
+      "role": "workflow:owner",
+      "workflowId": "B31Q4QLT6HxEefSK",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-07-10T14:35:52.102Z",
+      "updatedAt": "2025-07-10T14:35:52.102Z",
+      "id": "jn6fkqUeQvBfj4B7",
+      "name": "stripe"
+    }
+  ]
+}
