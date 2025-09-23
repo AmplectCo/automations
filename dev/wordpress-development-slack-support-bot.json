@@ -1,0 +1,350 @@
+{
+  "createdAt": "2025-08-16T22:40:31.351Z",
+  "updatedAt": "2025-08-18T09:15:32.580Z",
+  "id": "4rN5BQYuHTkkNpWm",
+  "name": "WordPress Development Slack Support Bot",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "event": "message",
+        "authentication": "oAuth2"
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Slack Trigger",
+      "webhookId": "slack-wordpress-bot-trigger",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "1",
+          "name": "Slack OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "You are a highly knowledgeable WordPress development expert assistant integrated with Slack. Your role is to help developers with WordPress-related questions.\n\nYour expertise covers:\n- WordPress theme development (child themes, custom themes, template hierarchy)\n- Plugin development (hooks, filters, actions, custom post types, taxonomies)\n- WordPress REST API and Gutenberg blocks\n- Database queries and optimization\n- Security best practices\n- Performance optimization\n- Troubleshooting common WordPress issues\n- WP-CLI commands\n- WordPress coding standards\n\nGuidelines:\n1. Provide clear, concise, and accurate answers\n2. Include code snippets with proper PHP syntax when relevant\n3. Suggest best practices and modern WordPress development approaches\n4. Reference official WordPress documentation when appropriate\n5. Maintain a friendly, professional, and helpful tone\n6. If a question is unclear, ask for clarification\n7. Format code snippets using markdown code blocks\n8. Warn about deprecated functions or outdated practices\n9. Consider security implications in your recommendations\n10. Provide step-by-step instructions for complex procedures\n\nAlways prioritize secure, performant, and maintainable solutions following WordPress coding standards."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "WordPress AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        560,
+        520
+      ],
+      "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "2",
+          "name": "OpenRouter API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        520
+      ],
+      "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
+      "name": "Conversation Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search WordPress documentation and resources for detailed information",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"api_key\": \"tvly-YOUR-API-KEY\",\n    \"query\": \"WordPress {searchQuery}\",\n    \"search_depth\": \"advanced\",\n    \"include_answer\": true,\n    \"include_domains\": [\"developer.wordpress.org\", \"wordpress.org\", \"wordpress.stackexchange.com\"],\n    \"max_results\": 5\n}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "searchQuery",
+              "description": "The WordPress development topic or issue to search for",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        520
+      ],
+      "id": "e5f6a7b8-c9d0-1234-efab-567890123456",
+      "name": "WordPress Documentation Search"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "authentication": "oAuth2",
+        "channel": "={{ $('Slack Trigger').item.json.channel }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1060,
+        300
+      ],
+      "id": "f6a7b8c9-d0e1-2345-fabc-678901234567",
+      "name": "Send Slack Response",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "1",
+          "name": "Slack OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ $json.bot_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "id": "a7b8c9d0-e1f2-3456-abcd-789012345678",
+      "name": "Filter Bot Messages"
+    },
+    {
+      "parameters": {
+        "content": "## 🚀 WordPress Slack Bot Setup\n\n**Prerequisites:**\n1. Create a Slack App at api.slack.com\n2. Add Bot User OAuth Scopes:\n   - `channels:history`\n   - `channels:read`\n   - `chat:write`\n   - `im:history`\n   - `im:read`\n   - `im:write`\n   - `groups:history`\n   - `groups:read`\n\n3. Install app to workspace\n4. Copy OAuth token for credentials",
+        "height": 280,
+        "width": 320,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        200
+      ],
+      "id": "b8c9d0e1-f2a3-4567-bcde-890123456789",
+      "name": "Slack Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI Configuration\n\n**OpenRouter Setup:**\n1. Get API key from openrouter.ai\n2. Add credits to account\n3. Configure in n8n credentials\n\n**Model Selection:**\n- Using GPT-4o-mini for cost efficiency\n- Can upgrade to GPT-4 for complex queries\n\n**Memory:**\n- Maintains last 10 messages\n- Per-channel context retention",
+        "height": 260,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        700
+      ],
+      "id": "c9d0e1f2-a3b4-5678-cdef-901234567890",
+      "name": "AI Configuration Notes"
+    },
+    {
+      "parameters": {
+        "content": "## 📚 WordPress Expertise Areas\n\n**Bot can help with:**\n- Theme development\n- Plugin architecture\n- Hooks & filters\n- Custom post types\n- REST API integration\n- Gutenberg blocks\n- Database queries\n- Security practices\n- Performance optimization\n- Debugging & troubleshooting\n- WP-CLI commands",
+        "height": 300,
+        "width": 280,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        200
+      ],
+      "id": "d0e1f2a3-b4c5-6789-defa-012345678901",
+      "name": "Bot Capabilities"
+    },
+    {
+      "parameters": {
+        "content": "## ⚙️ Workflow Features\n\n**Message Filtering:**\n- Ignores bot messages to prevent loops\n- Only processes non-empty messages\n\n**Thread Support:**\n- Replies in thread to maintain context\n- Preserves conversation flow\n\n**Documentation Search:**\n- Optional Tavily integration\n- Searches official WP docs\n- Add your API key to enable",
+        "height": 260,
+        "width": 300,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        560
+      ],
+      "id": "e1f2a3b4-c5d6-7890-efab-123456789012",
+      "name": "Workflow Features"
+    },
+    {
+      "parameters": {
+        "content": "## 🔐 Required Credentials\n\n1. **Slack OAuth2:**\n   - Bot User OAuth Token\n   - From Slack App settings\n\n2. **OpenRouter API:**\n   - API Key from dashboard\n   - Ensure credits available\n\n3. **Tavily API (Optional):**\n   - For documentation search\n   - Free tier available",
+        "height": 240,
+        "width": 280,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        520
+      ],
+      "id": "f2a3b4c5-d6e7-8901-fabc-234567890123",
+      "name": "Credentials Required"
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Bot Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Bot Messages": {
+      "main": [
+        [
+          {
+            "node": "WordPress AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "WordPress AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "WordPress AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress Documentation Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "WordPress AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "74a49a25-066c-4147-a952-4c4244e61c11",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:28:40.207Z",
+      "updatedAt": "2025-08-28T14:28:40.207Z",
+      "role": "workflow:owner",
+      "workflowId": "4rN5BQYuHTkkNpWm",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
