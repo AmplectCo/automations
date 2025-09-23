@@ -1,0 +1,115 @@
+{
+  "createdAt": "2025-07-18T07:00:11.791Z",
+  "updatedAt": "2025-09-02T11:22:39.117Z",
+  "id": "xmZNtyzVCSjyeLVU",
+  "name": "Connect to DB",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "sql"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        96
+      ],
+      "id": "d6b2c4d9-da81-4a8f-9c68-0d1596466570",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.cleaned_sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        304,
+        96
+      ],
+      "id": "0586c801-1194-473b-b721-2643a7a83613",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.sql;\n\n// Убираем символы новой строки и лишние пробелы\nconst output = input.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').trim();\n\n// Возвращаем результат\nreturn [\n  {\n    json: {\n      cleaned_sql: output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        96
+      ],
+      "id": "5a57475f-31c1-419a-9f95-ed5f338c9da1",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "sql": "\nSELECT\n    ad_name,\n    thumbnail_url,\n    cpa\nFROM\n    meta_ads_all_data\nORDER BY\n    cpa ASC\nLIMIT 3;\n"
+        }
+      }
+    ]
+  },
+  "versionId": "3f36bf85-1265-4d13-a0e5-0852b0865e9a",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:56.732Z",
+      "updatedAt": "2025-08-28T14:35:56.732Z",
+      "role": "workflow:owner",
+      "workflowId": "xmZNtyzVCSjyeLVU",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
