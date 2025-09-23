@@ -1,0 +1,2345 @@
+{
+  "createdAt": "2025-06-20T09:36:55.717Z",
+  "updatedAt": "2025-09-02T11:21:10.902Z",
+  "id": "WCJYQ5Lv6nO0r39f",
+  "name": "Multiagent flow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp-01-21",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        624
+      ],
+      "id": "c8da0119-8590-4773-a477-095f91ecb45c",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        400
+      ],
+      "id": "e0b260f7-6ca4-40bf-b0d9-e2f35d89f8a0",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c34c65d2-6544-43be-8e44-fdbd3fb47ab2",
+              "leftValue": "={{ $json.user }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "bf6211a4-d0e7-49b6-a6c0-fa46dd037dda",
+              "leftValue": "={{ $json.bot_id }}",
+              "rightValue": "<@U090XKWTV6F>",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "dec27438-59ed-4f54-8d4c-3fa5b273ec86",
+              "leftValue": "={{ $json.parent_user_id }}",
+              "rightValue": "U090XKWTV6F",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1648,
+        192
+      ],
+      "id": "721746bf-6dbf-4470-a51a-52018b4bff8c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.chatInput }} Session: {{ $json.sessionId }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "target_site",
+              "description": "URL of the site for which you need to create a semantic profile"
+            },
+            {
+              "name": "keywords",
+              "description": "Write 2-3 words (no more) that describe the topic of the marketing campaign"
+            },
+            {
+              "name": "sessionId",
+              "description": "sessionId"
+            },
+            {
+              "name": "business_goal",
+              "description": "Business goal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        208
+      ],
+      "id": "76c7245f-bdd9-4fd7-8e9e-dc10369919bf",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6088ffa4-00ff-404b-b23a-22fb10d6f9eb",
+              "name": "chatInput",
+              "value": "=MESSAGE: {{ $json.text }} FILES: {{ JSON.stringify($json.files) }}",
+              "type": "string"
+            },
+            {
+              "id": "35f71532-5fbb-4008-a719-3f629420d2e4",
+              "name": "sessionId",
+              "value": "={{ $json.thread_ts }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1360,
+        192
+      ],
+      "id": "609d6992-49e9-4c4c-bd25-ed226dbffcfd",
+      "name": "Set variables",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Set variables').first().json.chatInput }}",
+        "options": {
+          "systemMessage": "=Persona\nYou are an elite, data-driven Growth Marketing Strategist with a proven track record of crafting highly effective SEM campaigns for top global brands. You possess a deep understanding of user intent, the competitive landscape, and complex search engine algorithms. Your approach is holistic, focused not just on traffic, but on qualified conversions.\nGoal\nTo generate a comprehensive, highly targeted, and conversion-oriented keyword portfolio for the specified website, expertly leveraging our suite of analytical tools, focusing on maximizing relevant organic visibility and paid search ROI, aligned with the stated business objective.\nMandatory Input Parameters\nTARGET_WEBSITE_URL: The URL of the website for which the keyword portfolio is to be generated.\nBUSINESS_GOAL: The primary business objective for the SEM campaign (e.g., \"increase online sales by 20%\", \"generate 500 qualified leads per month\", \"attract 10,000 app sign-ups\").\n\nInstructions for Missing Parameters\nIf TARGET_WEBSITE_URL or BUSINESS_GOAL are not provided, politely ask for them. For optional parameters, make reasoned assumptions based on the URL and business objective, always explaining your logic.\n\nBefore starting the analysis, you are obliged to:\n1) clarify all the necessary data with the user (target site and business goal)\n2) IMPORTANT!!! Show the work plan, where you describe what tools you will currently use in the analysis process. And wait for confirmation from the user to continue working according to your plan, or the user can make changes to the work plan. It's crucial step!! \n\nMandatory Tool Usage (After the plan is confirmed by the user)\n\nTool 1.1: Semantic Analysis & User Intent Analysis (Target Website)\n\nTool 1.2: Competitive Landscape Analysis (Competitor Analysis).\n\nTool 2.1: Keyword Research with Semrush.com\n\nTool 2.2: Market Demand & Opportunity Sizing (Keyword Research with google ads planner by keywords and site url use both)\n\nTools 3.1 - 3.3 (Analyze data with AI tools)\nTool 3.1: Analyze Semrush data. (Call this tool ONLY when receive success result from tools 2.1 - 2.2 ). In response from the tool you will receive the top 50 keywords.\n\nTool 3.2: Analyze Google ads planner data (by url). (Call this tool ONLY when receive success result from tools 2.1 - 1.2 ). In response from the tool you will receive the top 50 keywords.\n\nTool 3.3: Analyze Google ads planner data (by keywords). (Call this tool ONLY when receive success result from tools 2.1 - 2.2 ). In response from the tool you will receive the top 50 keywords.\n\n❗ IMPORTANT: You MUST use ALL tools in the analysis process (which were confirmed by the user!!). \nLaunch tools one by one. Before launching the next one, you must wait for the response from the previous one.\n\nShow how you apply each tool and what data you obtain.\n\nIMPORTANT: Response Format\nThink-Aloud Mode\nShow ALL your thoughts, reasoning, and analysis process. \n\nSynthesis Process & Keyword Generation Logic\nAfter gathering data from all involved tools, perform a comprehensive synthesis:\n\nFiltering & Prioritization:\nRelevance: How closely does the keyword align with CORE  PRODUCTS SERVICES and BUSINESS GOAL?\n\nIntent: Categorization by user intent (Informational, Navigational, Transactional, Commercial Investigation)\n\nVolume & Competition: Balancing high-volume terms with low-competition long-tail opportunities\n\nAudience Fit: Does the keyword resonate with the TARGET AUDIENCE PROFILE?\n\nBrand Alignment: Does it align with BRAND TONE AND MESSAGING?\n\nCompetitive Gap Analysis:\nHighlight keywords where competitors are weak\nIdentify unique advantages of the target website\n\nThe initial analysis should contain at least 100 keywords, sorted by importance, from most important to least important.\n\nFinal Output (Always use this json format when outputting keywords and negative words. With all fields as in the example.)\n\n{\n  \"keywords_table\": [\n    {\n      \"keyword\": \"string\",\n      \"monthly_search_volume\": \"number\",\n      \"organic_competition\": \"Low/Medium/High\",\n      \"paid_competition\": \"Low/Medium/High\",\n      \"suggested_bid_usd\": \"number\",\n      \"user_intent\": \"Informational/Navigational/Transactional/Commercial\",\n      \"source\": \"string\",\n      \"strategic_notes\": \"string\",\n      \"country\": \"string\",\n      \"difficulty\":\t\"number\",\n      \"cpc\": \"number\",\n      \"cps\": \"number\",\n      \"parent_keyword\": \"string\"\n    }\n  ],\n  \"negative_keywords\": [\n    \"keyword1\",\n    \"keyword2\",\n    \"keyword3\"\n  ]\n}\n\n\n",
+          "maxIterations": 30
+        }
+      },
+      "id": "34f327a5-db75-46dc-852b-9b38109f50a2",
+      "name": "Orchestrator agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -400,
+        224
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{$('Set variables').first().json.sessionId}}",
+        "contextWindowLength": 30
+      },
+      "id": "78775274-4ac0-432d-9b34-a20f829fefa5",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -576,
+        624
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.final_message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').first().json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        4032,
+        -256
+      ],
+      "id": "57881784-7936-4b6b-9558-3a5c56cbbb74",
+      "name": "Slack",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to generate semantic profile for target site.",
+        "workflowId": {
+          "__rl": true,
+          "value": "QzMCkptc0yY2FKb3",
+          "mode": "list",
+          "cachedResultName": "Generate semantic profile for target site"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        432
+      ],
+      "id": "9de6603b-83df-4c92-9589-6af71b08debe",
+      "name": "Generate semantic profile for target site"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze competitors.",
+        "workflowId": {
+          "__rl": true,
+          "value": "yaKEkYOQYwxzLwTW",
+          "mode": "list",
+          "cachedResultName": "Analyze competitors"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        432
+      ],
+      "id": "a8a5f4ed-8168-40fb-90ac-7defa3aac7a5",
+      "name": "Analyze competitors"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need a suggestion from keywordPlanner by URL.",
+        "workflowId": {
+          "__rl": true,
+          "value": "1S8mzr1AIUeG9ltC",
+          "mode": "list",
+          "cachedResultName": "Suggestion from keywordPlanner by URL"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        768
+      ],
+      "id": "5bea3862-d00c-4a09-8727-edda7dc95ee5",
+      "name": "Suggestion from keywordPlanner by URL"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need a suggestion from keywordPlanner by keywords.",
+        "workflowId": {
+          "__rl": true,
+          "value": "LcScVIAT4tLSXXmX",
+          "mode": "list",
+          "cachedResultName": "Suggestion from keywordPlanner by keywords"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "session": "={{ $json.output.sessionId }}",
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        768
+      ],
+      "id": "e0fae9b0-841f-486d-8b01-f92e91b2d8fa",
+      "name": "Suggestion from keywordPlanner by keywords"
+    },
+    {
+      "parameters": {
+        "content": "## Collect data from external sources tools\n\n\n",
+        "height": 280,
+        "width": 580,
+        "color": 5
+      },
+      "id": "0a929266-5298-4dd8-b2e6-a4efa986350a",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -16,
+        672
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Analyze data with AI tools\n\n\n",
+        "height": 280,
+        "width": 620,
+        "color": 4
+      },
+      "id": "81272902-84a0-4dfc-b78d-f44c499c45f7",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -784,
+        1008
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.output }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "text_message",
+              "description": "Entire text message (without json)",
+              "required": true
+            },
+            {
+              "name": "keywords_table",
+              "description": "JSON with keywords table",
+              "required": true
+            },
+            {
+              "name": "negative_keywords",
+              "description": "JSON with negative keywords",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -96
+      ],
+      "id": "9ca5fde1-1e37-4be2-b920-d09f8becec03",
+      "name": "Information Extractor1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        128,
+        144
+      ],
+      "id": "8c4a323b-5f19-41c3-afdd-fad65e226485",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputText = $('Information Extractor1').first().json.output.keywords_table;\n\ntry {\n  const trimmed = inputText.trim();\n  const data = JSON.parse(trimmed);\n\n  // Фильтруем только объекты\n  const onlyObjects = data.filter(item => typeof item === 'object' && item !== null && !Array.isArray(item));\n\n  if (onlyObjects.length > 0) {\n    const emptyObject = Object.keys(onlyObjects[0]).reduce((acc, key) => {\n      acc[key] = \".\"; // Или \"\" если нужно пусто\n      return acc;\n    }, {});\n    onlyObjects.push(emptyObject);\n  }\n\n  return onlyObjects.map(obj => ({ json: obj }));\n\n} catch (e) {\n  return [{ json: { error: e.message, raw: inputText } }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        -256
+      ],
+      "id": "b31168ee-7976-417a-a54b-ab76fadffb4c",
+      "name": "Formating keywords_table",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputText = $('Information Extractor1').first().json.output.negative_keywords;\n\ntry {\n  const trimmed = inputText.trim();\n  const arr = JSON.parse(trimmed);\n  \n  // Добавляем пустой объект в конец массива\n   if (arr.length > 0) {\n    arr.push({\"============NEW ATTEMPT============\": \"\"});\n  }\n\n  return arr.map(item => ({\n    json: { value: item }\n  }));\n\n} catch (e) {\n  return [\n    {\n      json: {\n        error: e.message,\n        raw: inputText\n      }\n    }\n  ];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        -256
+      ],
+      "id": "cf4d9385-7aee-4614-b059-af929bc64fa7",
+      "name": "Formating negative_words",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const text_message = $('Information Extractor1').first().json.output.text_message;\n\n\nconst final_message = `${text_message}\n\nLink to keywords table: https://docs.google.com/spreadsheets/d/${$('Set variable').first().json.google_sheet_id}/edit?gid=${$('Set variable').first().json.keywords_id}#gid=${$('Set variable').first().json.keywords_id}\n\nLink to negative words: https://docs.google.com/spreadsheets/d/${$('Set variable').first().json.google_sheet_id}/edit?gid=${$('Set variable').first().json.negative_words_id}#gid=${$('Set variable').first().json.negative_words_id}\n\n\n\n`;\n\nreturn [{ json: { final_message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3792,
+        -256
+      ],
+      "id": "9d32327b-666f-42d0-b305-123883a62540",
+      "name": "Prepare final message",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1888,
+        192
+      ],
+      "id": "a5ceff67-df78-49dc-9569-4c79fe1b15ce",
+      "name": "Slack Trigger",
+      "webhookId": "57c8059b-482c-417d-9399-36b75a23cd31",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze Google ads keyword (by url) data with help AI tool.",
+        "workflowId": {
+          "__rl": true,
+          "value": "rmfZMKKdI3okqshT",
+          "mode": "list",
+          "cachedResultName": "Analyze Google ads planner data (by url)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -544,
+        1120
+      ],
+      "id": "a29dd450-de8b-4a79-ab54-0213a4e7e990",
+      "name": "Analyze Google ads planner data (by url)"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze Google ads keyword (by keywords) data with help AI tool.",
+        "workflowId": {
+          "__rl": true,
+          "value": "x5ygFSWAyMytmaz2",
+          "mode": "list",
+          "cachedResultName": "Analyze Google ads planner data (by keywords)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -336,
+        1120
+      ],
+      "id": "6a01e8db-4aec-4908-9891-fcc4bf52b7a1",
+      "name": "Analyze Google ads planner data (by keywords)"
+    },
+    {
+      "parameters": {
+        "content": "## Analyze data with code tools\n\n\n",
+        "height": 280,
+        "width": 580,
+        "color": 2
+      },
+      "id": "ddc264b7-9841-4863-aabc-50a16dec0fb7",
+      "name": "Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1024
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Analyze initial user input tools\n\n\n",
+        "height": 280,
+        "width": 580,
+        "color": 6
+      },
+      "id": "239dd2e0-90e5-4ee7-898f-9000bb686b0b",
+      "name": "Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "description": "Call this tool whenever you need to analyze data as a \"Data Analyst\" with help Python code.",
+        "workflowId": {
+          "__rl": true,
+          "value": "eRjMLZrs4s12aWuh",
+          "mode": "list",
+          "cachedResultName": "Data Analyst"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        1152
+      ],
+      "id": "82c58fca-3fcc-4c25-a33d-59aa5ae08e90",
+      "name": "Data Analyst"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "45b3253d-bba3-4c78-b602-d3b160214bb6",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "428f82f0-6aa0-4faa-80c4-f126b6819c32",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "[]",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "d8d98b87-420b-478b-92fd-fe3394cf93d3",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "{}",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "17e960ba-6eb4-43cb-a528-e653ec8dcfc4",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "\"\"",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "6953a562-05f5-42d4-bf37-087d48edadb3",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "ed51df34-9c72-4358-aa04-cdc12c20d378",
+              "leftValue": "={{ $json.output.keywords_table }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        -96
+      ],
+      "id": "1124475a-dd05-44a2-94d7-8c61b4fd3d90",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.final_message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').first().json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1840,
+        0
+      ],
+      "id": "25fa81b5-b7f1-467d-ab69-f4e94f4df624",
+      "name": "Slack1",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text_message = $('Information Extractor1').first().json.output.text_message;\n\nconst final_message = `${text_message}`;\n\nreturn [{ json: { final_message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "517e3977-199c-4015-a73a-75531fde656f",
+      "name": "Prepare final message1",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00b8a5eb-8454-4fd5-89dc-81326f284e55",
+              "leftValue": "={{ $json.files[0].name }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        -288
+      ],
+      "id": "60426ad8-42c6-405e-9b95-536bbb6b84da",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "=Report by keyword-generation-tool ({{$('Set variables').first().json.sessionId}})",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "keywords"
+            },
+            {
+              "title": "negative_words"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1712,
+        -384
+      ],
+      "id": "4136734b-a52d-4734-8a90-a6ade59cd9e6",
+      "name": "Create new sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create new sheet').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "keywords",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "keyword",
+              "displayName": "keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "monthly_search_volume",
+              "displayName": "monthly_search_volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organic_competition",
+              "displayName": "organic_competition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "paid_competition",
+              "displayName": "paid_competition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_bid_usd",
+              "displayName": "suggested_bid_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_intent",
+              "displayName": "user_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "strategic_notes",
+              "displayName": "strategic_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_content_type",
+              "displayName": "target_content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggest_bid_usd",
+              "displayName": "suggest_bid_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3072,
+        -256
+      ],
+      "id": "5c8c7151-a2ad-483c-9534-e227e2891bf5",
+      "name": "Update keywords table",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Set variable').first().json.google_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "negative_words",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "value"
+          ],
+          "schema": [
+            {
+              "id": "value",
+              "displayName": "value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3584,
+        -256
+      ],
+      "id": "eb534771-9cc2-4f5d-95d6-3fd7c324a737",
+      "name": "Update negative words",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d7ec0ee-8d64-4507-91ae-502c5a727925",
+              "name": "google_sheet_id",
+              "value": "={{ $json.spreadsheetId }}",
+              "type": "string"
+            },
+            {
+              "id": "58e95102-0b69-4f2a-a280-9a7511874e8a",
+              "name": "keywords_id",
+              "value": "={{ $json.sheets[0].properties.sheetId }}",
+              "type": "string"
+            },
+            {
+              "id": "66a2926e-8f7e-4c33-ba40-311cdd9c7f6d",
+              "name": "negative_words_id",
+              "value": "={{ $json.sheets[1].properties.sheetId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        -384
+      ],
+      "id": "fbecdf4e-01b2-45fd-b858-42d1ac299b80",
+      "name": "Set variable",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/drive/v3/files?q=name='Report by keyword-generation-tool ({{$('Set variables').first().json.sessionId}})'",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "mimeType",
+              "value": "\"application/vnd.google-apps.spreadsheet\""
+            },
+            {
+              "name": "trashed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        -320
+      ],
+      "id": "79135c46-1b86-4919-b052-1c3367d127a9",
+      "name": "Check google sheet",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eSNqSATRHln2HTCD",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.final_message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').first().json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3968,
+        -48
+      ],
+      "id": "e21f32eb-f236-4edb-a479-02e73a4b66f2",
+      "name": "Slack2",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputText = $('Information Extractor1').first().json.output.keywords_table;\n\ntry {\n  const trimmed = inputText.trim();\n  const data = JSON.parse(trimmed);\n\n  // Фильтруем только объекты\n  const onlyObjects = data.filter(item => typeof item === 'object' && item !== null && !Array.isArray(item));\n\n  if (onlyObjects.length > 0) {\n    const emptyObject = Object.keys(onlyObjects[0]).reduce((acc, key) => {\n      acc[key] = \".\"; // Или \"\" если нужно пусто\n      return acc;\n    }, {});\n    onlyObjects.push(emptyObject);\n  }\n\n  return onlyObjects.map(obj => ({ json: obj }));\n\n} catch (e) {\n  return [{ json: { error: e.message, raw: inputText } }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        -48
+      ],
+      "id": "19e03e9c-930b-4e6d-820f-951af9e59556",
+      "name": "Formating keywords_table1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputText = $('Information Extractor1').first().json.output.negative_keywords;\n\ntry {\n  const trimmed = inputText.trim();\n  const arr = JSON.parse(trimmed);\n  \n  // Добавляем пустой объект в конец массива\n   if (arr.length > 0) {\n    arr.push({\"============NEW ATTEMPT============\": \"\"});\n  }\n\n  return arr.map(item => ({\n    json: { value: item }\n  }));\n\n} catch (e) {\n  return [\n    {\n      json: {\n        error: e.message,\n        raw: inputText\n      }\n    }\n  ];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        -48
+      ],
+      "id": "ca733943-ec1c-456f-898f-5f26518dc955",
+      "name": "Formating negative_words1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const text_message = $('Information Extractor1').first().json.output.text_message;\n\n\nconst final_message = `${text_message}\n\nLink to keywords table: https://docs.google.com/spreadsheets/d/${$('Check google sheet').first().json.files?.[0]?.id}/\n\n\n\n\n`;\n\nreturn [{ json: { final_message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3728,
+        -48
+      ],
+      "id": "9f6b5f3e-858b-41a1-b863-a937962e8422",
+      "name": "Prepare final message2",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Check google sheet').item.json.files?.[0]?.id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "keywords",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "keyword",
+              "displayName": "keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "monthly_search_volume",
+              "displayName": "monthly_search_volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organic_competition",
+              "displayName": "organic_competition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "paid_competition",
+              "displayName": "paid_competition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_bid_usd",
+              "displayName": "suggested_bid_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_intent",
+              "displayName": "user_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "strategic_notes",
+              "displayName": "strategic_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_content_type",
+              "displayName": "target_content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggest_bid_usd",
+              "displayName": "suggest_bid_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3008,
+        -48
+      ],
+      "id": "e2194e64-c0f0-40c6-9c2e-5ad776ed7a07",
+      "name": "Update keywords table1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Check google sheet').first().json.files?.[0]?.id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "negative_words",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "value"
+          ],
+          "schema": [
+            {
+              "id": "value",
+              "displayName": "value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        3504,
+        -48
+      ],
+      "id": "e1d3ba7a-bf95-49cc-9b43-ef35afeacc91",
+      "name": "Update negative words1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need a suggestion from Semrush.",
+        "workflowId": {
+          "__rl": true,
+          "value": "fNT2e5lpc0J3DaQ2",
+          "mode": "list",
+          "cachedResultName": "Semrush"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}",
+            "keywords": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('keywords', `1-2 words that describe the theme of the site target`, 'string') }}",
+            "region": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('region', `For which region to search keywords (for example: \"us\", \"pl\", etc.)`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "keywords",
+              "displayName": "keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        784
+      ],
+      "id": "0eabfa0a-78d6-4c67-b125-b9d84d77a9a9",
+      "name": "Semrush"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze Semrush data with help AI tool.",
+        "workflowId": {
+          "__rl": true,
+          "value": "tKgbWWi0efOEPvrY",
+          "mode": "list",
+          "cachedResultName": "Analyze Semrush data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -720,
+        1120
+      ],
+      "id": "cbf91016-49ff-4d46-988b-d29d5f3c9d2c",
+      "name": "Analyze Semrush data"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Set variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set variables": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator agent": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate semantic profile for target site": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze competitors": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suggestion from keywordPlanner by URL": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suggestion from keywordPlanner by keywords": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating keywords_table": {
+      "main": [
+        [
+          {
+            "node": "Update keywords table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating negative_words": {
+      "main": [
+        [
+          {
+            "node": "Update negative words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare final message": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Google ads planner data (by url)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Google ads planner data (by keywords)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Analyst": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Check google sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare final message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare final message1": {
+      "main": [
+        [
+          {
+            "node": "Slack1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Create new sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formating keywords_table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create new sheet": {
+      "main": [
+        [
+          {
+            "node": "Set variable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update keywords table": {
+      "main": [
+        [
+          {
+            "node": "Formating negative_words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update negative words": {
+      "main": [
+        [
+          {
+            "node": "Prepare final message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set variable": {
+      "main": [
+        [
+          {
+            "node": "Formating keywords_table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check google sheet": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating keywords_table1": {
+      "main": [
+        [
+          {
+            "node": "Update keywords table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating negative_words1": {
+      "main": [
+        [
+          {
+            "node": "Update negative words1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare final message2": {
+      "main": [
+        [
+          {
+            "node": "Slack2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update keywords table1": {
+      "main": [
+        [
+          {
+            "node": "Formating negative_words1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update negative words1": {
+      "main": [
+        [
+          {
+            "node": "Prepare final message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Semrush": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Semrush data": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "Orchestrator agent": [
+      {
+        "json": {
+          "output": "```json\n{\n  \"keywords_table\": [\n    {\n      \"keyword\": \"enterprise wordpress development\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 73.99,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Highly relevant, targets users specifically seeking enterprise-level WordPress solutions. Good opportunity despite low volume due to high relevance and commercial intent. Organic Difficulty: 17.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development company\",\n      \"monthly_search_volume\": 3400,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"High volume, general commercial term. Requires strong qualification process. Important for broad visibility. Organic Difficulty: 57.\",\n      \"target_content_type\": \"Homepage, Main Service page\"\n    },\n    {\n      \"keyword\": \"wordpress development agency\",\n      \"monthly_search_volume\": 1800,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 18.75,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"High volume, slightly more specific than 'company'. Important for broad visibility. Organic Difficulty: 56.\",\n      \"target_content_type\": \"Homepage, Main Service page\"\n    },\n    {\n      \"keyword\": \"wordpress website development company\",\n      \"monthly_search_volume\": 1600,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 33.72,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"More specific commercial term. Good volume and relevance. Organic Difficulty: 54.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"custom wordpress development\",\n      \"monthly_search_volume\": 1100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 16.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates specific project needs, high commercial intent. Organic Difficulty: 57.\",\n      \"target_content_type\": \"Custom Development Service page\"\n    },\n    {\n      \"keyword\": \"corporate wordpress development\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 12.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the desired client segment. Good relevance and intent, lower competition. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"enterprise wordpress agency\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"MEDIUM\",\n      \"suggested_bid_usd\": 120.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Highly relevant, low volume, lower difficulty. Excellent target for attracting high-profile clients. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"b2b wordpress development\",\n      \"monthly_search_volume\": 70,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets business-to-business audience. Good relevance. Organic Difficulty: 28.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"large scale wordpress sites\",\n      \"monthly_search_volume\": 40,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Problem-aware search indicating need for robust solutions. Organic Difficulty: 25.\",\n      \"target_content_type\": \"Case Studies, Service page (highlighting scalability)\"\n    },\n    {\n      \"keyword\": \"high performance wordpress development\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on a key technical requirement for large sites. High commercial intent. Organic Difficulty: 22.\",\n      \"target_content_type\": \"Service page, Technical Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress maintenance services\",\n      \"monthly_search_volume\": 1100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Important recurring service for corporate websites. Organic Difficulty: 45.\",\n      \"target_content_type\": \"Maintenance Service page\"\n    },\n    {\n      \"keyword\": \"wordpress security services\",\n      \"monthly_search_volume\": 300,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 12.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses a critical concern for large businesses. Organic Difficulty: 38.\",\n      \"target_content_type\": \"Security Service page, Blog post\"\n    },\n    {\n      \"keyword\": \"wordpress migration services\",\n      \"monthly_search_volume\": 250,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets users planning to move to or within WordPress. Organic Difficulty: 33.\",\n      \"target_content_type\": \"Migration Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"scalable wordpress solutions\",\n      \"monthly_search_volume\": 90,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for enterprise clients concerned with growth. Organic Difficulty: 29.\",\n      \"target_content_type\": \"Service page, Case Studies, Blog post\"\n    },\n    {\n      \"keyword\": \"wordpress integration services\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 20.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses a common technical need for corporate systems. Organic Difficulty: 26.\",\n      \"target_content_type\": \"Integration Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress multisite development\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 8.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for organizations with multiple websites. Organic Difficulty: 41.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"custom wordpress plugin development\",\n      \"monthly_search_volume\": 450,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Specific technical need, indicates a custom project. Organic Difficulty: 55.\",\n      \"target_content_type\": \"Plugin Development Service page\"\n    },\n    {\n      \"keyword\": \"headless wordpress development\",\n      \"monthly_search_volume\": 200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 9.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets modern architectural approaches relevant for large projects. Organic Difficulty: 48.\",\n      \"target_content_type\": \"Service page, Blog post explaining benefits\"\n    },\n    {\n      \"keyword\": \"wordpress api development\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses technical integration needs. Organic Difficulty: 39.\",\n      \"target_content_type\": \"Service page, Technical Blog post\"\n    },\n    {\n      \"keyword\": \"woocommerce development company\",\n      \"monthly_search_volume\": 500,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant if providing e-commerce solutions for enterprise clients. Organic Difficulty: 58.\",\n      \"target_content_type\": \"E-commerce Service page\"\n    },\n     {\n      \"keyword\": \"enterprise woocommerce development\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Google Ads\",\n      \"strategic_notes\": \"Highly niche, but directly targets enterprise e-commerce needs. Very low competition. Organic Difficulty: 0.\",\n      \"target_content_type\": \"E-commerce Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress crm integration\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Very specific integration need common in large businesses. Organic Difficulty: 24.\",\n      \"target_content_type\": \"Integration Service page, Blog post, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress salesforce integration\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets integration with a major enterprise CRM. High value intent. Organic Difficulty: 30.\",\n      \"target_content_type\": \"Integration Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress performance optimization\",\n      \"monthly_search_volume\": 120,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 13.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses concerns about site speed and efficiency for large sites. Organic Difficulty: 36.\",\n      \"target_content_type\": \"Performance Optimization Service page, Blog post\"\n    },\n    {\n      \"keyword\": \"hire wordpress developer\",\n      \"monthly_search_volume\": 3100,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 6.00,\n      \"user_intent\": \"Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"High volume, high difficulty, direct transactional intent. Can attract clients looking to hire expertise. Organic Difficulty: 65.\",\n      \"target_content_type\": \"Contact/Hire Us page, Service page\"\n    },\n    {\n      \"keyword\": \"full service digital agency\",\n      \"monthly_search_volume\": 1200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 25.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Broader term, relevant if offering integrated digital services beyond just WordPress development. Organic Difficulty: 52.\",\n      \"target_content_type\": \"Homepage, About Us, Services page\"\n    },\n    {\n      \"keyword\": \"corporate website design\",\n      \"monthly_search_volume\": 400,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 19.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant service offering, targets corporate visual needs. Organic Difficulty: 48.\",\n      \"target_content_type\": \"Corporate Web Design Service page\"\n    },\n    {\n      \"keyword\": \"b2b website design agency\",\n      \"monthly_search_volume\": 350,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 22.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets businesses seeking design services. High commercial intent. Organic Difficulty: 46.\",\n      \"target_content_type\": \"B2B Web Design Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"ui/ux design agency\",\n      \"monthly_search_volume\": 800,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant design service, important for corporate websites. Organic Difficulty: 50.\",\n      \"target_content_type\": \"UI/UX Service page\"\n    },\n    {\n      \"keyword\": \"website redesign services\",\n      \"monthly_search_volume\": 700,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 21.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Common project type for established companies. Organic Difficulty: 43.\",\n      \"target_content_type\": \"Website Redesign Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"corporate branding agency\",\n      \"monthly_search_volume\": 300,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant if branding is part of the service offering for corporate clients. Organic Difficulty: 49.\",\n      \"target_content_type\": \"Branding Service page\"\n    },\n    {\n      \"keyword\": \"digital strategy agency\",\n      \"monthly_search_volume\": 500,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 28.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets high-level decision-makers seeking strategic partnership. Organic Difficulty: 51.\",\n      \"target_content_type\": \"Digital Strategy Service page, Thought leadership content\"\n    },\n    {\n      \"keyword\": \"lead generation website design\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 30.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on a key business outcome for clients. High commercial intent. Organic Difficulty: 34.\",\n      \"target_content_type\": \"Service page, Case Studies (focusing on lead gen results)\"\n    },\n    {\n      \"keyword\": \"conversion focused web design\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 25.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on optimizing for business results. High commercial intent. Organic Difficulty: 31.\",\n      \"target_content_type\": \"Service page, Case Studies (focusing on conversion results)\"\n    },\n    {\n      \"keyword\": \"custom web design company\",\n      \"monthly_search_volume\": 1500,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 17.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"High volume, high difficulty. Relevant for attracting clients with specific design requirements. Organic Difficulty: 62.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"professional website design services\",\n      \"monthly_search_volume\": 900,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 16.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates a desire for high-quality services. Organic Difficulty: 59.\",\n      \"target_content_type\": \"Service page, About Us\"\n    },\n    {\n      \"keyword\": \"digital agency for enterprise\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 24.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly relevant, directly targets the desired client segment. Organic Difficulty: 40.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"web design for manufacturing companies\",\n      \"monthly_search_volume\": 120,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Commercial, Niche\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Niche targeting, relevant if serving this industry. Organic Difficulty: 37.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"web design for tech companies\",\n      \"monthly_search_volume\": 200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Niche\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Niche targeting, relevant if serving this industry (like Skai.io, Cymulate.com). Organic Difficulty: 41.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"what is enterprise wordpress\",\n      \"monthly_search_volume\": 40,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 5.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Educational query from users researching solutions. Good for attracting top-of-funnel traffic. Organic Difficulty: 15.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"cost of wordpress enterprise site\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users exploring budget considerations. Can attract qualified leads if addressed clearly. Organic Difficulty: 20.\",\n      \"target_content_type\": \"Blog post, Guide, Service page (with cost considerations)\"\n    },\n    {\n      \"keyword\": \"best wordpress enterprise hosting\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 8.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Related technical consideration for enterprise sites. Can be covered in informational content. Organic Difficulty: 28.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"how to secure wordpress enterprise\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 6.00,\n      \"user_intent\": \"Informational, How-to\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Specific technical problem. Demonstrates expertise and can lead to service inquiries. Organic Difficulty: 18.\",\n      \"target_content_type\": \"Blog post, Guide, Security Service page\"\n    },\n    {\n      \"keyword\": \"wordpress for large organizations\",\n      \"monthly_search_volume\": 70,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 9.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Broad informational query but relevant audience. Establishes authority. Organic Difficulty: 23.\",\n      \"target_content_type\": \"Blog post, Whitepaper, Service page intro\"\n    },\n    {\n      \"keyword\": \"benefits of headless wordpress\",\n      \"monthly_search_volume\": 90,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Explaining a modern technical approach relevant for enterprise. Organic Difficulty: 32.\",\n      \"target_content_type\": \"Blog post, Guide, Service page explaining headless offering\"\n    },\n    {\n      \"keyword\": \"examples of enterprise wordpress websites\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 4.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users looking for inspiration and validation. Showcasing relevant work is key. Organic Difficulty: 21.\",\n      \"target_content_type\": \"Case Studies page, Blog post showcasing examples\"\n    },\n    {\n      \"keyword\": \"wordpress vs [other cms] for enterprise\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 5.00,\n      \"user_intent\": \"Informational, Comparison\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users evaluating platforms for large-scale needs. Opportunity to position WordPress and Dizzain's expertise. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Comparison Guide/Blog post\"\n    },\n    {\n      \"keyword\": \"corporate blogging best practices\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for clients interested in leveraging their website for content marketing. Organic Difficulty: 30.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"choosing a web development agency\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users in the research phase of hiring an agency. Opportunity to build trust and position Dizzain. Organic Difficulty: 29.\",\n      \"target_content_type\": \"Blog post, Guide ('How to Choose a Web Dev Agency'), About Us/Why Choose Us page\"\n    },\n     {\n      \"keyword\": \"wordpress development specialists\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users looking for expert-level services. Highlights Dizzain's positioning. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"About Us, Team page, Service page\"\n    },\n    {\n      \"keyword\": \"enterprise wordpress development services\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Google Ads\",\n      \"strategic_notes\": \"Very specific enterprise term, high relevance and intent. Low volume and competition. Organic Difficulty: 3.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development consulting\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets users seeking expert advice, often a precursor to larger projects. Organic Difficulty: 1.\",\n      \"target_content_type\": \"Consulting Service page, Blog post\"\n    },\n     {\n      \"keyword\": \"wordpress development service provider\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Commercial intent, indicates users actively seeking a provider. Organic Difficulty: 53.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"wordpress development for enterprise\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the enterprise market. Low volume but high relevance. Organic Difficulty: 12.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n     {\n      \"keyword\": \"wordpress enterprise development agency\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Combines 'enterprise' and 'agency', highly specific and relevant. Organic Difficulty: 42.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress enterprise development\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Another variation of the core enterprise term. Organic Difficulty: 6.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"professional wordpress development services\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates a requirement for high-quality, expert services. Relevant but high organic competition. Organic Difficulty: 68.\",\n      \"target_content_type\": \"Service page, About Us\"\n    },\n    {\n      \"keyword\": \"large business wordpress development\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the large business segment. Low volume but high relevance. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"custom wordpress development solutions\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on tailored solutions for specific needs. Relevant for complex projects. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development teams for banks\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly niche, industry-specific term. Relevant if targeting the banking sector. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"government wordpress development\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly niche, industry-specific term. Relevant if targeting government sector clients. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    }\n  ],\n  \"negative_keywords\": [\n    \"free wordpress development\",\n    \"wordpress development tutorial\",\n    \"learn wordpress development\",\n    \"freelance wordpress development\",\n    \"small business wordpress website development\",\n    \"wordpress development jobs\",\n    \"wordpress development salary\",\n    \"wordpress development calgary\",\n    \"wordpress development company in st louis\",\n    \"wordpress development company delhi ncr\"\n  ]\n}\n```"
+        }
+      }
+    ],
+    "Information Extractor1": [
+      {
+        "json": {
+          "output": {
+            "text_message": "{\n  \"keywords_table\": [\n    {\n      \"keyword\": \"enterprise wordpress development\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 73.99,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Highly relevant, targets users specifically seeking enterprise-level WordPress solutions. Good opportunity despite low volume due to high relevance and commercial intent. Organic Difficulty: 17.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development company\",\n      \"monthly_search_volume\": 3400,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"High volume, general commercial term. Requires strong qualification process. Important for broad visibility. Organic Difficulty: 57.\",\n      \"target_content_type\": \"Homepage, Main Service page\"\n    },\n    {\n      \"keyword\": \"wordpress development agency\",\n      \"monthly_search_volume\": 1800,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 18.75,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"High volume, slightly more specific than 'company'. Important for broad visibility. Organic Difficulty: 56.\",\n      \"target_content_type\": \"Homepage, Main Service page\"\n    },\n    {\n      \"keyword\": \"wordpress website development company\",\n      \"monthly_search_volume\": 1600,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": 33.72,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"More specific commercial term. Good volume and relevance. Organic Difficulty: 54.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"custom wordpress development\",\n      \"monthly_search_volume\": 1100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 16.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates specific project needs, high commercial intent. Organic Difficulty: 57.\",\n      \"target_content_type\": \"Custom Development Service page\"\n    },\n    {\n      \"keyword\": \"corporate wordpress development\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 12.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the desired client segment. Good relevance and intent, lower competition. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"enterprise wordpress agency\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"MEDIUM\",\n      \"suggested_bid_usd\": 120.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Highly relevant, low volume, lower difficulty. Excellent target for attracting high-profile clients. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"b2b wordpress development\",\n      \"monthly_search_volume\": 70,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets business-to-business audience. Good relevance. Organic Difficulty: 28.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"large scale wordpress sites\",\n      \"monthly_search_volume\": 40,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Problem-aware search indicating need for robust solutions. Organic Difficulty: 25.\",\n      \"target_content_type\": \"Case Studies, Service page (highlighting scalability)\"\n    },\n    {\n      \"keyword\": \"high performance wordpress development\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on a key technical requirement for large sites. High commercial intent. Organic Difficulty: 22.\",\n      \"target_content_type\": \"Service page, Technical Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress maintenance services\",\n      \"monthly_search_volume\": 1100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Important recurring service for corporate websites. Organic Difficulty: 45.\",\n      \"target_content_type\": \"Maintenance Service page\"\n    },\n    {\n      \"keyword\": \"wordpress security services\",\n      \"monthly_search_volume\": 300,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 12.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses a critical concern for large businesses. Organic Difficulty: 38.\",\n      \"target_content_type\": \"Security Service page, Blog post\"\n    },\n    {\n      \"keyword\": \"wordpress migration services\",\n      \"monthly_search_volume\": 250,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets users planning to move to or within WordPress. Organic Difficulty: 33.\",\n      \"target_content_type\": \"Migration Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"scalable wordpress solutions\",\n      \"monthly_search_volume\": 90,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for enterprise clients concerned with growth. Organic Difficulty: 29.\",\n      \"target_content_type\": \"Service page, Case Studies, Blog post\"\n    },\n    {\n      \"keyword\": \"wordpress integration services\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 20.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses a common technical need for corporate systems. Organic Difficulty: 26.\",\n      \"target_content_type\": \"Integration Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress multisite development\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 8.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for organizations with multiple websites. Organic Difficulty: 41.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"custom wordpress plugin development\",\n      \"monthly_search_volume\": 450,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Specific technical need, indicates a custom project. Organic Difficulty: 55.\",\n      \"target_content_type\": \"Plugin Development Service page\"\n    },\n    {\n      \"keyword\": \"headless wordpress development\",\n      \"monthly_search_volume\": 200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 9.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets modern architectural approaches relevant for large projects. Organic Difficulty: 48.\",\n      \"target_content_type\": \"Service page, Blog post explaining benefits\"\n    },\n    {\n      \"keyword\": \"wordpress api development\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses technical integration needs. Organic Difficulty: 39.\",\n      \"target_content_type\": \"Service page, Technical Blog post\"\n    },\n    {\n      \"keyword\": \"woocommerce development company\",\n      \"monthly_search_volume\": 500,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant if providing e-commerce solutions for enterprise clients. Organic Difficulty: 58.\",\n      \"target_content_type\": \"E-commerce Service page\"\n    },\n     {\n      \"keyword\": \"enterprise woocommerce development\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Google Ads\",\n      \"strategic_notes\": \"Highly niche, but directly targets enterprise e-commerce needs. Very low competition. Organic Difficulty: 0.\",\n      \"target_content_type\": \"E-commerce Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress crm integration\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggest_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Very specific integration need common in large businesses. Organic Difficulty: 24.\",\n      \"target_content_type\": \"Integration Service page, Blog post, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress salesforce integration\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets integration with a major enterprise CRM. High value intent. Organic Difficulty: 30.\",\n      \"target_content_type\": \"Integration Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress performance optimization\",\n      \"monthly_search_volume\": 120,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 13.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses concerns about site speed and efficiency for large sites. Organic Difficulty: 36.\",\n      \"target_content_type\": \"Performance Optimization Service page, Blog post\"\n    },\n    {\n      \"keyword\": \"hire wordpress developer\",\n      \"monthly_search_volume\": 3100,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 6.00,\n      \"user_intent\": \"Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"High volume, high difficulty, direct transactional intent. Can attract clients looking to hire expertise. Organic Difficulty: 65.\",\n      \"target_content_type\": \"Contact/Hire Us page, Service page\"\n    },\n    {\n      \"keyword\": \"full service digital agency\",\n      \"monthly_search_volume\": 1200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 25.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Broader term, relevant if offering integrated digital services beyond just WordPress development. Organic Difficulty: 52.\",\n      \"target_content_type\": \"Homepage, About Us, Services page\"\n    },\n    {\n      \"keyword\": \"corporate website design\",\n      \"monthly_search_volume\": 400,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 19.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant service offering, targets corporate visual needs. Organic Difficulty: 48.\",\n      \"target_content_type\": \"Corporate Web Design Service page\"\n    },\n    {\n      \"keyword\": \"b2b website design agency\",\n      \"monthly_search_volume\": 350,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 22.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets businesses seeking design services. High commercial intent. Organic Difficulty: 46.\",\n      \"target_content_type\": \"B2B Web Design Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"ui/ux design agency\",\n      \"monthly_search_volume\": 800,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant design service, important for corporate websites. Organic Difficulty: 50.\",\n      \"target_content_type\": \"UI/UX Service page\"\n    },\n    {\n      \"keyword\": \"website redesign services\",\n      \"monthly_search_volume\": 700,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 21.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Common project type for established companies. Organic Difficulty: 43.\",\n      \"target_content_type\": \"Website Redesign Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"corporate branding agency\",\n      \"monthly_search_volume\": 300,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant if branding is part of the service offering for corporate clients. Organic Difficulty: 49.\",\n      \"target_content_type\": \"Branding Service page\"\n    },\n    {\n      \"keyword\": \"digital strategy agency\",\n      \"monthly_search_volume\": 500,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 28.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets high-level decision-makers seeking strategic partnership. Organic Difficulty: 51.\",\n      \"target_content_type\": \"Digital Strategy Service page, Thought leadership content\"\n    },\n    {\n      \"keyword\": \"lead generation website design\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 30.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on a key business outcome for clients. High commercial intent. Organic Difficulty: 34.\",\n      \"target_content_type\": \"Service page, Case Studies (focusing on lead gen results)\"\n    },\n    {\n      \"keyword\": \"conversion focused web design\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 25.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on optimizing for business results. High commercial intent. Organic Difficulty: 31.\",\n      \"target_content_type\": \"Service page, Case Studies (focusing on conversion results)\"\n    },\n    {\n      \"keyword\": \"custom web design company\",\n      \"monthly_search_volume\": 1500,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 17.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"High volume, high difficulty. Relevant for attracting clients with specific design requirements. Organic Difficulty: 62.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"professional website design services\",\n      \"monthly_search_volume\": 900,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 16.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates a desire for high-quality services. Organic Difficulty: 59.\",\n      \"target_content_type\": \"Service page, About Us\"\n    },\n    {\n      \"keyword\": \"digital agency for enterprise\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 24.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly relevant, directly targets the desired client segment. Organic Difficulty: 40.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"web design for manufacturing companies\",\n      \"monthly_search_volume\": 120,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Commercial, Niche\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Niche targeting, relevant if serving this industry. Organic Difficulty: 37.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"web design for tech companies\",\n      \"monthly_search_volume\": 200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Niche\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Niche targeting, relevant if serving this industry (like Skai.io, Cymulate.com). Organic Difficulty: 41.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"what is enterprise wordpress\",\n      \"monthly_search_volume\": 40,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 5.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Educational query from users researching solutions. Good for attracting top-of-funnel traffic. Organic Difficulty: 15.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"cost of wordpress enterprise site\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users exploring budget considerations. Can attract qualified leads if addressed clearly. Organic Difficulty: 20.\",\n      \"target_content_type\": \"Blog post, Guide, Service page (with cost considerations)\"\n    },\n    {\n      \"keyword\": \"best wordpress enterprise hosting\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 8.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Related technical consideration for enterprise sites. Can be covered in informational content. Organic Difficulty: 28.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"how to secure wordpress enterprise\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 6.00,\n      \"user_intent\": \"Informational, How-to\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Specific technical problem. Demonstrates expertise and can lead to service inquiries. Organic Difficulty: 18.\",\n      \"target_content_type\": \"Blog post, Guide, Security Service page\"\n    },\n    {\n      \"keyword\": \"wordpress for large organizations\",\n      \"monthly_search_volume\": 70,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 9.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Broad informational query but relevant audience. Establishes authority. Organic Difficulty: 23.\",\n      \"target_content_type\": \"Blog post, Whitepaper, Service page intro\"\n    },\n    {\n      \"keyword\": \"benefits of headless wordpress\",\n      \"monthly_search_volume\": 90,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Explaining a modern technical approach relevant for enterprise. Organic Difficulty: 32.\",\n      \"target_content_type\": \"Blog post, Guide, Service page explaining headless offering\"\n    },\n    {\n      \"keyword\": \"examples of enterprise wordpress websites\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 4.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users looking for inspiration and validation. Showcasing relevant work is key. Organic Difficulty: 21.\",\n      \"target_content_type\": \"Case Studies page, Blog post showcasing examples\"\n    },\n    {\n      \"keyword\": \"wordpress vs [other cms] for enterprise\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 5.00,\n      \"user_intent\": \"Informational, Comparison\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users evaluating platforms for large-scale needs. Opportunity to position WordPress and Dizzain's expertise. Organic Difficulty: 35.\",\n      \"target_content_type\": \"Comparison Guide/Blog post\"\n    },\n    {\n      \"keyword\": \"corporate blogging best practices\",\n      \"monthly_search_volume\": 80,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 11.00,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant for clients interested in leveraging their website for content marketing. Organic Difficulty: 30.\",\n      \"target_content_type\": \"Blog post, Guide\"\n    },\n    {\n      \"keyword\": \"choosing a web development agency\",\n      \"monthly_search_volume\": 150,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 14.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users in the research phase of hiring an agency. Opportunity to build trust and position Dizzain. Organic Difficulty: 29.\",\n      \"target_content_type\": \"Blog post, Guide ('How to Choose a Web Dev Agency'), About Us/Why Choose Us page\"\n    },\n     {\n      \"keyword\": \"wordpress development specialists\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Users looking for expert-level services. Highlights Dizzain's positioning. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"About Us, Team page, Service page\"\n    },\n    {\n      \"keyword\": \"enterprise wordpress development services\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Google Ads\",\n      \"strategic_notes\": \"Very specific enterprise term, high relevance and intent. Low volume and competition. Organic Difficulty: 3.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development consulting\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets users seeking expert advice, often a precursor to larger projects. Organic Difficulty: 1.\",\n      \"target_content_type\": \"Consulting Service page, Blog post\"\n    },\n     {\n      \"keyword\": \"wordpress development service provider\",\n      \"monthly_search_volume\": 30,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Commercial intent, indicates users actively seeking a provider. Organic Difficulty: 53.\",\n      \"target_content_type\": \"Service page\"\n    },\n    {\n      \"keyword\": \"wordpress development for enterprise\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the enterprise market. Low volume but high relevance. Organic Difficulty: 12.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n     {\n      \"keyword\": \"wordpress enterprise development agency\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Combines 'enterprise' and 'agency', highly specific and relevant. Organic Difficulty: 42.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress enterprise development\",\n      \"monthly_search_volume\": 20,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs, Google Ads\",\n      \"strategic_notes\": \"Another variation of the core enterprise term. Organic Difficulty: 6.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"professional wordpress development services\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Informational, Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Indicates a requirement for high-quality, expert services. Relevant but high organic competition. Organic Difficulty: 68.\",\n      \"target_content_type\": \"Service page, About Us\"\n    },\n    {\n      \"keyword\": \"large business wordpress development\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Directly targets the large business segment. Low volume but high relevance. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"custom wordpress development solutions\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Focuses on tailored solutions for specific needs. Relevant for complex projects. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"wordpress development teams for banks\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly niche, industry-specific term. Relevant if targeting the banking sector. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    },\n    {\n      \"keyword\": \"government wordpress development\",\n      \"monthly_search_volume\": null,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": null,\n      \"suggested_bid_usd\": null,\n      \"user_intent\": null,\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Highly niche, industry-specific term. Relevant if targeting government sector clients. Organic Difficulty: Unknown.\",\n      \"target_content_type\": \"Industry-specific landing page, Case Studies\"\n    }\n  ],\n  \"negative_keywords\": [\n    \"free wordpress development\",\n    \"wordpress development tutorial\",\n    \"learn wordpress development\",\n    \"freelance wordpress development\",\n    \"small business wordpress website development\",\n    \"wordpress development jobs\",\n    \"wordpress development salary\",\n    \"wordpress development calgary\",\n    \"wordpress development company in st louis\",\n    \"wordpress development company delhi ncr\"\n  ]\n}",
+            "keywords_table": "[{\"keyword\":\"enterprise wordpress development\",\"monthly_search_volume\":50,\"organic_competition\":\"Low\",\"paid_competition\":\"LOW\",\"suggested_bid_usd\":73.99,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"Highly relevant, targets users specifically seeking enterprise-level WordPress solutions. Good opportunity despite low volume due to high relevance and commercial intent. Organic Difficulty: 17.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"wordpress development company\",\"monthly_search_volume\":3400,\"organic_competition\":\"Medium\",\"paid_competition\":\"LOW\",\"suggested_bid_usd\":7.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"High volume, general commercial term. Requires strong qualification process. Important for broad visibility. Organic Difficulty: 57.\",\"target_content_type\":\"Homepage, Main Service page\"},{\"keyword\":\"wordpress development agency\",\"monthly_search_volume\":1800,\"organic_competition\":\"Medium\",\"paid_competition\":\"LOW\",\"suggested_bid_usd\":18.75,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"High volume, slightly more specific than 'company'. Important for broad visibility. Organic Difficulty: 56.\",\"target_content_type\":\"Homepage, Main Service page\"},{\"keyword\":\"wordpress website development company\",\"monthly_search_volume\":1600,\"organic_competition\":\"Medium\",\"paid_competition\":\"LOW\",\"suggested_bid_usd\":33.72,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"More specific commercial term. Good volume and relevance. Organic Difficulty: 54.\",\"target_content_type\":\"Service page\"},{\"keyword\":\"custom wordpress development\",\"monthly_search_volume\":1100,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":16.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Indicates specific project needs, high commercial intent. Organic Difficulty: 57.\",\"target_content_type\":\"Custom Development Service page\"},{\"keyword\":\"corporate wordpress development\",\"monthly_search_volume\":100,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":12.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Directly targets the desired client segment. Good relevance and intent, lower competition. Organic Difficulty: 35.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"enterprise wordpress agency\",\"monthly_search_volume\":50,\"organic_competition\":\"Medium\",\"paid_competition\":\"MEDIUM\",\"suggested_bid_usd\":120.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"Highly relevant, low volume, lower difficulty. Excellent target for attracting high-profile clients. Organic Difficulty: 35.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"b2b wordpress development\",\"monthly_search_volume\":70,\"organic_competition\":\"Low\",\"paid_competition\":\"High\",\"suggested_bid_usd\":15.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Targets business-to-business audience. Good relevance. Organic Difficulty: 28.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"large scale wordpress sites\",\"monthly_search_volume\":40,\"organic_competition\":\"Low\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":10.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Problem-aware search indicating need for robust solutions. Organic Difficulty: 25.\",\"target_content_type\":\"Case Studies, Service page (highlighting scalability)\"},{\"keyword\":\"high performance wordpress development\",\"monthly_search_volume\":30,\"organic_competition\":\"Low\",\"paid_competition\":\"High\",\"suggested_bid_usd\":18.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Focuses on a key technical requirement for large sites. High commercial intent. Organic Difficulty: 22.\",\"target_content_type\":\"Service page, Technical Case Studies\"},{\"keyword\":\"wordpress maintenance services\",\"monthly_search_volume\":1100,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":18.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Important recurring service for corporate websites. Organic Difficulty: 45.\",\"target_content_type\":\"Maintenance Service page\"},{\"keyword\":\"wordpress security services\",\"monthly_search_volume\":300,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":12.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Addresses a critical concern for large businesses. Organic Difficulty: 38.\",\"target_content_type\":\"Security Service page, Blog post\"},{\"keyword\":\"wordpress migration services\",\"monthly_search_volume\":250,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":11.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Targets users planning to move to or within WordPress. Organic Difficulty: 33.\",\"target_content_type\":\"Migration Service page, Case Study\"},{\"keyword\":\"scalable wordpress solutions\",\"monthly_search_volume\":90,\"organic_competition\":\"Low\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":14.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Relevant for enterprise clients concerned with growth. Organic Difficulty: 29.\",\"target_content_type\":\"Service page, Case Studies, Blog post\"},{\"keyword\":\"wordpress integration services\",\"monthly_search_volume\":80,\"organic_competition\":\"Low\",\"paid_competition\":\"High\",\"suggested_bid_usd\":20.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Addresses a common technical need for corporate systems. Organic Difficulty: 26.\",\"target_content_type\":\"Integration Service page, Case Studies\"},{\"keyword\":\"wordpress multisite development\",\"monthly_search_volume\":150,\"organic_competition\":\"Medium\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":8.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Relevant for organizations with multiple websites. Organic Difficulty: 41.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"custom wordpress plugin development\",\"monthly_search_volume\":450,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":11.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Specific technical need, indicates a custom project. Organic Difficulty: 55.\",\"target_content_type\":\"Plugin Development Service page\"},{\"keyword\":\"headless wordpress development\",\"monthly_search_volume\":200,\"organic_competition\":\"Medium\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":9.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Targets modern architectural approaches relevant for large projects. Organic Difficulty: 48.\",\"target_content_type\":\"Service page, Blog post explaining benefits\"\n    },\n    {\n      \"keyword\": \"wordpress api development\",\n      \"monthly_search_volume\": 100,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 7.00,\n      \"user_intent\": \"Informational, Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses technical integration needs. Organic Difficulty: 39.\",\n      \"target_content_type\": \"Service page, Technical Blog post\"\n    },\n    {\n      \"keyword\": \"woocommerce development company\",\n      \"monthly_search_volume\": 500,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 10.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant if providing e-commerce solutions for enterprise clients. Organic Difficulty: 58.\",\n      \"target_content_type\": \"E-commerce Service page\"\n    },\n     {\n      \"keyword\": \"enterprise woocommerce development\",\n      \"monthly_search_volume\": 10,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"LOW\",\n      \"suggested_bid_usd\": null,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Google Ads\",\n      \"strategic_notes\": \"Highly niche, but directly targets enterprise e-commerce needs. Very low competition. Organic Difficulty: 0.\",\n      \"target_content_type\": \"E-commerce Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress crm integration\",\n      \"monthly_search_volume\": 60,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggest_bid_usd\": 15.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Very specific integration need common in large businesses. Organic Difficulty: 24.\",\n      \"target_content_type\": \"Integration Service page, Blog post, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress salesforce integration\",\n      \"monthly_search_volume\": 50,\n      \"organic_competition\": \"Low\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 18.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets integration with a major enterprise CRM. High value intent. Organic Difficulty: 30.\",\n      \"target_content_type\": \"Integration Service page, Case Study\"\n    },\n    {\n      \"keyword\": \"wordpress performance optimization\",\n      \"monthly_search_volume\": 120,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 13.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Addresses concerns about site speed and efficiency for large sites. Organic Difficulty: 36.\",\n      \"target_content_type\": \"Performance Optimization Service page, Blog post\"\n    },\n    {\n      \"keyword\": \"hire wordpress developer\",\n      \"monthly_search_volume\": 3100,\n      \"organic_competition\": \"High\",\n      \"paid_competition\": \"Low\",\n      \"suggested_bid_usd\": 6.00,\n      \"user_intent\": \"Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"High volume, high difficulty, direct transactional intent. Can attract clients looking to hire expertise. Organic Difficulty: 65.\",\n      \"target_content_type\": \"Contact/Hire Us page, Service page\"\n    },\n    {\n      \"keyword\": \"full service digital agency\",\n      \"monthly_search_volume\": 1200,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 25.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Broader term, relevant if offering integrated digital services beyond just WordPress development. Organic Difficulty: 52.\",\n      \"target_content_type\": \"Homepage, About Us, Services page\"\n    },\n    {\n      \"keyword\": \"corporate website design\",\n      \"monthly_search_volume\": 400,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 19.00,\n      \"user_intent\": \"Commercial\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Relevant service offering, targets corporate visual needs. Organic Difficulty: 48.\",\n      \"target_content_type\": \"Corporate Web Design Service page\"\n    },\n    {\n      \"keyword\": \"b2b website design agency\",\n      \"monthly_search_volume\": 350,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"High\",\n      \"suggested_bid_usd\": 22.00,\n      \"user_intent\": \"Commercial, Transactional\",\n      \"source\": \"Ahrefs\",\n      \"strategic_notes\": \"Targets businesses seeking design services. High commercial intent. Organic Difficulty: 46.\",\n      \"target_content_type\": \"B2B Web Design Service page, Case Studies\"\n    },\n    {\n      \"keyword\": \"ui/ux design agency\",\n      \"monthly_search_volume\": 800,\n      \"organic_competition\": \"Medium\",\n      \"paid_competition\": \"Medium\",\n      \"suggested_bid_usd\": 15.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Relevant design service, important for corporate websites. Organic Difficulty: 50.\",\"target_content_type\":\"UI/UX Service page\"},{\"keyword\":\"website redesign services\",\"monthly_search_volume\":700,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":21.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Common project type for established companies. Organic Difficulty: 43.\",\"target_content_type\":\"Website Redesign Service page, Case Studies\"},{\"keyword\":\"corporate branding agency\",\"monthly_search_volume\":300,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":18.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Relevant if branding is part of the service offering for corporate clients. Organic Difficulty: 49.\",\"target_content_type\":\"Branding Service page\"},{\"keyword\":\"digital strategy agency\",\"monthly_search_volume\":500,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":28.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Targets high-level decision-makers seeking strategic partnership. Organic Difficulty: 51.\",\"target_content_type\":\"Digital Strategy Service page, Thought leadership content\"},{\"keyword\":\"lead generation website design\",\"monthly_search_volume\":150,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":30.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Focuses on a key business outcome for clients. High commercial intent. Organic Difficulty: 34.\",\"target_content_type\":\"Service page, Case Studies (focusing on lead gen results)\"},{\"keyword\":\"conversion focused web design\",\"monthly_search_volume\":100,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":25.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Focuses on optimizing for business results. High commercial intent. Organic Difficulty: 31.\",\"target_content_type\":\"Service page, Case Studies (focusing on conversion results)\"},{\"keyword\":\"custom web design company\",\"monthly_search_volume\":1500,\"organic_competition\":\"High\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":17.00,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"High volume, high difficulty. Relevant for attracting clients with specific design requirements. Organic Difficulty: 62.\",\"target_content_type\":\"Service page\"},{\"keyword\":\"professional website design services\",\"monthly_search_volume\":900,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":16.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Indicates a desire for high-quality services. Organic Difficulty: 59.\",\"target_content_type\":\"Service page, About Us\"},{\"keyword\":\"digital agency for enterprise\",\"monthly_search_volume\":80,\"organic_competition\":\"Medium\",\"paid_competition\":\"High\",\"suggested_bid_usd\":24.00,\"user_intent\":\"Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Highly relevant, directly targets the desired client segment. Organic Difficulty: 40.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"web design for manufacturing companies\",\"monthly_search_volume\":120,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":14.00,\"user_intent\":\"Commercial, Niche\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Niche targeting, relevant if serving this industry. Organic Difficulty: 37.\",\"target_content_type\":\"Industry-specific landing page, Case Studies\"},{\"keyword\":\"web design for tech companies\",\"monthly_search_volume\":200,\"organic_competition\":\"Medium\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":18.00,\"user_intent\":\"Commercial, Niche\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Niche targeting, relevant if serving this industry (like Skai.io, Cymulate.com). Organic Difficulty: 41.\",\"target_content_type\":\"Industry-specific landing page, Case Studies\"},{\"keyword\":\"what is enterprise wordpress\",\"monthly_search_volume\":40,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":5.00,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Educational query from users researching solutions. Good for attracting top-of-funnel traffic. Organic Difficulty: 15.\",\"target_content_type\":\"Blog post, Guide\"},{\"keyword\":\"cost of wordpress enterprise site\",\"monthly_search_volume\":30,\"organic_competition\":\"Low\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":10.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Users exploring budget considerations. Can attract qualified leads if addressed clearly. Organic Difficulty: 20.\",\"target_content_type\":\"Blog post, Guide, Service page (with cost considerations)\"},{\"keyword\":\"best wordpress enterprise hosting\",\"monthly_search_volume\":50,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":8.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Related technical consideration for enterprise sites. Can be covered in informational content. Organic Difficulty: 28.\",\"target_content_type\":\"Blog post, Guide\"},{\"keyword\":\"how to secure wordpress enterprise\",\"monthly_search_volume\":20,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":6.00,\"user_intent\":\"Informational, How-to\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Specific technical problem. Demonstrates expertise and can lead to service inquiries. Organic Difficulty: 18.\",\"target_content_type\":\"Blog post, Guide, Security Service page\"},{\"keyword\":\"wordpress for large organizations\",\"monthly_search_volume\":70,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":9.00,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Broad informational query but relevant audience. Establishes authority. Organic Difficulty: 23.\",\"target_content_type\":\"Blog post, Whitepaper, Service page intro\"},{\"keyword\":\"benefits of headless wordpress\",\"monthly_search_volume\":90,\"organic_competition\":\"Medium\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":7.00,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Explaining a modern technical approach relevant for enterprise. Organic Difficulty: 32.\",\"target_content_type\":\"Blog post, Guide, Service page explaining headless offering\"},{\"keyword\":\"examples of enterprise wordpress websites\",\"monthly_search_volume\":60,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":4.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Users looking for inspiration and validation. Showcasing relevant work is key. Organic Difficulty: 21.\",\"target_content_type\":\"Case Studies page, Blog post showcasing examples\"},{\"keyword\":\"wordpress vs [other cms] for enterprise\",\"monthly_search_volume\":100,\"organic_competition\":\"Medium\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":5.00,\"user_intent\":\"Informational, Comparison\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Users evaluating platforms for large-scale needs. Opportunity to position WordPress and Dizzain's expertise. Organic Difficulty: 35.\",\"target_content_type\":\"Comparison Guide/Blog post\"},{\"keyword\":\"corporate blogging best practices\",\"monthly_search_volume\":80,\"organic_competition\":\"Low\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":11.00,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Relevant for clients interested in leveraging their website for content marketing. Organic Difficulty: 30.\",\"target_content_type\":\"Blog post, Guide\"},{\"keyword\":\"choosing a web development agency\",\"monthly_search_volume\":150,\"organic_competition\":\"Low\",\"paid_competition\":\"Medium\",\"suggested_bid_usd\":14.00,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Users in the research phase of hiring an agency. Opportunity to build trust and position Dizzain. Organic Difficulty: 29.\",\"target_content_type\":\"Blog post, Guide ('How to Choose a Web Dev Agency'), About Us/Why Choose Us page\"},{\"keyword\":\"wordpress development specialists\",\"monthly_search_volume\":60,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Users looking for expert-level services. Highlights Dizzain's positioning. Organic Difficulty: Unknown.\",\"target_content_type\":\"About Us, Team page, Service page\"},{\"keyword\":\"enterprise wordpress development services\",\"monthly_search_volume\":10,\"organic_competition\":\"Low\",\"paid_competition\":\"LOW\",\"suggested_bid_usd\":null,\"user_intent\":\"Commercial\",\"source\":\"Google Ads\",\"strategic_notes\":\"Very specific enterprise term, high relevance and intent. Low volume and competition. Organic Difficulty: 3.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"wordpress development consulting\",\"monthly_search_volume\":30,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Informational\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Targets users seeking expert advice, often a precursor to larger projects. Organic Difficulty: 1.\",\"target_content_type\":\"Consulting Service page, Blog post\"},{\"keyword\":\"wordpress development service provider\",\"monthly_search_volume\":30,\"organic_competition\":\"Medium\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Commercial intent, indicates users actively seeking a provider. Organic Difficulty: 53.\",\"target_content_type\":\"Service page\"},{\"keyword\":\"wordpress development for enterprise\",\"monthly_search_volume\":20,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Directly targets the enterprise market. Low volume but high relevance. Organic Difficulty: 12.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"wordpress enterprise development agency\",\"monthly_search_volume\":20,\"organic_competition\":\"Medium\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Combines 'enterprise' and 'agency', highly specific and relevant. Organic Difficulty: 42.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"wordpress enterprise development\",\"monthly_search_volume\":20,\"organic_competition\":\"Low\",\"paid_competition\":\"Low\",\"suggested_bid_usd\":null,\"user_intent\":\"Informational, Commercial\",\"source\":\"Ahrefs, Google Ads\",\"strategic_notes\":\"Another variation of the core enterprise term. Organic Difficulty: 6.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"professional wordpress development services\",\"monthly_search_volume\":10,\"organic_competition\":\"High\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":\"Informational, Commercial, Transactional\",\"source\":\"Ahrefs\",\"strategic_notes\":\"Indicates a requirement for high-quality, expert services. Relevant but high organic competition. Organic Difficulty: 68.\",\"target_content_type\":\"Service page, About Us\"},{\"keyword\":\"large business wordpress development\",\"monthly_search_volume\":null,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":null,\"source\":\"Ahrefs\",\"strategic_notes\":\"Directly targets the large business segment. Low volume but high relevance. Organic Difficulty: Unknown.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"custom wordpress development solutions\",\"monthly_search_volume\":10,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":null,\"source\":\"Ahrefs\",\"strategic_notes\":\"Focuses on tailored solutions for specific needs. Relevant for complex projects. Organic Difficulty: Unknown.\",\"target_content_type\":\"Service page, Case Studies\"},{\"keyword\":\"wordpress development teams for banks\",\"monthly_search_volume\":null,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":null,\"source\":\"Ahrefs\",\"strategic_notes\":\"Highly niche, industry-specific term. Relevant if targeting the banking sector. Organic Difficulty: Unknown.\",\"target_content_type\":\"Industry-specific landing page, Case Studies\"},{\"keyword\":\"government wordpress development\",\"monthly_search_volume\":null,\"organic_competition\":\"Low\",\"paid_competition\":null,\"suggested_bid_usd\":null,\"user_intent\":null,\"source\":\"Ahrefs\",\"strategic_notes\":\"Highly niche, industry-specific term. Relevant if targeting government sector clients. Organic Difficulty: Unknown.\",\"target_content_type\":\"Industry-specific landing page, Case Studies\"}]",
+            "negative_keywords": "[\"free wordpress development\",\"wordpress development tutorial\",\"learn wordpress development\",\"freelance wordpress development\",\"small business wordpress website development\",\"wordpress development jobs\",\"wordpress development salary\",\"wordpress development calgary\",\"wordpress development company in st louis\",\"wordpress development company delhi ncr\"]"
+          }
+        }
+      }
+    ],
+    "Check google sheet": [
+      {
+        "json": {
+          "files": [
+            {
+              "kind": "drive#file",
+              "id": "1_m4-Y3soyXOMnvOvkR-FDSGtmHOF6y81uJSFFGz3gT4",
+              "name": "Report by keyword-generation-tool (1751022316.944119)",
+              "mimeType": "application/vnd.google-apps.spreadsheet"
+            }
+          ],
+          "kind": "drive#fileList",
+          "incompleteSearch": false
+        }
+      }
+    ]
+  },
+  "versionId": "bfffe91e-f917-4f50-b548-5b3613703229",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:19.804Z",
+      "updatedAt": "2025-08-28T14:32:19.804Z",
+      "role": "workflow:owner",
+      "workflowId": "WCJYQ5Lv6nO0r39f",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
