@@ -1,0 +1,146 @@
+{
+  "createdAt": "2025-08-21T12:19:56.311Z",
+  "updatedAt": "2025-08-23T14:35:26.139Z",
+  "id": "qbCJAt09FeUfA6VP",
+  "name": "Slack Message Sorter",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "triggerOn": "newMessage",
+        "channelId": "={{ $parameter.channelId }}"
+      },
+      "id": "5a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+      "name": "SlackMessageTrigger",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "slack-webhook-123",
+      "notesInFlow": true,
+      "notes": "Listens for new messages in a specified Slack channel and triggers the workflow when a message is received."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "operation": "contains",
+              "value2": "data"
+            }
+          ]
+        }
+      },
+      "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "CheckForDataKeyword",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Evaluates whether the incoming Slack message text contains the word 'data' to determine the routing path."
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "sheetId": "={{ $parameter.sheetId }}",
+        "range": "A:Z",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        },
+        "dataMode": "autoMapInputData"
+      },
+      "id": "2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+      "name": "AddToGoogleSheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        650,
+        200
+      ],
+      "notesInFlow": true,
+      "notes": "Appends the message content as a new row in a Google Sheets spreadsheet when the message contains 'data'."
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "documentId": "={{ $parameter.documentId }}",
+        "text": "={{ $json.text }}\\n"
+      },
+      "id": "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+      "name": "AppendToGoogleDocs",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 1,
+      "position": [
+        650,
+        400
+      ],
+      "notesInFlow": true,
+      "notes": "Appends the message content to a Google Docs document when the message does not contain 'data'."
+    }
+  ],
+  "connections": {
+    "SlackMessageTrigger": {
+      "main": [
+        [
+          {
+            "node": "CheckForDataKeyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckForDataKeyword": {
+      "main": [
+        [
+          {
+            "node": "AddToGoogleSheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AppendToGoogleDocs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "5526d8d5-91c8-45f1-9446-756ef9002300",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:36.568Z",
+      "updatedAt": "2025-08-28T14:34:36.568Z",
+      "role": "workflow:owner",
+      "workflowId": "qbCJAt09FeUfA6VP",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
