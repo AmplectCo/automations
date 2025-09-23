@@ -1,0 +1,406 @@
+{
+  "createdAt": "2025-08-24T21:50:05.402Z",
+  "updatedAt": "2025-08-24T21:50:05.402Z",
+  "id": "9gU31jGlhMsWny6Z",
+  "name": "YouTube Video Summarizer with AI",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "a1b2c3d4-5678-9012-3456-7890abcdef12",
+      "name": "Manual Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ],
+      "parameters": {
+        "inputType": "form",
+        "formFields": [
+          {
+            "fieldId": "youtubeUrl",
+            "fieldType": "string",
+            "label": "YouTube Video URL",
+            "description": "Enter the YouTube video URL to summarize",
+            "placeholder": "https://www.youtube.com/watch?v=...",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "e5f6a7b8-9012-3456-7890-123456789abc",
+      "name": "Manual Start Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        50,
+        50
+      ],
+      "parameters": {
+        "content": "## Manual Start & Input\nВоркфлоу запускается вручную и требует на входе URL видео из YouTube."
+      }
+    },
+    {
+      "id": "b2c3d4e5-6789-0123-4567-890abcdef123",
+      "name": "Get YouTube Transcript",
+      "type": "@n8n/n8n-nodes-langchain.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        400,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.youtube.com/api/timedtext",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "v",
+              "value": "={{ $json.youtubeUrl.match(/[?&]v=([^&]+)/)[1] }}"
+            },
+            {
+              "name": "lang",
+              "value": "ru"
+            },
+            {
+              "name": "fmt",
+              "value": "srv1"
+            }
+          ]
+        },
+        "responseFormat": "text",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "f6a7b8c9-0123-4567-8901-23456789abcd",
+      "name": "YouTube Transcript Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        350,
+        50
+      ],
+      "parameters": {
+        "content": "## Fetch YouTube Transcript\nПолучает полный текстовый транскрипт для указанного видео.\n\n⚠️ Примечание: В реальном использовании для получения транскрипта может потребоваться использование специального API или библиотеки. Здесь показан упрощенный вариант."
+      }
+    },
+    {
+      "id": "c3d4e5f6-7890-1234-5678-90abcdef1234",
+      "name": "AI Summary Generation",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        700,
+        200
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body }}",
+        "options": {
+          "systemMessage": "Ты — профессиональный аналитик контента. Твоя задача — анализировать транскрипты видео и создавать структурированные сводки.\n\nПроанализируй следующий транскрипт видео и верни результат в виде JSON-объекта. Объект должен содержать:\n1. Краткую сводку (summary) текста на 3-4 предложения.\n2. Пять ключевых мыслей (key_takeaways) в виде массива строк.\n\nВерни ТОЛЬКО валидный JSON без дополнительного текста в формате:\n{\n  \"summary\": \"краткая сводка\",\n  \"key_takeaways\": [\"мысль 1\", \"мысль 2\", \"мысль 3\", \"мысль 4\", \"мысль 5\"]\n}"
+        }
+      }
+    },
+    {
+      "id": "d4e5f6a7-8901-2345-6789-0abcdef12345",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        400
+      ],
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3,
+          "responseFormat": {
+            "values": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "your-openai-credentials-id",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "id": "g7h8i9j0-1234-5678-9012-34567890abcd",
+      "name": "AI Processing Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        50
+      ],
+      "parameters": {
+        "content": "## Generate Summary & Key Takeaways with AI\nОбрабатывает полученный транскрипт с помощью модели OpenAI для генерации сводки и 5 ключевых мыслей.\n\n⚠️ Требует настройки OpenAI credentials."
+      }
+    },
+    {
+      "id": "e5f6a7b8-9012-3456-7890-123456789def",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse the AI response\nconst aiResponse = $input.item.json.output;\nlet parsedData;\n\ntry {\n  parsedData = JSON.parse(aiResponse);\n} catch (error) {\n  // If parsing fails, try to extract JSON from the response\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsedData = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('Failed to parse AI response');\n  }\n}\n\n// Add the original YouTube URL\nparsedData.youtubeUrl = $('Manual Start').item.json.youtubeUrl;\n\nreturn parsedData;"
+      }
+    },
+    {
+      "id": "f6g7h8i9-0123-4567-8901-234567890abc",
+      "name": "Save to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [
+        1300,
+        200
+      ],
+      "parameters": {
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Title",
+              "title": "Сводка видео: {{ $json.youtubeUrl }}"
+            },
+            {
+              "key": "Summary",
+              "richText": "{{ $json.summary }}"
+            },
+            {
+              "key": "Key Takeaways",
+              "richText": "{{ $json.key_takeaways.map((item, index) => `${index + 1}. ${item}`).join('\\n') }}"
+            },
+            {
+              "key": "URL",
+              "url": "{{ $json.youtubeUrl }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "heading_2": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "Краткая сводка"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "paragraph",
+              "paragraph": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.summary }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "heading_2",
+              "heading_2": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "Ключевые мысли"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "numbered_list_item",
+              "numbered_list_item": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.key_takeaways[0] }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "numbered_list_item",
+              "numbered_list_item": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.key_takeaways[1] }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "numbered_list_item",
+              "numbered_list_item": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.key_takeaways[2] }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "numbered_list_item",
+              "numbered_list_item": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.key_takeaways[3] }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "numbered_list_item",
+              "numbered_list_item": {
+                "text": [
+                  {
+                    "text": {
+                      "content": "{{ $json.key_takeaways[4] }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "notionApi": {
+          "id": "your-notion-credentials-id",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "id": "h8i9j0k1-2345-6789-0123-456789abcdef",
+      "name": "Notion Save Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        50
+      ],
+      "parameters": {
+        "content": "## Save to Notion\nСоздаёт новую страницу в указанной базе данных Notion и записывает туда заголовок, сводку и ключевые мысли.\n\n⚠️ Требуется:\n1. Настроить Notion credentials\n2. Указать ID базы данных в Notion\n3. База данных должна иметь свойства: Title (заголовок), Summary (текст), Key Takeaways (текст), URL (ссылка)"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Start": {
+      "main": [
+        [
+          {
+            "node": "Get YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "AI Summary Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Summary Generation": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Summary Generation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Save to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": -1,
+    "timezone": "Europe/Moscow",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "8aeb4320-5bc2-4674-9776-1a83c6a9620e",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:26.387Z",
+      "updatedAt": "2025-08-28T14:29:26.387Z",
+      "role": "workflow:owner",
+      "workflowId": "9gU31jGlhMsWny6Z",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
