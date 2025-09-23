@@ -1,0 +1,229 @@
+{
+  "createdAt": "2025-07-11T06:15:22.384Z",
+  "updatedAt": "2025-09-02T11:20:38.088Z",
+  "id": "0IsUyxhDTG8DLuRK",
+  "name": "main (all camps)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DhVQzfB8PJTDOCul",
+          "mode": "list",
+          "cachedResultName": "prepare_links_for_scraping (all camps)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        112
+      ],
+      "id": "1284ef2f-0786-425e-8007-d0b8251c7c20",
+      "name": "Prepare links for scraping",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://automation.dizzain.com/webhook/261d22ae-73ab-4021-a97b-cbc5b41e1b68",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json['batch'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        160
+      ],
+      "id": "a2b63c70-e929-4ead-9eeb-197bd0abf79c",
+      "name": "HTTP Request",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -288,
+        32
+      ],
+      "id": "eb73a3d9-6b29-4b44-8ef6-1a571bd01176",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем все входные данные\nlet allRawInput = $input.all();\n\n// Получаем статические данные флоу\nlet staticData = $getWorkflowStaticData('global');\n// staticData.count = 12;\n// Если счётчик не существует или равен 12, сбрасываем его\nif (!staticData.count || staticData.count === 13) {\n  staticData.count = 1;\n}\n\n// Устанавливаем интервал для обработки данных\nconst startIndex = (staticData.count - 1) * 250;\nconst endIndex = staticData.count * 250;\n\n// Извлекаем нужный диапазон данных\nallRawInput = allRawInput.slice(startIndex, endIndex);\n\n// Преобразуем данные в формат, ожидаемый n8n\nconst allData = allRawInput.map(item => item.json);\n\n// Определяем количество батчей\nconst numBatches = Math.ceil(allData.length / 250);\n\n// Массив для хранения выходных данных\nconst n8nOutputItems = [];\n\n// Разбиваем данные на батчи\nfor (let i = 0; i < numBatches; i++) {\n  const batch = allData.slice(i * 250, (i + 1) * 250);\n  if (batch.length > 0) {\n    n8nOutputItems.push({ json: { batch } });\n  }\n}\n\nstaticData.count = (staticData.count || 0) + 1;\n// Возвращаем массив с батчами\nreturn n8nOutputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        112
+      ],
+      "id": "6c9cc023-9923-48e7-a6f8-884381840bf8",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем массив ссылок из входящего объекта\nconst batch = $input.first().json.batch;\n\n// Проверка, что массив действительно существует\nif (!Array.isArray(batch) || batch.length === 0) {\n  return [];\n}\n\n// Разбиваем на батчи по 50\nconst output = [];\nconst batchSize = 50;\nfor (let i = 0; i < batch.length; i += batchSize) {\n  output.push({\n    json: { batch: batch.slice(i, i + batchSize) }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        112
+      ],
+      "id": "9d72c23a-4a0c-458a-841a-0ac2b4ef27f7",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "1-39/3 1 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1264,
+        112
+      ],
+      "id": "a9228f5b-d43a-4bf1-8327-bd7c90a39c8a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nreturn [{ json: { updatedCount: staticData.count } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "b9d18c94-6287-43bc-8712-2f03061562bc",
+      "name": "Updating count"
+    }
+  ],
+  "connections": {
+    "Prepare links for scraping": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Updating count",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare links for scraping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "count": 12
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "eee65f30-a09a-417a-af51-3edbdcad3a41",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:27:49.386Z",
+      "updatedAt": "2025-08-28T14:27:49.386Z",
+      "role": "workflow:owner",
+      "workflowId": "0IsUyxhDTG8DLuRK",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
