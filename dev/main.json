@@ -1,0 +1,269 @@
+{
+  "createdAt": "2025-09-11T08:10:18.790Z",
+  "updatedAt": "2025-09-18T07:45:19.695Z",
+  "id": "7Fev19XabgZGUv8b",
+  "name": "main",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        160
+      ],
+      "id": "c92373ba-4010-495b-8e80-158c75df3883",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "323750752",
+          "mode": "list",
+          "cachedResultName": "i9 Sports (2020 Website) - GA4",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p323750752/"
+        },
+        "dateRange": "custom",
+        "startDate": "2024-02-01T00:00:00",
+        "endDate": "2025-09-12T00:00:00",
+        "metricsGA4": {
+          "metricValues": [
+            {
+              "listName": "custom",
+              "name": "keyEvents:form_submission_ppc"
+            }
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {},
+            {
+              "listName": "pageLocation"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {
+          "dimensionFiltersUI": {
+            "filterExpressions": {
+              "expression": {
+                "stringFilter": [
+                  {
+                    "listName": "pageLocation",
+                    "value": "={{ $json.urlPath }}",
+                    "matchType": "CONTAINS"
+                  }
+                ]
+              }
+            }
+          },
+          "orderByUI": {
+            "dimmensionOrderBy": [
+              {
+                "dimensionName": "date"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -96
+      ],
+      "id": "36610932-bd4c-4a27-a271-35ece4c4f551",
+      "name": "Get a report",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleAnalyticsOAuth2": {
+          "id": "G7SxsQvCMQOou96A",
+          "name": "Google Analytics account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Этот объект будет хранить сгруппированные по месяцам результаты.\nconst groupedData = {};\n\n// Проходим по каждому входящему элементу\nfor (const item of items) {\n  const { date, pageLocation } = item.json;\n  const submissionValueStr = item.json['keyEvents:form_submission_ppc'];\n\n  // Пропускаем элементы без ключевых данных или с некорректным форматом даты\n  if (!date || !pageLocation || submissionValueStr === undefined || date.length < 6) {\n    continue;\n  }\n\n  // --- Новая, более надежная очистка URL ---\n  \n  // Шаг 1: Безопасно удаляем все параметры запроса, отсекая всё после знака \"?\"\n  const pathWithoutQuery = pageLocation.split('?')[0];\n\n  // Шаг 2: Теперь применяем регулярное выражение к уже очищенному пути\n  const regex = /\\/ppc\\/[^\\/]+\\/[^\\/]+/;\n  const match = pathWithoutQuery.match(regex);\n  \n  // Если даже после очистки URL не соответствует формату, пропускаем элемент\n  if (!match) {\n    continue;\n  }\n  const cleanedUrl = match[0];\n  \n  // --- Преобразуем дату в надежный строковый формат \"YYYY-MM\" ---\n  const year = date.substring(0, 4);\n  const month = date.substring(4, 6);\n  // Используем дефис, чтобы формат \"2024-10\" гарантированно остался строкой\n  const yearMonth = `${year}-${month}`; \n  \n  // Преобразуем значение для суммирования\n  const submissionValue = parseFloat(submissionValueStr) || 0;\n  \n  // Создаем уникальный ключ для группировки по МЕСЯЦУ и URL\n  const key = `${yearMonth}-${cleanedUrl}`;\n\n  // --- Объединяем объекты и суммируем значения ---\n  if (groupedData[key]) {\n    // Если такая группа уже существует, добавляем текущее значение к сумме\n    groupedData[key]['keyEvents:form_submission_ppc'] += submissionValue;\n  } else {\n    // Если это новая группа, создаем для нее новый объект\n    groupedData[key] = {\n      date: yearMonth,\n      pageLocation: cleanedUrl,\n      'keyEvents:form_submission_ppc': submissionValue\n    };\n  }\n}\n\n// Преобразуем объект с результатами обратно в массив, который ожидает n8n\nconst finalResult = Object.values(groupedData).map(group => {\n  // Приводим итоговую сумму обратно в строковый формат\n  group['keyEvents:form_submission_ppc'] = String(group['keyEvents:form_submission_ppc']);\n  return { json: group };\n});\n\n// Добавляем пустой объект в конец\nconst emptyItem = {\n  json: {\n    date: '-',\n    pageLocation: '-',\n    'keyEvents:form_submission_ppc': '-'\n  }\n};\nfinalResult.push(emptyItem);\n\n// --- Новое: Функция-таймер для создания задержки ---\n// Она возвращает Promise, который будет выполнен через указанное время.\nconst delay = ms => new Promise(resolve => setTimeout(resolve, ms));\n\n// --- Новое: Ожидаем 20 секунд (20000 миллисекунд) ---\n// Ключевое слово 'await' приостанавливает выполнение кода здесь,\n// пока Promise из функции delay не будет выполнен.\nawait delay(20000);\n\n// Возвращаем итоговый результат ПОСЛЕ задержки\nreturn finalResult;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        128
+      ],
+      "id": "0e19e2db-1145-496c-8685-28ae16b84924",
+      "name": "Code",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const arr = [\n  \"/ppc/e/83\",\n  \"/ppc/e/135\",\n  \"/ppc/e/420\",\n  \"/ppc/e/280\",\n  \"/ppc/e/321\",\n  \"/ppc/e/469\",\n  \"/ppc/e/443\",\n  \"/ppc/e/444\",\n  \"/ppc/e/374\",\n  \"/ppc/e/144\",\n  \"/ppc/e/288\",\n  \"/ppc/e/136\",\n  \"/ppc/e/149\",\n  \"/ppc/e/348\",\n  \"/ppc/e/498\",\n  \"/ppc/e/80\",\n  \"/ppc/e/93\",\n  \"/ppc/e/203\",\n  \"/ppc/e/397\",\n  \"/ppc/e/462\",\n  \"/ppc/e/43\",\n  \"/ppc/e/264\",\n  \"/ppc/e/248\",\n  \"/ppc/e/290\",\n  \"/ppc/e/133\",\n  \"/ppc/e/157\",\n  \"/ppc/e/286\",\n  \"/ppc/e/464\",\n  \"/ppc/e/182\",\n  \"/ppc/e/200\",\n  \"/ppc/e/216\",\n  \"/ppc/e/245\",\n  \"/ppc/e/328\",\n  \"/ppc/e/446\",\n  \"/ppc/e/454\",\n  \"/ppc/e/287\",\n  \"/ppc/e/405\",\n  \"/ppc/e/430\",\n  \"/ppc/e/503\",\n  \"/ppc/e/285\",\n  \"/ppc/e/329\",\n  \"/ppc/e/514\",\n  \"/ppc/e/403\",\n  \"/ppc/e/377\",\n  \"/ppc/e/364\",\n  \"/ppc/e/116\",\n  \"/ppc/e/206\",\n  \"/ppc/e/179\",\n  \"/ppc/e/282\",\n  \"/ppc/e/29\",\n  \"/ppc/e/485\",\n  \"/ppc/e/287\",\n  \"/ppc/e/405\",\n  \"/ppc/e/430\",\n  \"/ppc/e/503\",\n  \"/ppc/e/539\",\n  \"/ppc/e/98\",\n  \"/ppc/e/330\",\n  \"/ppc/e/316\",\n  \"/ppc/e/557\",\n  \"/ppc/e/219\",\n  \"/ppc/e/481\",\n  \"/ppc/e/215\",\n  \"/ppc/e/309\",\n  \"/ppc/e/292\",\n  \"/ppc/e/416\",\n  \"/ppc/e/411\",\n  \"/ppc/e/478\",\n  \"/ppc/e/541\",\n  \"/ppc/e/552\",\n  \"/ppc/e/198\",\n  \"/ppc/e/66\",\n  \"/ppc/e/409\",\n  \"/ppc/e/386\",\n  \"/ppc/e/371\",\n  \"/ppc/e/400\",\n  \"/ppc/e/467\",\n  \"/ppc/e/473\",\n  \"/ppc/e/280\",\n  \"/ppc/e/321\",\n  \"/ppc/e/469\",\n  \"/ppc/e/514\",\n  \"/ppc/e/403\",\n  \"/ppc/e/83\",\n  \"/ppc/e/135\",\n  \"/ppc/e/420\",\n  \"/ppc/e/475\",\n  \"/ppc/e/532\",\n  \"/ppc/e/506\",\n  \"/ppc/e/199\",\n  \"/ppc/e/187\",\n  \"/ppc/e/417\",\n  \"/ppc/e/306\",\n  \"/ppc/e/460\",\n  \"/ppc/e/492\",\n  \"/ppc/e/130\",\n  \"/ppc/e/490\",\n  \"/ppc/e/133\",\n  \"/ppc/e/413\",\n  \"/ppc/e/357\",\n  \"/ppc/e/471\",\n  \"/ppc/e/496\",\n  \"/ppc/e/548\",\n  \"/ppc/e/154\",\n  \"/ppc/e/352\",\n  \"/ppc/e/407\",\n  \"/ppc/e/438\",\n  \"/ppc/e/313\",\n  \"/ppc/e/396\",\n  \"/ppc/e/547\",\n  \"/ppc/e/535\",\n  \"/ppc/e/459\",\n  \"/ppc/e/443\",\n  \"/ppc/e/444\",\n  \"/ppc/e/422\",\n  \"/ppc/e/550\",\n  \"/ppc/e/494\",\n  \"/ppc/e/144\",\n  \"/ppc/e/288\",\n  \"/ppc/e/428\",\n  \"/ppc/e/495\",\n  \"/ppc/e/554\",\n  \"/ppc/e/61\",\n  \"/ppc/e/538\",\n  \"/ppc/e/440\",\n  \"/ppc/e/457\",\n  \"/ppc/e/29\",\n  \"/ppc/e/485\",\n  \"/ppc/e/307\",\n  \"/ppc/e/165\",\n  \"/ppc/e/540\",\n  \"/ppc/e/141\",\n  \"/ppc/e/323\",\n  \"/ppc/e/401\",\n  \"/ppc/e/355\",\n  \"/ppc/e/233\",\n  \"/ppc/e/537\",\n  \"/ppc/e/545\",\n  \"/ppc/e/291\",\n  \"/ppc/e/529\",\n  \"/ppc/e/530\",\n  \"/ppc/e/531\",\n  \"/ppc/e/522\",\n  \"/ppc/e/350\",\n  \"/ppc/e/286\",\n  \"/ppc/e/116\",\n  \"/ppc/e/206\",\n  \"/ppc/e/179\",\n  \"/ppc/e/282\",\n  \"/ppc/e/377\",\n  \"/ppc/e/131\",\n  \"/ppc/e/358\",\n  \"/ppc/e/419\",\n  \"/ppc/e/453\",\n  \"/ppc/e/431\",\n  \"/ppc/e/392\",\n  \"/ppc/e/387\",\n  \"/ppc/e/464\",\n  \"/ppc/e/182\",\n  \"/ppc/e/200\",\n  \"/ppc/e/157\",\n  \"/ppc/e/390\",\n  \"/ppc/e/216\",\n  \"/ppc/e/245\",\n  \"/ppc/e/553\",\n  \"/ppc/e/101\",\n  \"/ppc/e/143\",\n  \"/ppc/e/549\"\n];\n\n// const arr = [\n//   'ppc/dzn/83_135_420',\n//   'ppc/dzn/280',\n//   'ppc/dzn/321_469',\n//   'ppc/dzn/443_444',\n//   'ppc/dzn/374',\n//   'ppc/dzn/144_288',\n//   'ppc/dzn/136_149_348_498',\n//   'ppc/dzn/80_93_203_397_462',\n//   'ppc/dzn/43_264',\n//   'ppc/dzn/248_290',\n//   'ppc/dzn/133',\n//   'ppc/dzn/157_286_464',\n//   'ppc/dzn/182_200',\n//   'ppc/dzn/216_245',\n//   'ppc/dzn/328',\n//   'ppc/dzn/446',\n//   'ppc/dzn/454',\n//   'ppc/dzn/285',\n//   'ppc/dzn/329',\n//   'ppc/dzn/514',\n//   'ppc/dzn/403',\n//   'ppc/dzn/377',\n//   'ppc/dzn/364',\n//   'ppc/dzn/116_206',\n//   'ppc/dzn/179_282',\n//   'ppc/dzn/29_485',\n//   'ppc/dzn/287_405_430_503',\n//   'ppc/dzn/539',\n//   'ppc/dzn/98_316_330',\n//   'ppc/dzn/557',\n//   'ppc/dzn/219_481',\n//   'ppc/dzn/215',\n//   'ppc/dzn/309',\n//   'ppc/dzn/292',\n//   'ppc/dzn/416',\n//   'ppc/dzn/411',\n//   'ppc/dzn/478',\n//   'ppc/dzn/541',\n//   'ppc/dzn/552',\n//   'ppc/dzn/66_198',\n//   'ppc/dzn/386_409',\n//   'ppc/dzn/371',\n//   'ppc/dzn/400_467_473',\n//   'ppc/dzn/475',\n//   'ppc/dzn/532',\n//   'ppc/dzn/506',\n//   'ppc/dzn/199_187_417',\n//   'ppc/dzn/306_460',\n//   'ppc/dzn/492',\n//   'ppc/dzn/130',\n//   'ppc/dzn/490',\n//   'ppc/dzn/413',\n//   'ppc/dzn/357',\n//   'ppc/dzn/471',\n//   'ppc/dzn/496',\n//   'ppc/dzn/548',\n//   'ppc/dzn/154',\n//   'ppc/dzn/352',\n//   'ppc/dzn/407',\n//   'ppc/dzn/438',\n//   'ppc/dzn/313',\n//   'ppc/dzn/396',\n//   'ppc/dzn/547',\n//   'ppc/dzn/535',\n//   'ppc/dzn/459',\n//   'ppc/dzn/422',\n//   'ppc/dzn/550',\n//   'ppc/dzn/494',\n//   'ppc/dzn/144_288_428',\n//   'ppc/dzn/495',\n//   'ppc/dzn/554',\n//   'ppc/dzn/61',\n//   'ppc/dzn/538_440_457',\n//   'ppc/dzn/165_307',\n//   'ppc/dzn/540',\n//   'ppc/dzn/141',\n//   'ppc/dzn/323_401',\n//   'ppc/dzn/233_355',\n//   'ppc/dzn/537',\n//   'ppc/dzn/545',\n//   'ppc/dzn/291',\n//   'ppc/dzn/529_530_531',\n//   'ppc/dzn/522',\n//   'ppc/dzn/350',\n//   'ppc/dzn/286',\n//   'ppc/dzn/116',\n//   'ppc/dzn/206',\n//   'ppc/dzn/179',\n//   'ppc/dzn/282_377',\n//   'ppc/dzn/131_358_419_453',\n//   'ppc/dzn/431',\n//   'ppc/dzn/392',\n//   'ppc/dzn/387',\n//   'ppc/dzn/464',\n//   'ppc/dzn/157_182_200',\n//   'ppc/dzn/390',\n//   'ppc/dzn/553',\n//   'ppc/dzn/101',\n//   'ppc/dzn/143',\n//   'ppc/dzn/549'\n// ];\n\n\nreturn arr.map(path => {\n  return {\n    json: {\n      // Мы создаем ключ 'urlPath', в который помещаем значение\n      urlPath: path\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "3a8a9580-44ce-47a1-8494-7cfcf65cc666",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        48,
+        -112
+      ],
+      "id": "1f482d73-50c5-4c99-9c06-740edfb9f9af",
+      "name": "Loop Over Items",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rlUeRd1EjcfsQ7j0HmlfZm18xaTDtA3q5K_Z4C2Q868",
+          "mode": "list",
+          "cachedResultName": "Extract data from ga4",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rlUeRd1EjcfsQ7j0HmlfZm18xaTDtA3q5K_Z4C2Q868/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1533465411,
+          "mode": "list",
+          "cachedResultName": "Eulerity_new",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rlUeRd1EjcfsQ7j0HmlfZm18xaTDtA3q5K_Z4C2Q868/edit#gid=1533465411"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        784,
+        240
+      ],
+      "id": "53ba64c7-f538-4afd-92cc-d8c7c1792a9a",
+      "name": "Append row in sheet",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a report": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get a report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "383071fc-e02c-4103-8d23-11a37d749365",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-11T08:10:18.790Z",
+      "updatedAt": "2025-09-11T08:10:18.790Z",
+      "role": "workflow:owner",
+      "workflowId": "7Fev19XabgZGUv8b",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
