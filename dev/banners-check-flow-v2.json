@@ -1,0 +1,1688 @@
+{
+  "createdAt": "2025-07-15T07:51:46.501Z",
+  "updatedAt": "2025-07-16T06:26:14.504Z",
+  "id": "LFq7GC8PRrQt762E",
+  "name": "Banners check flow V2",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4840,
+        200
+      ],
+      "id": "f812f1e0-bcd0-4246-943c-9eb76f055a66",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.url }}",
+            "mode": "url"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "webViewLink",
+            "thumbnailLink",
+            "version"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4000,
+        280
+      ],
+      "id": "8723c7cd-7622-4c22-9ed4-5018caedc53c",
+      "name": "Google Drive",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an expert AI Visual Content Analyst and Advertising Copy Editor. Your most important skill is to **distinguish between text that is part of the digital ad design (the overlay) and text that exists within the photograph itself (the scene)**.\n\nYour tasks:\n\n**1. Isolate the True Advertising Overlay Text. This is your most critical task.**\n\n*   **Step A: Initial Scan:** First, locate all recognizable text fragments in the image.\n*   **Step B: The Critical Filter:** For each text fragment, you must determine if it is **Overlay Text** or **Scene Text**. This is the key decision.\n    *   **Overlay Text (KEEP):** This is text belonging to the top-most graphical design layer, added by a designer *after* the photograph was taken. It is NOT part of the original photo. You must scan the entire ad canvas for this text, as it can appear in any part of the layout (headers, footers, sidebars, etc.).\n        *   **Key Indicators:**\n            *   **Placed on a distinct graphical element:** The text sits on a shape added by the designer, such as a **solid color bar (like a header or footer), a button, a geometric shape, or a semi-transparent panel.** This is the strongest indicator.\n            *   **Part of a feature or benefit list:** The text serves to list product features, benefits, or certifications. This text is often arranged neatly in columns or rows. **It may be accompanied by icons, but the icons are not a requirement for identification.**\n            *   **Visually \"Flat\" and Crisp:** The text has a uniform appearance and is not affected by the photo's perspective, lighting, or focus. It \"floats\" above the image.\n\n    *   **Scene Text (IGNORE):** This is any text that physically exists within the world of the photograph. If you were \"standing\" in the scene, you could see this text. This includes two main categories you must ignore:\n        *   **A) Product Packaging & Labels (CRITICAL TO IGNORE):** You **must ignore all text that is printed on the physical product being photographed**. This includes text on **bottles, jars, boxes, cans, tags, and any other product packaging**.\n        *   **B) Background & Environmental Text:** This is text on **physical signs** in the background, logos on walls, text on **posters** within the scene, and text on objects like **license plates** or clothing.\n\n*   **Step C: Final Selection:** After filtering, extract **ONLY the text that you have confidently identified as Overlay Text**. If a piece of text is ambiguous, err on the side of excluding it.\n\n**2. Automatically detect the language of the extracted text and use it for all further analysis.**\n\n**3. Analyze the extracted text with high strictness for issues:** spelling, grammar, punctuation, speech, and style.\n\n**4. Do not flag or correct brand/product names *if they are part of the Overlay Text*.** However, names on **product packaging** must be identified as **Scene Text** and excluded.\n\n**5. If a word in the OVERLAY TEXT is in ALL CAPS, treat it as intentional.**\n\n**6. Do not suggest adding punctuation where it's clearly omitted for design.**\n\n**7. Only include real, confirmed issues.** Do not include \"no issue\" messages.\n\n**8. Provide clear and concise suggestions for each issue.**\n\nReturn your result in the following strict JSON format.\n\n**Important**: Output only the JSON object above. Do not include any additional text, comments, or characters before or after the JSON.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            }
+          ]
+        }
+      },
+      "id": "90bd05d4-aea7-4c85-be8b-d8fcccb86d0c",
+      "name": "Parse and check text",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        -1120,
+        240
+      ],
+      "typeVersion": 1.4,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -2640,
+        160
+      ],
+      "id": "6bbbad0c-9672-4c10-b9c5-790607ba5cfd",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const bannerObj = $('Loop Over Items').first();\nreturn {\n  json: {\n    ...bannerObj.json,\n    report: $input.first().json.output\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        40
+      ],
+      "id": "180aad11-d654-40df-83b5-306c5b8b1664",
+      "name": "Concat bannerObj + report"
+    },
+    {
+      "parameters": {
+        "jsCode": "const banners = $('Loop Over Items').all() || [];\nconst outputBanners = [];\nfor (const banner of banners) {\n  let spellingErrorsArr = [];\n  let punctuationErrorsArr = [];\n  let grammarErrorsArr = [];\n  let speechErrorsArr = [];\n  let styleErrorsArr = [];\n  \n\n  if (banner.json.report.issues_found.length) {\n    for (const error of banner.json.report.issues_found) {\n      const textArr = [];\n      const type = error.type.toLowerCase();\n      delete error.type;\n      \n      for (const key in error) {\n        textArr.push(`${key}: ${error[key]}`)\n      }\n\n      if(type.includes('spell')) {\n        spellingErrorsArr.push(textArr.join(\"\\n\"));\n      } else if(type.includes('punct')) {\n        punctuationErrorsArr.push(textArr.join(\"\\n\"));\n      } else if(type.includes('gram')) {\n        grammarErrorsArr.push(textArr.join(\"\\n\"));\n      } else if(type.includes('speech')) {\n        speechErrorsArr.push(textArr.join(\"\\n\"));\n      } else if(type.includes('style')) {\n        styleErrorsArr.push(textArr.join(\"\\n\"));\n      }\n    }\n  }\n  \n  outputBanners.push({\n    name: `=HYPERLINK(\"${banner.json.webViewLink}\", \"${banner.json.name}\")`,\n    thumbnail: `=IMAGE(\"${banner.json.thumbnailLink}\")`,\n    extracted_text: banner.json.report.extracted_text,\n    'Spelling errors': spellingErrorsArr.join(\"\\n---------------\\n\"),\n    'Punctuation errors': punctuationErrorsArr.join(\"\\n---------------\\n\"),\n    'Grammar errors': grammarErrorsArr.join(\"\\n---------------\\n\"),\n    'Speech errors': speechErrorsArr.join(\"\\n---------------\\n\"),\n    'Style errors': styleErrorsArr.join(\"\\n---------------\\n\"),\n    final_corrected_version: banner.json.report.final_corrected_version,\n  })\n}\nreturn outputBanners;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2180,
+        -20
+      ],
+      "id": "bba3ee08-e2b0-484d-9be2-832e398eed2f",
+      "name": "Prepare report columns"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1pbit9pb-zbJQBfW-AHncTE1Ijoa6qkBBTjEi93QDx4I",
+          "mode": "list",
+          "cachedResultName": "Marketing automation banners check reports",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pbit9pb-zbJQBfW-AHncTE1Ijoa6qkBBTjEi93QDx4I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Create Sheet').item.json.sheetId }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -1940,
+        -20
+      ],
+      "id": "f6f566ce-34b8-429e-9203-128c0aff0587",
+      "name": "Output to google sheet"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        240
+      ],
+      "id": "206340b5-eca9-463d-8c40-fa0b904c9c7c",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"extracted_text\": \"Full raw text extracted from the image, exactly as it appears\",\n  \"issues_found\": [\n    {\n      \"type\": \"spelling | grammar | punctuation | speech | style\",\n      \"original\": \"Text with the issue\",\n      \"suggestion\": \"Suggested correction\",\n      \"comment\": \"Explanation of the issue\"\n    }\n  ],\n  \"final_corrected_version\": \"Fully corrected version of the banner text\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        360
+      ],
+      "id": "8f605f20-47ed-4dab-a4a3-78cf24bd51d1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "1pbit9pb-zbJQBfW-AHncTE1Ijoa6qkBBTjEi93QDx4I",
+          "mode": "list",
+          "cachedResultName": "Marketing automation banners check reports",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pbit9pb-zbJQBfW-AHncTE1Ijoa6qkBBTjEi93QDx4I/edit?usp=drivesdk"
+        },
+        "title": "={{ DateTime.fromMillis($('Slack Trigger').item.json.ts * 1000).format('yyyy-MM-dd|TT') }}",
+        "options": {
+          "index": 0
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -2400,
+        -20
+      ],
+      "id": "2718b73f-6bfb-4936-8a9d-7fb71ca0d17d",
+      "name": "Create Sheet",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        360
+      ],
+      "id": "68f6d3b4-0b7c-45db-bec0-6b54bfe0e8f3",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Loop Over Items').item.json.thumbnailLink.replace(/=s\\d+/, \"=s560\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1340,
+        220
+      ],
+      "id": "136a6a9b-e0f8-4305-a47c-f3468a2b02d6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -340,
+        320
+      ],
+      "id": "9495ac20-678e-4142-a7e6-88b243cedf72",
+      "name": "Wait",
+      "webhookId": "0c03fcf8-6597-48f0-adef-f1536b2d7fde"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Loop Over Items').all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        320
+      ],
+      "id": "349ab47d-1fef-4bcf-97f6-5e009024d8bb",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "banners",
+          "mode": "list",
+          "cachedResultName": "banners"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4000,
+        440
+      ],
+      "id": "c2cc2ed5-3bcc-48bd-9a92-ced97d9fa077",
+      "name": "all db banners",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -3780,
+        360
+      ],
+      "id": "273ba2de-a216-40dc-853a-2a8790cbdaa1",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b11a98d6-f369-48e7-a628-c9e226f76c5b",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2180,
+        160
+      ],
+      "id": "feeb8c9f-300c-4a38-b0d3-c64ddd401214",
+      "name": "Has db banner"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "banners",
+          "mode": "list",
+          "cachedResultName": "banners"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "name": "={{ $json.name }}",
+            "version": "={{ $json.version }}",
+            "report": "={{ $json.report }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "report",
+              "displayName": "report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -140,
+        -60
+      ],
+      "id": "655fe616-df4c-4736-9635-d98399543401",
+      "name": "Save/update banner in db",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb35d458-c64c-483b-8071-d04b6c29e45d",
+              "name": "id",
+              "value": "={{ $('Loop Over Items').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "9d9e3197-9d86-4372-9610-04b31d7afee1",
+              "name": "name",
+              "value": "={{ $('Loop Over Items').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "3b9202ee-e6e2-4cae-858c-1d5cd2fbd583",
+              "name": "version",
+              "value": "={{ $('Loop Over Items').item.json.version }}",
+              "type": "string"
+            },
+            {
+              "id": "bb7a4971-b7e5-46f3-8241-bf50bafe4e6d",
+              "name": "webViewLink",
+              "value": "={{ $('Loop Over Items').item.json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "673df79b-1a43-4b40-806a-da084f0d8de7",
+              "name": "thumbnailLink",
+              "value": "={{ $('Loop Over Items').item.json.thumbnailLink }}",
+              "type": "string"
+            },
+            {
+              "id": "0851cb7f-ec7b-4bb4-b890-e9f16a86b0c7",
+              "name": "report",
+              "value": "={{ $json.report }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1940,
+        160
+      ],
+      "id": "ebb0e91c-1165-4f55-a688-0f0a8567abc7",
+      "name": "Map fields"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        40,
+        40
+      ],
+      "id": "7578c2d4-e78c-4700-a09f-a1859eceb40a",
+      "name": "Return all banner obj"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "app_mention"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C090QJM6Y5D",
+          "mode": "list",
+          "cachedResultName": "check-banners"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4840,
+        360
+      ],
+      "id": "ff8abe61-f9e1-4175-bfb9-473c36eedc9f",
+      "name": "Slack Trigger",
+      "webhookId": "e526e9f0-14ce-4a1e-b00b-50266df11c1f"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C090QJM6Y5D",
+          "mode": "list",
+          "cachedResultName": "check-banners"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Analysis is finished. <https://docs.google.com/spreadsheets/d/{{ $('Create Sheet').item.json.spreadsheetId }}/edit#gid={{ $('Create Sheet').item.json.sheetId }}|Here is a report!>",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -1720,
+        -20
+      ],
+      "id": "001db229-b6ff-4405-b351-3f3bfc10ccd2",
+      "name": "Slack",
+      "webhookId": "f0098c3a-04f5-4d62-9a5e-3f8868bf68aa",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ad16012a-c90d-4388-825a-ec266baa5767",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "link",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "6763d3e4-3126-4fe5-a8ed-c0a9f144395f",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "https://drive.google.com/drive",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -4440,
+        360
+      ],
+      "id": "0116876b-899c-42b5-9500-86f0d16c5528",
+      "name": "Filter1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "blocks[0].elements[0].elements",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -4640,
+        360
+      ],
+      "id": "2015d32f-7dc0-4ba0-9d27-22287accf122",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C090QJM6Y5D",
+          "mode": "list",
+          "cachedResultName": "check-banners"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> The link isn't Google Drive folder",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -4000,
+        600
+      ],
+      "id": "118c5e8d-d75c-47d9-ba32-c0fd944e1536",
+      "name": "Is not google drive link",
+      "webhookId": "ff7eb114-1dd2-40ea-be55-3198d273149b",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C090QJM6Y5D",
+          "mode": "list",
+          "cachedResultName": "check-banners"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Analysis is started",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -3180,
+        180
+      ],
+      "id": "81ad5de9-c621-4042-8d76-9e690e45d5f7",
+      "name": "Start process",
+      "webhookId": "d9378cd0-e05b-4d70-ba0b-fb3185e61321",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "77b9bf2d-445a-4154-9902-88b479e45173",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4240,
+        360
+      ],
+      "id": "b5731e69-0a38-4d4d-9117-d18ea87f4573",
+      "name": "Has google drive link"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1fc40f68-a840-4c42-ab01-7e3aa2420552",
+              "leftValue": "={{ $input.first().json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3400,
+        360
+      ],
+      "id": "7b03f24d-d576-48da-b690-49ec8d16b641",
+      "name": "Has images"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a3e5e50a-794e-4de0-859c-9b37d9fed07f",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": ".png",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "d2933446-f20b-49d5-8747-2b84e01c5bb6",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": ".jpeg",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "90f962ee-819e-4ff8-aeea-d089275ac16e",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": ".jpg",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -3600,
+        360
+      ],
+      "id": "2a523308-de69-45e9-a56f-6971f0d5306b",
+      "name": "Get only png",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C090QJM6Y5D",
+          "mode": "list",
+          "cachedResultName": "check-banners"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> There are no PNG images in the folder, or you have not granted access to the folder!",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -3180,
+        520
+      ],
+      "id": "f6a437b9-4142-4e13-80d5-e8d5a8c8fa77",
+      "name": "No images",
+      "webhookId": "252f7dc7-343a-45f4-ba07-6695863f5a9b",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "21f54a7d-7c9b-4a57-85e6-672f9a23b291",
+              "leftValue": "={{ $itemIndex }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -3180,
+        360
+      ],
+      "id": "95190335-c7ee-489b-99ae-452b5bd1f920",
+      "name": "Only first"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$input.first().json}}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a methodical AI Orchestrator. Your task is to execute a sequence of tool calls with absolute precision and no deviation from the prescribed workflow.\n\n**Your Input:**\nYou will receive a single JSON object as input with the following exact structure:\n{\n  \"images\": [\n    {\n      \"id\": \"some_unique_id_1\",\n      \"url\": \"https://.../image1.jpg\"\n    },\n    {\n      \"id\": \"some_unique_id_2\",\n      \"url\": \"https://.../image2.png\"\n    }\n  ],\n  \"user_message\": \"The original user's message.\"\n}\n-   `images`: A list of objects, where each object contains an `id` and a `url`.\n-   `user_message`: A single string.\n\nYou must use the data from these keys to execute your workflow.\n\n**Available Tools:**\n1.  `get_context_for_analysis(user_message: string)`: Parses the user's message. Returns a JSON object with rules.\n2.  `process_single_image_tool(image_object: object, user_context: json)`: Analyzes one image. Takes an object with `id` and `url`. Returns a JSON report for that image.\n\n**MANDATORY WORKFLOW:**\n\n**STEP 1: GET CONTEXT (RUN ONCE)**\n-   You will call the `get_context_for_analysis` tool **one single time**.\n-   The input for this tool is a JSON object: `{\"user_message\": \"...\"}`.\n-   The value for the `\"user_message\"` key **MUST BE the exact, complete, and unmodified** string from the `user_message` key of your input object.\n-   Store the returned JSON object in a variable named `[CONTEXT_JSON]`.\n\n**STEP 2: PROCESS IMAGE BATCH (LOOP)**\n-   You now have the list of image objects from the `images` key of your input and the context in `[CONTEXT_JSON]`.\n-   Loop through each `image_object` in the `images` list.\n-   **Inside the loop, for EACH `image_object`, you will call `process_single_image_tool`.**\n-   The input for this tool call **MUST BE A JSON OBJECT** with exactly two keys:\n    1.  `\"image_object\"`: The **current, complete image object** (containing both `id` and `url`) from the loop.\n    2.  `\"user_context\"`: The **full and unmodified JSON object** you stored in `[CONTEXT_JSON]`.\n\n-   **Example of a correct tool call input for `process_single_image_tool`:**\n    {\n      \"image_object\": {\n        \"id\": \"1D7N-Lxlo4wZxvVmWvDsDe175Je1s6xQb\",\n        \"url\": \"https://.../image1.jpg\"\n      },\n      \"user_context\": { \"rules\": { \"ignore_text\": [\"<@U090YAR5EES>\"] } }\n    }\n\n**STEP 3: FINISH**\n-   After the loop is complete, gather all the individual JSON reports from each call in STEP 2 into a single array and output it as your final result."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -2320,
+        560
+      ],
+      "id": "6d7495bc-fa0a-4d69-99be-92b050059191",
+      "name": "AI Agent",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Map for AI agent').item.json.user_message }}",
+        "contextWindowLength": 1
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -2480,
+        840
+      ],
+      "id": "8885fea0-1f3d-4e56-95d9-c7ae4350eb05",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const bannerObj = $('Loop Over Items').first();\nreturn {\n  json: {\n    ...bannerObj.json,\n    report: $input.first().json.output\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1880,
+        600
+      ],
+      "id": "4feac55c-07e0-439c-91fa-1be01975d34f",
+      "name": "Concat bannerObj + report1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        820
+      ],
+      "id": "f4732884-f3e3-44b9-ba1f-37689f417901",
+      "name": "Auto-fixing Output Parser1"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"id\": \"id of image_object\",\n    \"report\": {\n      \"extracted_text\": \"Full raw text extracted from the image, exactly as it appears\",\n      \"issues_found\": [\n        {\n          \"type\": \"spelling | grammar | punctuation | speech | style\",\n          \"original\": \"Text with the issue\",\n          \"suggestion\": \"Suggested correction\",\n          \"comment\": \"Explanation of the issue\"\n        }\n      ],\n      \"final_corrected_version\": \"Fully corrected version of the banner text\"\n    }\n  }\n]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1840,
+        980
+      ],
+      "id": "406e00d7-5177-4c02-b3bb-b22a5f8c76e0",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        980
+      ],
+      "id": "30669489-ebb3-4e45-92be-ba047a88b262",
+      "name": "Google Gemini Chat Model1"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2760,
+        620
+      ],
+      "id": "31b06a37-4ea5-43ff-ab2c-7e84325f5a46",
+      "name": "Wait1",
+      "webhookId": "f1765901-d4c3-409c-b8ab-3f9a3ecfa30b"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Map for AI agent').all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2520,
+        620
+      ],
+      "id": "d19f3d9c-f5aa-4198-95d5-c1a9ff9040ab",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "banners",
+          "mode": "list",
+          "cachedResultName": "banners"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "name": "={{ $json.name }}",
+            "version": "={{ $json.version }}",
+            "report": "={{ $json.report }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "report",
+              "displayName": "report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1680,
+        500
+      ],
+      "id": "85027756-ef39-4c2f-a2ab-99089bfe4a0c",
+      "name": "Save/update banner in db1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -1500,
+        600
+      ],
+      "id": "543fabda-6ae3-4da6-a882-f334d97533dd",
+      "name": "Return all banner obj1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbBanners = $(\"all db banners\").all() || [];\nconst inputBanners = $input.all() || {};\nconst slackInput = $('Slack Trigger').first().json || null;\n\nconst images = [];\nconst newBanners = [];\nconst banners = [];\n\nfor (const banner of inputBanners) {\n  const dbBanner = dbBanners.find(ban => ban.json.id === banner.json.id && ban.json.version === banner.json.version);\n\n  if(!!dbBanner) {\n    banners.push(banner.json);\n  } else {\n    newBanners.push(banner.json);\n    images.push({\n      id: banner.json.id,\n      url: banner.json.thumbnailLink.replace(/=s\\d+/, \"=s560\")\n    });\n  }\n  \n}\n\nconst user_message = slackInput && slackInput.text || '';\n\nreturn {\n  banners,\n  newBanners,\n  images,\n  user_message\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2980,
+        360
+      ],
+      "id": "96cf9399-40db-4118-8b84-ef2d4eb7abe3",
+      "name": "Prepare data",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6ca26205-fd66-4ca5-8872-9b160dc9bd2c",
+              "leftValue": "={{ $json.newBanners }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2760,
+        460
+      ],
+      "id": "77908613-235f-4f51-bcf6-3aa81a6c5619",
+      "name": "Has new banners?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d8c864e5-868e-49f9-b7e6-42fd5f69655b",
+              "name": "images",
+              "value": "={{ $json.images }}",
+              "type": "array"
+            },
+            {
+              "id": "6c52c44a-7bba-4591-9ea3-4c7457df9b1e",
+              "name": "user_message",
+              "value": "={{ $json.user_message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2520,
+        460
+      ],
+      "id": "0eb14a62-ebcb-49b3-b50a-2f8a4f679a1a",
+      "name": "Map for AI agent"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool first to parse the user's message and extract any specific rules or exceptions. Input is the user's message. Output is a JSON with rules.",
+        "workflowId": {
+          "__rl": true,
+          "value": "6AW53Aoyr2Lr43yZ",
+          "mode": "list",
+          "cachedResultName": "Get context for analysis tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('user_message', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "user_message"
+          ],
+          "schema": [
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -2320,
+        840
+      ],
+      "id": "3f458881-c2ae-41b3-88ca-6983520c8716",
+      "name": "get_context_for_analysis"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to perform a detailed analysis of a single image banner. It downloads the image, extracts text, and checks for errors according to its internal rules and any specific user context provided. Inputs are 'image_object' (JSON) and 'user_context' (JSON). Returns a single JSON report.",
+        "workflowId": {
+          "__rl": true,
+          "value": "w4yrO16FquB6ALmJ",
+          "mode": "list",
+          "cachedResultName": "Process single image tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "image_object": "={{ $fromAI('image_object', {}, 'json') }}",
+            "user_context": "={{ $fromAI('user_context', {}, 'json') }}"
+          },
+          "matchingColumns": [
+            "user_message"
+          ],
+          "schema": [
+            {
+              "id": "user_context",
+              "displayName": "user_context",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "image_object",
+              "displayName": "image_object",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -2160,
+        840
+      ],
+      "id": "775f6d43-27f7-4360-aace-42f96f5aea23",
+      "name": "process_single_image_tool"
+    }
+  ],
+  "connections": {
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Create Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and check text": {
+      "main": [
+        [
+          {
+            "node": "Concat bannerObj + report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concat bannerObj + report": {
+      "main": [
+        [
+          {
+            "node": "Save/update banner in db",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Return all banner obj",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare report columns": {
+      "main": [
+        [
+          {
+            "node": "Output to google sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output to google sheet": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Parse and check text",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Sheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare report columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Parse and check text",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse and check text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "all db banners": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Get only png",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has db banner": {
+      "main": [
+        [
+          {
+            "node": "Map fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save/update banner in db": {
+      "main": [
+        [
+          {
+            "node": "Return all banner obj",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Has google drive link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has google drive link": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "all db banners",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is not google drive link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has images": {
+      "main": [
+        [
+          {
+            "node": "Only first",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Start process",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get only png": {
+      "main": [
+        [
+          {
+            "node": "Has images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only first": {
+      "main": [
+        [
+          {
+            "node": "Prepare data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Concat bannerObj + report1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concat bannerObj + report1": {
+      "main": [
+        [
+          {
+            "node": "Save/update banner in db1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Return all banner obj1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save/update banner in db1": {
+      "main": [
+        [
+          {
+            "node": "Return all banner obj1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data": {
+      "main": [
+        [
+          {
+            "node": "Has new banners?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has new banners?": {
+      "main": [
+        [
+          {
+            "node": "Map for AI agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map for AI agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_context_for_analysis": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process_single_image_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "8c5194f9-e3c6-4054-9d90-3c3e56d79e07",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:03.548Z",
+      "updatedAt": "2025-08-28T14:31:03.548Z",
+      "role": "workflow:owner",
+      "workflowId": "LFq7GC8PRrQt762E",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
