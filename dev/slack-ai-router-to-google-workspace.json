@@ -1,0 +1,342 @@
+{
+  "createdAt": "2025-08-21T12:22:48.969Z",
+  "updatedAt": "2025-08-23T14:35:44.361Z",
+  "id": "aoNMkg1ejRUvPLrV",
+  "name": "Slack AI Router to Google Workspace",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "eventTypes": [
+          "message"
+        ],
+        "authentication": "webhook"
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        300
+      ],
+      "id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+      "name": "Slack Trigger",
+      "webhookId": "slack-webhook-id-123"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Ты - интеллектуальный помощник, который анализирует входящие сообщения из Slack и принимает решение о том, куда сохранить информацию.\n\nПравила принятия решения:\n1. Если сообщение содержит структурированные данные (числа, метрики, таблицы, списки с данными, статистику) - сохраняй в Google Sheets\n2. Если сообщение содержит текстовую информацию (заметки, идеи, описания, документацию, инструкции) - сохраняй в Google Docs\n\nПри сохранении:\n- Для Google Sheets: извлеки структурированные данные и подготовь их для таблицы\n- Для Google Docs: отформатируй текст для документа с заголовком и содержимым\n\nВсегда объясняй свое решение."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "id": "b2c3d4e5-f6g7-8h9i-0j1k-l2m3n4o5p6q7",
+      "name": "AI Agent Analyzer"
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI Agent для маршрутизации данных\n\nЭтот агент анализирует сообщения из Slack и автоматически определяет:\n- **Google Sheets** - для структурированных данных\n- **Google Docs** - для текстовой информации\n\nНе забудьте настроить учетные данные для всех сервисов!",
+        "height": 200,
+        "width": 300,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        60
+      ],
+      "id": "c3d4e5f6-g7h8-9i0j-1k2l-m3n4o5p6q7r8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-3.5-sonnet",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        0,
+        500
+      ],
+      "id": "d4e5f6g7-h8i9-0j1k-2l3m-n4o5p6q7r8s9",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "openrouter-creds",
+          "name": "OpenRouter API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        500
+      ],
+      "id": "e5f6g7h8-i9j0-1k2l-3m4n-o5p6q7r8s9t0",
+      "name": "Memory Buffer"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"decision\": {\n      \"type\": \"string\",\n      \"enum\": [\"sheets\", \"docs\"],\n      \"description\": \"Decision where to save: sheets or docs\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Explanation of the decision\"\n    },\n    \"title\": {\n      \"type\": \"string\",\n      \"description\": \"Title for the document or sheet\"\n    },\n    \"content\": {\n      \"type\": \"string\",\n      \"description\": \"Formatted content to save\"\n    },\n    \"data\": {\n      \"type\": \"array\",\n      \"description\": \"Structured data for sheets (if applicable)\",\n      \"items\": {\n        \"type\": \"object\"\n      }\n    }\n  },\n  \"required\": [\"decision\", \"reason\", \"title\", \"content\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        500
+      ],
+      "id": "f6g7h8i9-j0k1-2l3m-4n5o-p6q7r8s9t0u1",
+      "name": "Output Parser"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Сохранить структурированные данные в Google Sheets",
+        "method": "spreadsheets.values.append",
+        "sheetId": "{spreadsheetId}",
+        "range": "A1",
+        "options": {
+          "valueInputOption": "USER_ENTERED"
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "spreadsheetId",
+              "description": "ID таблицы Google Sheets",
+              "type": "string"
+            },
+            {
+              "name": "values",
+              "description": "Данные для вставки в таблицу",
+              "type": "json"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolGoogleSheets",
+      "typeVersion": 1,
+      "position": [
+        360,
+        420
+      ],
+      "id": "g7h8i9j0-k1l2-3m4n-5o6p-q7r8s9t0u1v2",
+      "name": "Google Sheets Tool",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-creds",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Сохранить текстовую информацию в Google Docs",
+        "documentId": "{documentId}",
+        "operation": "append",
+        "content": "{content}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "documentId",
+              "description": "ID документа Google Docs",
+              "type": "string"
+            },
+            {
+              "name": "content",
+              "description": "Текст для добавления в документ",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolGoogleDocs",
+      "typeVersion": 1,
+      "position": [
+        360,
+        580
+      ],
+      "id": "h8i9j0k1-l2m3-4n5o-6p7q-r8s9t0u1v2w3",
+      "name": "Google Docs Tool",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "google-docs-creds",
+          "name": "Google Docs OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## ⚙️ Настройка Slack\n\n1. Создайте Slack App\n2. Включите Event Subscriptions\n3. Добавьте URL вебхука из n8n\n4. Подпишитесь на событие `message.channels`\n5. Установите приложение в workspace",
+        "height": 180,
+        "width": 250,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -450,
+        240
+      ],
+      "id": "i9j0k1l2-m3n4-5o6p-7q8r-s9t0u1v2w3x4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## 📊 Google Sheets\n\nСюда сохраняются:\n- Числовые данные\n- Метрики и KPI\n- Таблицы\n- Списки с данными\n- Статистика",
+        "height": 150,
+        "width": 200,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        380
+      ],
+      "id": "j0k1l2m3-n4o5-6p7q-8r9s-t0u1v2w3x4y5",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## 📝 Google Docs\n\nСюда сохраняются:\n- Заметки и идеи\n- Описания проектов\n- Документация\n- Инструкции\n- Текстовые отчеты",
+        "height": 150,
+        "width": 200,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        540
+      ],
+      "id": "k1l2m3n4-o5p6-7q8r-9s0t-u1v2w3x4y5z6",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 🔑 Необходимые настройки\n\n**Учетные данные:**\n- Slack Webhook URL\n- OpenRouter API ключ\n- Google OAuth2 (Sheets + Docs)\n\n**Параметры:**\n- ID таблицы Google Sheets\n- ID документа Google Docs",
+        "height": 200,
+        "width": 280,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        520
+      ],
+      "id": "l2m3n4o5-p6q7-8r9s-0t1u-v2w3x4y5z6a7",
+      "name": "Sticky Note5"
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory Buffer": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Docs Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent Analyzer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "Europe/Moscow"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "806b13e6-e3cc-4c83-b357-f05eb7d4fac4",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:46.599Z",
+      "updatedAt": "2025-08-28T14:32:46.599Z",
+      "role": "workflow:owner",
+      "workflowId": "aoNMkg1ejRUvPLrV",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
