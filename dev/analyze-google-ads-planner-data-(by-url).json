@@ -1,0 +1,343 @@
+{
+  "createdAt": "2025-06-20T09:38:50.543Z",
+  "updatedAt": "2025-09-02T11:21:47.741Z",
+  "id": "rmfZMKKdI3okqshT",
+  "name": "Analyze Google ads planner data (by url)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=BUSINESS_GOAL: {{ $json.buissenes_goal }}",
+        "options": {
+          "systemMessage": "=You are an elite data analyst specializing in marketing. Your task is to analyze the keywords dump from Google ads planner data (by url) and leave only the top 50 (or less) keywords that are suitable for achieving our business goal. Also, before starting the analysis, familiarize yourself with the semantic profile of our target site.\n\nMandatory Tool Usage:\n\nTool 1: \"Target site semantic profile data from MongoDB\"\n\nTool 2: \"Google ads planner data (by url) from MongoDB\".\n\nTool 3: \"Message to Slack\"\n\nIMPORTANT: You MUST use ALL tools before starting the analysis.\n\nGive the final result in the format of an array of the top 50 (or less) lines from Google ads planner data (by url)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1408,
+        -128
+      ],
+      "id": "2be06f75-def7-420c-869b-38433767a252",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp-01-21",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        144
+      ],
+      "id": "c3f86c7b-3b41-45c7-9fdf-a3047489fe7b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}\n",
+        "contextWindowLength": 20
+      },
+      "id": "c6e9b50e-10bd-4972-8df5-c5e95d4b0a69",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1472,
+        144
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need target site semantic profile from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('When Executed by Another Workflow').item.json.session }}\", \"context.target_site_semantic_profile\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1888,
+        384
+      ],
+      "id": "79256209-5895-4b64-93d6-4656704dcf31",
+      "name": "Target site semantic profile data from MongoDB",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Context from DB tools\n\n\n",
+        "height": 280,
+        "width": 620,
+        "color": 4
+      },
+      "id": "bcb11e26-ab8b-496a-ad79-b356587e4f24",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1648,
+        288
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need Google ads planner data (by url) from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('When Executed by Another Workflow').item.json.session }}\", \"context.google_ads_keyword_by_url\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        384
+      ],
+      "id": "36a47a5d-eaf4-4dc7-92ee-8d49b9849c23",
+      "name": "Google ads planner data (by url) from MongoDB. ",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      output: $('AI Agent').first().json.output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        -128
+      ],
+      "id": "41eba4a1-54b4-409b-9ff3-66edf4461133",
+      "name": "Result message"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "target_site"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "buissenes_goal"
+            },
+            {
+              "name": "user"
+            },
+            {
+              "name": "timestamp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        -128
+      ],
+      "id": "0a9b1764-2211-440f-ba19-ddacca8ee3f8",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool at the end when you need to send a task status to a user in Slack.",
+        "workflowId": {
+          "__rl": true,
+          "value": "nOllcQNjNiWnBW1P",
+          "mode": "list",
+          "cachedResultName": "Message to Slack"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('message', `The task execution status (for example: \"Analyze Google ads planner data (by url) is ready.\" or \"Analyze Google ads planner data (by url) is failed.\")`, 'string') }}",
+            "user": "={{ $('When Executed by Another Workflow').first().json.user }}",
+            "timestamp": "={{ $('When Executed by Another Workflow').first().json.timestamp }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        144
+      ],
+      "id": "89037497-5e67-4c68-b305-cc7f1ce7cf0c",
+      "name": "Message to Slack"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target site semantic profile data from MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google ads planner data (by url) from MongoDB. ": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Result message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message to Slack": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "target_site": "https://www.dizzain.com",
+          "session": "1752657733.899859",
+          "buissenes_goal": "attract similar high-profile clients who are interested in our services",
+          "user": "U01QLUNCNF4",
+          "timestamp": "1752657736.104179"
+        }
+      }
+    ]
+  },
+  "versionId": "5c3f6b73-be41-485d-b1fa-b79420514d46",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:48.051Z",
+      "updatedAt": "2025-08-28T14:34:48.051Z",
+      "role": "workflow:owner",
+      "workflowId": "rmfZMKKdI3okqshT",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
