@@ -1,0 +1,949 @@
+{
+  "createdAt": "2025-06-25T09:17:13.242Z",
+  "updatedAt": "2025-09-02T11:19:55.554Z",
+  "id": "zb0hue3qs7xCv247",
+  "name": "Parse site pages",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -80
+      ],
+      "id": "1be2b4ea-0853-415e-9ca2-b8e0978256f1",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        80
+      ],
+      "id": "e355b032-5e72-44df-9acd-46cf82541f8f",
+      "name": "Wait",
+      "webhookId": "b8616969-291d-4061-be2b-b58e070024ad"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- ШАГ 1: Извлечение уникальных ссылок из Sitemap ---\n\nconst sitemapLinks = new Set(); // Используем Set для автоматической дедупликации внутри sitemap\n\n// Цикл для перебора входных данных, содержащих sitemap\nfor (const item of $input.all()) {\n  const sitemapXmlString = item.json.data;\n\n  if (sitemapXmlString && typeof sitemapXmlString === 'string') {\n    const urlBlockRegex = /<url>([\\s\\S]*?)<\\/url>/gs;\n    let urlMatch;\n    while ((urlMatch = urlBlockRegex.exec(sitemapXmlString)) !== null) {\n      const urlBlockContent = urlMatch[1];\n      const locRegex = /<loc>([^<]+)<\\/loc>/;\n      const locMatch = urlBlockContent.match(locRegex);\n      const link = locMatch ? locMatch[1].trim() : null;\n\n      if (link) {\n        sitemapLinks.add(link); // Добавляем ссылку в Set\n      }\n    }\n  } else {\n    throw new Error(\"Sitemap content not found or is not a string in item.json.data\");\n  }\n}\n\n// --- ШАГ 2: Фильтрация ссылок из Базы Данных ---\n\n// Получаем все элементы из узла \"All db camps\"\nconst all_db_items = $('All db camps').all();\n\n// Объект для хранения самой \"свежей\" записи для каждого уникального ID программы\nconst latestDbItems = {};\n\n// Регулярное выражение для извлечения числового ID из конца URL\nconst programIdRegex = /\\/(\\d+)$/;\n\nfor (const db_item of all_db_items) {\n  // **ВАЖНО**: Убедитесь, что поля в ваших данных называются 'link' и 'id'\n  const link = db_item.json.link;\n  const id = db_item.json.id; // ID записи, по которому определяем \"свежесть\"\n\n  // Проверяем, что ссылка и id существуют\n  if (!link || id === undefined) {\n    continue; // Пропускаем элемент, если в нем нет ссылки или id\n  }\n\n  const match = link.match(programIdRegex);\n  const programId = match ? match[1] : null; // Извлекаем ID из URL (e.g., '155767')\n\n  // Если не удалось извлечь ID из URL, пропускаем эту запись\n  if (!programId) {\n    continue;\n  }\n\n  // Логика определения самой \"свежей\" записи:\n  // Если мы еще не видели запись с таким programId, ИЛИ\n  // если текущая запись имеет больший 'id', чем уже сохраненная,\n  // то мы сохраняем/перезаписываем ее как самую свежую.\n  if (!latestDbItems[programId] || id > latestDbItems[programId].id) {\n    latestDbItems[programId] = { id: id, link: link };\n  }\n}\n\n// Теперь извлекаем только ссылки из отфильтрованных \"свежих\" записей\nconst filteredDbLinks = Object.values(latestDbItems).map(item => item.link);\n\n\n// --- ШАГ 3 и 4: Объединение и финальная дедупликация ---\n\n// Создаем объединенный массив: сначала ссылки из БД, потом из сайтмэпа\nconst allLinks = [...filteredDbLinks, ...sitemapLinks];\n\n// Используем Set для удаления любых дубликатов между двумя источниками.\n// Например, если одна и та же ссылка была и в БД, и в sitemap.\nconst uniqueLinks = [...new Set(allLinks)];\n\n\n// --- ФОРМАТИРОВАНИЕ ВЫХОДНЫХ ДАННЫХ ---\n\n// Преобразуем массив уникальных ссылок в требуемый формат для следующего узла\nreturn uniqueLinks.map(link => ({ json: { link: link } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -32
+      ],
+      "id": "85a13230-c2b4-4ed9-985e-2a7180c4b241",
+      "name": "Parse and create JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const filteredData = ($input.all() || []).filter(item => item.json.link.includes('/programs/'));\nreturn filteredData.map(item => ({ json: { link: item.json.link } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "de8bddad-f5b0-4d74-91eb-304b284280e4",
+      "name": "Get only programs",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "batchSize": 24,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        528,
+        48
+      ],
+      "id": "874d1801-6c2f-4bd8-8596-69b7e6ae0b73",
+      "name": "Loop Over Items",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const links = $input.all() || [];\nconst dbCamps = $(\"All db camps\").all();\nconst dbCampsObj = {};\n\nfor (const dbCamp of dbCamps) {\n  dbCampsObj[dbCamp.json.link] = dbCamp.json;\n}\n\nconst date = new Date().toDateString();\n\nreturn links.filter(link => {\n  const camp = dbCampsObj[link.json.link];\n  if(!camp) return true;\n  if(!camp.parsedDate) return true;\n  return new Date(camp.parsedDate).toDateString() !== date;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        144
+      ],
+      "id": "929f4aae-297e-491a-a811-489481cc42a5",
+      "name": "Remove today parsed links",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "returnAll": true,
+        "options": {
+          "outputColumns": [
+            "id",
+            "link",
+            "parsedDate"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -672,
+        -64
+      ],
+      "id": "2c2debd8-d9ff-41f6-8750-a8097cc9006f",
+      "name": "All db camps",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "guKVmeN2CuQNmXi0",
+          "name": "i9 db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.i9sports.com/sitemap.xml",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "Fetch sitemap.xml",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -64
+      ],
+      "id": "cbba1aba-7080-4663-8ec1-164747bb4c3d",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const allDBCamps = $(\"All db camps\").all() || [];\nconst sitemapCamps = $(\"Get only programs\").all() || [];\n\nconst sitemapCampsObj = {};\n\nfor (const camp of sitemapCamps) {\n  sitemapCampsObj[camp.json.link] = camp.json;\n}\n\nconst toDisable = allDBCamps.filter(camp => {\n  return !sitemapCampsObj[camp.json.link];\n})\n\nreturn toDisable;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        288
+      ],
+      "id": "aa1aec4f-f17e-4e41-931c-6680a7c12994",
+      "name": "Camps no exist in sitemap"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "isProgramAvailable": false,
+            "id": "={{ $json.id }}",
+            "parsedDate": "={{ DateTime.now() }}",
+            "is404": true
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "isProgramAvailable",
+              "displayName": "isProgramAvailable",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "programStatus",
+              "displayName": "programStatus",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sportName",
+              "displayName": "sportName",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sportsOffered",
+              "displayName": "sportsOffered",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "indoors",
+              "displayName": "indoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "outdoors",
+              "displayName": "outdoors",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "gendersPlaying",
+              "displayName": "gendersPlaying",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zipCode",
+              "displayName": "zipCode",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "parsedDate",
+              "displayName": "parsedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is404",
+              "displayName": "is404",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        288
+      ],
+      "id": "5d18e83f-7c67-4eea-b06b-c3d6d6622319",
+      "name": "Disable camp",
+      "credentials": {
+        "postgres": {
+          "id": "guKVmeN2CuQNmXi0",
+          "name": "i9 db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac",
+          "mode": "list",
+          "cachedResultName": "test_i9",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 908348503,
+          "mode": "list",
+          "cachedResultName": "transformed",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit#gid=908348503"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        752,
+        -192
+      ],
+      "id": "f3139e09-e1c0-4454-b647-436bdd3668d9",
+      "name": "Google Sheets",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac",
+          "mode": "list",
+          "cachedResultName": "test_i9",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 908348503,
+          "mode": "list",
+          "cachedResultName": "transformed",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit#gid=908348503"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "isProgramAvailable",
+              "displayName": "isProgramAvailable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "programStatus",
+              "displayName": "programStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sportName",
+              "displayName": "sportName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sportsOffered",
+              "displayName": "sportsOffered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "indoors",
+              "displayName": "indoors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "outdoors",
+              "displayName": "outdoors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gendersPlaying",
+              "displayName": "gendersPlaying",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "zipCode",
+              "displayName": "zipCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "parsedDate",
+              "displayName": "parsedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is404",
+              "displayName": "is404",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1200,
+        -192
+      ],
+      "id": "815c8b61-4865-46d9-afa3-999c392929d8",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac",
+          "mode": "list",
+          "cachedResultName": "test_i9",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "link"
+          ],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        384,
+        -96
+      ],
+      "id": "c39cbcfc-0daf-468f-b019-61b2c4383573",
+      "name": "Google Sheets3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        976,
+        -192
+      ],
+      "id": "3288eff6-2c50-411e-96b8-c14d7790b7ac",
+      "name": "All db camps1",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "guKVmeN2CuQNmXi0",
+          "name": "i9 db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac",
+          "mode": "list",
+          "cachedResultName": "test_i9",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kfIVicSGvyX30uHIkwRhMdFm9JEflz1vvVN7DtE1Zac/edit#gid=0"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        304,
+        -240
+      ],
+      "id": "295d4dfd-dd91-45d8-854e-8c14c00caf6d",
+      "name": "Clear sheet",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tQt4ajKj1wslcpuk",
+          "mode": "list",
+          "cachedResultName": "Parse some links"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "links": "={{ $input.all().map(link => link.json) }}",
+            "db_links": "={{$('All db camps').all()}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "db_links",
+              "displayName": "db_links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        752,
+        0
+      ],
+      "id": "c01eeb34-887e-4963-8992-59aeb43a4acf",
+      "name": "Execute Workflow",
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "All db camps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and create JSON": {
+      "main": [
+        [
+          {
+            "node": "Get only programs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get only programs": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove today parsed links": {
+      "main": [
+        []
+      ]
+    },
+    "All db camps": {
+      "main": [
+        [
+          {
+            "node": "Fetch sitemap.xml",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch sitemap.xml": {
+      "main": [
+        [
+          {
+            "node": "Parse and create JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camps no exist in sitemap": {
+      "main": [
+        [
+          {
+            "node": "Disable camp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "All db camps1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All db camps1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "1504f470-4a63-4e29-acf3-71ab467f84d5",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:36:24.523Z",
+      "updatedAt": "2025-08-28T14:36:24.523Z",
+      "role": "workflow:owner",
+      "workflowId": "zb0hue3qs7xCv247",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
