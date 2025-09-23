@@ -1,0 +1,733 @@
+{
+  "createdAt": "2025-08-12T07:10:24.308Z",
+  "updatedAt": "2025-09-02T11:20:03.892Z",
+  "id": "XFZMdgKL9gETo8GC",
+  "name": "Multiagent flow (new)",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c34c65d2-6544-43be-8e44-fdbd3fb47ab2",
+              "leftValue": "={{ $json.user }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "bf6211a4-d0e7-49b6-a6c0-fa46dd037dda",
+              "leftValue": "={{ $json.bot_id }}",
+              "rightValue": "<@U090XKWTV6F>",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "dec27438-59ed-4f54-8d4c-3fa5b273ec86",
+              "leftValue": "={{ $json.parent_user_id }}",
+              "rightValue": "U090XKWTV6F",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -720,
+        224
+      ],
+      "id": "2658d79d-67bd-4975-a88c-7d80ae9ef317",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$('Slack Trigger').first().json.text}}",
+        "options": {
+          "systemMessage": "=Ты - высококвалифицированный специалист по маркетинговой стратегии роста с обширным опытом. Твоя задача - помочь пользователям генерировать эффективные ключевые слова для их веб-сайтов. Работа разбита на этапы, и после каждого этапа необходимо получить подтверждение пользователя перед переходом к следующему.\n\n**Порядок взаимодействия:**\n\n1.  **Получение данных от пользователя:**\n    *   Пользователь предоставляет следующую информацию:\n        *   URL веб-сайта.\n        *   Язык целевой аудитории и географию компании.\n        *   Цель компании (например, увеличение продаж, привлечение трафика, повышение узнаваемости бренда).\n        *   *Дополнительный контекст (необязательно):*  существующее семантическое ядро, информация о конкурентах и т.д.\n\n2.  **Проверка наличия обязательной информации:**\n    *   Если URL веб-сайта, язык и география, или цель компании не предоставлены, запроси эту информацию у пользователя. Без этих данных ты не сможешь эффективно выполнить свою работу.\n\n3.  **Этапы работы (с обязательным запросом подтверждения пользователя после каждого этапа):**\n\n    *   **Этап 1: Сбор ядра семантики (keyword seeds).**\n        *   Используй доступные инструменты: \"Generate semantic profile for target site\" и \"Analyze competitors\".\n        *   Примени свои профессиональные знания и опыт в маркетинге и данной индустрии.\n        *   Представь пользователю полученный список ключевых слов и запроси подтверждение или необходимость внесения изменений.\n\n    *   **Этап 2: Расширение ядра семантики за счет близких и далеких синонимов.**\n        *   Используй различные техники расширения ключевых слов (например, мозговой штурм, анализ связанных терминов).\n        *   Представь пользователю расширенный список ключевых слов и запроси подтверждение или необходимость внесения изменений.\n\n    *   **Этап 3: Пробивка расширенного ядра через Google Ads Keyword Planner и сбор информации.**\n        *   Обязательно используй инструмент \"Suggestion from keywordPlanner\".\n        *   Представь пользователю информацию о собранных ключевых словах и запроси подтверждение или необходимость внесения изменений. (это будет очень большой обьем данных, ты представляешь юзеру только ссылку на таблицу)\n\n\n4.  **Обратная связь и корректировки:**\n    *   Внимательно изучи комментарии и запросы пользователя.\n    *   Используй инструмент \"Modify result tool\" для внесения необходимых изменений в итоговую таблицу.\n    *   Предоставь пользователю обновленную таблицу.",
+          "maxIterations": 30
+        }
+      },
+      "id": "0a515861-2f87-4a13-a893-e99b18c40ff5",
+      "name": "Orchestrator agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -400,
+        224
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{$('Slack Trigger').first().json.thread_ts}}",
+        "contextWindowLength": 50
+      },
+      "id": "76ba2b1f-a672-4a8b-9e6e-97ec54a093ef",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -576,
+        624
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "description": "Вызывайте этот инструмент, когда вам нужно создать семантический профиль для целевого сайта.",
+        "workflowId": {
+          "__rl": true,
+          "value": "19H8guu0c0bV91GO",
+          "mode": "list",
+          "cachedResultName": "Generate semantic profile for target site (new)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "session": "={{$('Slack Trigger').first().json.thread_ts}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        432
+      ],
+      "id": "9941e5c1-bf36-4605-b993-bd1fd89057d8",
+      "name": "Generate semantic profile for target site"
+    },
+    {
+      "parameters": {
+        "description": "Вызывайте этот инструмент, когда вам нужно проанализировать конкурентов.",
+        "workflowId": {
+          "__rl": true,
+          "value": "5d9OfFJK6OG15U8R",
+          "mode": "list",
+          "cachedResultName": "Analyze competitors (new)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', `Сайт для которого мы должны подобрать ключевые слова`, 'string') }}",
+            "session": "={{$('Slack Trigger').first().json.thread_ts}}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', `Основная цель нашей компании`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        448
+      ],
+      "id": "775a4527-a3b4-4fb3-a330-5c9a46c83114",
+      "name": "Analyze competitors"
+    },
+    {
+      "parameters": {
+        "content": "## Collect data from external sources tools\n\n\n",
+        "height": 280,
+        "width": 580,
+        "color": 5
+      },
+      "id": "158d2401-6481-4959-824d-ca5bb0623706",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -16,
+        672
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Analyze data with AI tools\n\n\n",
+        "height": 280,
+        "width": 620,
+        "color": 4
+      },
+      "id": "69cefa4a-226d-46fd-b1eb-ba527094e44c",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -784,
+        1008
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need to analyze Google ads keyword (by keywords) data with help AI tool.",
+        "workflowId": {
+          "__rl": true,
+          "value": "x5ygFSWAyMytmaz2",
+          "mode": "list",
+          "cachedResultName": "Analyze Google ads planner data (by keywords)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_site": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('target_site', ``, 'string') }}",
+            "buissenes_goal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('buissenes_goal', ``, 'string') }}",
+            "session": "={{ $json.output.sessionId }}",
+            "user": "={{ $('Slack Trigger').first().json.user }}",
+            "timestamp": "={{ $('Slack Trigger').first().json.ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "target_site",
+              "displayName": "target_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "buissenes_goal",
+              "displayName": "buissenes_goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -720,
+        1104
+      ],
+      "id": "8bde015b-5657-4b93-8b18-ae85470531fa",
+      "name": "Analyze Google ads planner data (by keywords)"
+    },
+    {
+      "parameters": {
+        "content": "## Analyze initial user input tools\n\n\n",
+        "height": 280,
+        "width": 580,
+        "color": 6
+      },
+      "id": "c41efbe0-58b3-458f-ae91-ffa7ebd3bba8",
+      "name": "Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when you need a suggestion from keywordPlanner by keywords.",
+        "workflowId": {
+          "__rl": true,
+          "value": "VsnrVNr7vq5qTjip",
+          "mode": "list",
+          "cachedResultName": "Suggestion from keywordPlanner by keywords (new)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "seeds": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('seeds', `Здесь должен быть финальный массив keywords (стартовый список + расширенный) `, 'string') }}",
+            "country": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('country', `Код страны в которой ведётся компания (например США - US, Польша - PL) `, 'string') }}",
+            "language": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('language', `Код языка компании (например английский - en, польский - pl)`, 'string') }}",
+            "session": "={{$('Slack Trigger').first().json.thread_ts}}",
+            "brand": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('brand', `Название бренда нашего таргет сайта`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "seeds",
+              "displayName": "seeds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "brand",
+              "displayName": "brand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        768
+      ],
+      "id": "f9693542-6978-4a22-abb0-686c7a9a7203",
+      "name": "Suggestion from keywordPlanner"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.output }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').first().json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        112,
+        176
+      ],
+      "id": "3309e102-ff14-4324-8793-e626a03189e8",
+      "name": "Send a message",
+      "webhookId": "15c63d76-4241-47a0-bbc4-abb25241b304",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        208
+      ],
+      "id": "28689c1c-9310-4465-9de4-1012ef6b20ed",
+      "name": "Slack Trigger",
+      "webhookId": "57c8059b-482c-417d-9399-36b75a23cd31",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5",
+          "mode": "list",
+          "cachedResultName": "gpt-5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        528
+      ],
+      "id": "99a86fbc-0ab5-4370-978c-e0d30f4ab598",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        464
+      ],
+      "id": "16b6ecdf-08a5-4428-bdd8-ce4d8c596193",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Используй этот инструмент, когда пользователь просит внести правки в таблицу с ключевыми словами.",
+        "workflowId": {
+          "__rl": true,
+          "value": "eA7ZffJVG3B86Pc6",
+          "mode": "list",
+          "cachedResultName": "Modify result tool (new)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session": "={{$('Slack Trigger').first().json.thread_ts}}",
+            "brand": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('brand', `Название бренда нашего таргет сайта`, 'string') }}",
+            "task": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task', `Сформулируй, что нужно исправить в текущей таблице`, 'string') }}",
+            "sheet_link": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sheet_link', `Ссылка на таблицу`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "brand",
+              "displayName": "brand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "task",
+              "displayName": "task",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sheet_link",
+              "displayName": "sheet_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -272,
+        752
+      ],
+      "id": "7763efad-26d4-478e-b448-bbf60620084c",
+      "name": "Modify result tool"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate semantic profile for target site": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze competitors": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Google ads planner data (by keywords)": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Suggestion from keywordPlanner": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modify result tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "75e1de16-c4aa-4452-b378-f74b2c4a4e88",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:27.358Z",
+      "updatedAt": "2025-08-28T14:32:27.358Z",
+      "role": "workflow:owner",
+      "workflowId": "XFZMdgKL9gETo8GC",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
