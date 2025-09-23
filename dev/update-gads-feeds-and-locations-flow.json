@@ -1,0 +1,3953 @@
+{
+  "createdAt": "2025-06-25T09:02:01.765Z",
+  "updatedAt": "2025-09-02T11:20:30.766Z",
+  "id": "r3eo0SdPBve9b69b",
+  "name": "Update gAds feeds and locations flow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        528
+      ],
+      "id": "05399469-fb1f-4fdd-8b64-f68f7aa02166",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"x4a0TMYbaSw1SCXSFrtRyQ\",\n    \"mccCustomerId\": \"1331716219\",\n    \"customerId\": \"4242419290\",\n    \"version\": \"v18\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        624
+      ],
+      "id": "62e1a5d2-1f4a-41c0-bde2-1d8c43a33742",
+      "name": "Google ads additional keys"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campaignsRaw = $('Final campaigns').all() || [];\nconst locations = $('All Locations').first().json.results || [];\nconst elementsRaw = $input.all() || [];\n\nconst companies = {};\n\n// Инициализация компаний с добавлением resourceName\nfor (const comp of campaignsRaw) {\n  companies[comp.json.campaign.name.toLowerCase()] = {\n    ...comp.json.campaign,\n    resourceName: comp.json.campaign.resourceName,\n    elements: [],\n    skippedICamps: [],\n    campaignsResourceNames: []  // для хранения resourceName каждой компании\n  };\n}\n\nconst tempStorage = {};\n\n// Группируем элементы по компании и координатам с новой логикой\nfor (const elemItem of elementsRaw) {\n  const elem = elemItem.json || elemItem;\n  const companyNames = elem.campaigns || [];\n  if (!companyNames.length) continue;\n\n  const coordKey = !!elem.coordinatesArr.length ? elem.coordinatesArr.join(',') : '__NO_COORDS__';\n\n  // Для каждого элемента добавляем resourceName в campaignsResourceNames\n  for (const companyName of companyNames) {\n    if (!tempStorage[companyName]) {\n      tempStorage[companyName] = {};\n    }\n\n    if (!tempStorage[companyName][coordKey]) {\n      tempStorage[companyName][coordKey] = {\n        allElems: []\n      };\n    }\n\n    // Добавляем resourceName компании в поле campaignsResourceNames\n    companies[companyName].campaignsResourceNames.push(companies[companyName].resourceName);\n    tempStorage[companyName][coordKey].allElems.push(elem);\n  }\n}\n\n// Применяем логику отбора по координатам\nfor (const [companyName, coordsMap] of Object.entries(tempStorage)) {\n  const company = companies[companyName];\n\n  for (const [coordKey, elemsGroup] of Object.entries(coordsMap)) {\n    const allElems = elemsGroup.allElems;\n\n    if (coordKey === '__NO_COORDS__') {\n      // Все элементы с отсутствующими координатами кладём сразу в skipped\n      company.skippedICamps.push(...allElems);\n      continue; // Переходим к следующей координате\n    }\n\n    // Проверяем, есть ли хотя бы один с action = enable\n    const hasEnable = allElems.some(e => (e.action || '').toLowerCase() === 'enable');\n\n    if (hasEnable) {\n      // Оставляем первый элемент с action=enable\n      const firstEnable = allElems.find(e => (e.action || '').toLowerCase() === 'enable');\n      company.elements.push(firstEnable);\n\n      // Остальные с одинаковыми координатами и action=disable — убираем компанию\n      for (const e of allElems) {\n        if (e !== firstEnable) {\n          e.campaigns = e.campaigns.filter(c => c.toLowerCase() !== companyName.toLowerCase());\n          company.skippedICamps.push(e);\n        }\n      }\n\n      // Проверяем условие для action = enable\n      // Если action = enable, то в locations не должно быть элемента с такими координатами и campaign равным resourceName компании\n      const locationMatchForEnable = locations.find(location =>\n        location.campaignCriterion.campaign === company.resourceName &&\n        location.campaignCriterion.proximity.geoPoint.latitudeInMicroDegrees === firstEnable.coordinatesArr[0] &&\n        location.campaignCriterion.proximity.geoPoint.longitudeInMicroDegrees === firstEnable.coordinatesArr[1]\n      );\n      if (locationMatchForEnable) {\n        firstEnable.campaigns = firstEnable.campaigns.filter(c => c !== companyName);  // Убираем компанию из списка кампаний\n      }\n\n    } else {\n      // Все с action=disable — оставляем первого disable\n      const firstDisable = allElems.find(e => (e.action || '').toLowerCase() === 'disable');\n      company.elements.push(firstDisable);\n\n      // Остальные в skipped\n      for (const e of allElems) {\n        if (e !== firstDisable) {\n          e.campaigns = e.campaigns.filter(c => c.toLowerCase() !== companyName.toLowerCase());\n          company.skippedICamps.push(e);\n        }\n      }\n\n      // Проверяем условие для action = disable\n      // Если action = disable, то в locations должен быть элемент с такими координатами и campaign равным resourceName компании\n      const locationMatchForDisable = locations.find(location =>\n        location.campaignCriterion.campaign === company.resourceName &&\n        location.campaignCriterion.proximity.geoPoint.latitudeInMicroDegrees === firstDisable.coordinatesArr[0] &&\n        location.campaignCriterion.proximity.geoPoint.longitudeInMicroDegrees === firstDisable.coordinatesArr[1]\n      );\n      if (!locationMatchForDisable) {\n        firstDisable.campaigns = firstDisable.campaigns.filter(c => c !== companyName);  // Убираем компанию из списка кампаний\n      }\n    }\n  }\n}\n\n// Возвращаем обновлённые элементы, с учётом фильтрации по кампаниям\nreturn elementsRaw.map(elem => {\n  // Обновляем каждый элемент и фильтруем его кампании\n  const updatedElem = elem.json || elem;\n  updatedElem.campaigns = updatedElem.campaigns.filter(campaignName =>\n    companies[campaignName.toLowerCase()] && companies[campaignName.toLowerCase()].elements.includes(updatedElem)\n  );\n  return { json: updatedElem };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        880
+      ],
+      "id": "d6bd49a7-97f0-4a15-95c0-f18095262adf",
+      "name": "Prepare data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map((item) => {\n  const json = item.json;\n\n  const output = {\n    url: json.link,\n    action: !json.status || json.status === 'false' ? \"disable\" : \"enable\",\n    ...json,\n  };\n\n  delete output.link;\n  delete output.status;\n  \n  return output;\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        624
+      ],
+      "id": "7d5fdc99-68c5-4e0f-a448-dcd3ce22b9cc",
+      "name": "Format google data"
+    },
+    {
+      "parameters": {
+        "content": "**Получение всех компании для дальнейших node",
+        "height": 80,
+        "width": 180
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        432
+      ],
+      "typeVersion": 1,
+      "id": "8648c7a2-a18b-4f2f-936c-a80266af6da4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "**Получение данных из google sheet\n**Фильтрация их - остаются только те, у которых последнее изменение было в течении суток\n**Приведение данных к нужному формату для работы автоматизации",
+        "height": 100,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        432
+      ],
+      "typeVersion": 1,
+      "id": "bfdbc578-e827-4a3b-81ee-3d6167a55bf6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "**Пропуск фидов, которые уже имеют актуальное состояние\n**Создание asset в фиде, если pageURL отсутствует в фиде\n**Удаление asset из фида, если pageURL присутствует в фиде",
+        "height": 140,
+        "width": 380
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2704,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "764c2778-08da-48d1-a6dd-8fd97425c9f3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "**Пропуск локаций, которые уже имеют актуальное состояние\n**Удаление локации\n**Добавление локации с привязкой к компании",
+        "height": 120,
+        "width": 360
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2704,
+        1088
+      ],
+      "typeVersion": 1,
+      "id": "470f4ed7-8abf-46eb-a98a-203605dd8775",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "**Подготовка данных. На выходе список с компаниями, которые содержат элементы с локациями, которые нужно добавить или удалить, а также пропустить, если есть элемент в этой же компании для которого нужно сделать обратное действие.\n\nА именно, удаляется в случае, если в рамках компании у всех элементов с одинаковой координатой action=disable, и наоборот добавляется, если хотя бы у одного элемента с этой координатой стоит action=enable",
+        "height": 200,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1440,
+        640
+      ],
+      "typeVersion": 1,
+      "id": "c63190a7-fdbd-4625-af59-1f8c02ed5609",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "returnAll": true,
+        "options": {
+          "outputColumns": [
+            "link",
+            "sport",
+            "status",
+            "season",
+            "coordinates",
+            "begins",
+            "google_ads_synced",
+            "id",
+            "additional_feeds",
+            "additional_companies",
+            "overnight",
+            "google_ads_feed_url_status",
+            "google_ads_location_status"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        832,
+        624
+      ],
+      "id": "cbd53cc1-17b7-4943-a9d3-77e08cc064d7",
+      "name": "Get current camps from DB",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "output": "empty"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        624
+      ],
+      "id": "cfb4187e-a560-41d1-a121-048db96417a4",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 521302124,
+          "mode": "list",
+          "cachedResultName": "all-companies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I/edit#gid=521302124"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -64,
+        544
+      ],
+      "id": "13f6e271-49a4-4bbc-be79-af9fefc48b5d",
+      "name": "Allowed campaigns",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const campaigns = $('gAds campaigns').first().json.results || [];\nconst allowedCampaigns = $input.all() || [];\n\n// Преобразуем данные из второго массива в нижний регистр для более удобного сравнения\nconst campaignNamesSet = allowedCampaigns.map(item => item.json[\"campaign-name\"].toLowerCase());\n\n// Фильтруем элементы из первого массива, где campaign.name совпадает с campaign-name из второго массива\nconst filteredCampaigns = campaigns.filter(item => \n  campaignNamesSet.includes(item.campaign.name.toLowerCase())\n);\n\n// Возвращаем результат\nreturn filteredCampaigns;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        544
+      ],
+      "id": "53da7de9-ccf6-49a6-bc29-7fff97d5c29d",
+      "name": "Final campaigns",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $json.googleAdsKeys.version }}/customers/{{$json.googleAdsKeys.customerId}}/googleAds:search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"SELECT campaign.resource_name, campaign.name FROM campaign\"\n}",
+        "options": {}
+      },
+      "id": "c97fa510-c8cd-4603-b1ab-82fc0c5c9064",
+      "name": "gAds campaigns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        544
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "jVY9cQYLpHSQs86d",
+          "mode": "list",
+          "cachedResultName": "Get feeds assets"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        720
+      ],
+      "id": "fbdac944-1813-4dd6-ba29-e9b73ef8f07b",
+      "name": "Get all feeds",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5ebbf716-6d99-4fac-9b96-22f89a842903",
+              "leftValue": "={{ $json.feedResourceNames }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        208
+      ],
+      "id": "7be3482a-55a1-4067-a22d-056e3317174e",
+      "name": "Empty feednames"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "03c4f883-497e-4b60-93dc-21da0880a60b",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "disable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "fe876989-ab16-4332-9063-c757489f762c",
+              "leftValue": "={{ $json.feedResourceNames }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        368
+      ],
+      "id": "9689fc2e-8880-4f14-827b-25d44484acdc",
+      "name": "Camps to remove from feeds"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst allFeeds = $('Final feeds').first().json.feeds || {};\nconst allFeedNames = Object.keys(allFeeds);\n\nreturn items.map((item) => {\n  const json = item.json || item;\n  const additionalFeedNames = !!json.additional_feeds ? json.additional_feeds.split(',') : [];\n  let feedNames = [...additionalFeedNames];\n  let assetSetAssets = [];\n  if(json.action === 'disable') {\n    feedNames = allFeedNames.filter((feedName) => {\n      const assetSetAsset = !!allFeeds[feedName] && allFeeds[feedName].assetSetAssets.find((asset) => asset.pageURL.replace(/\\/$/, '') === json.url.replace(/\\/$/, ''));\n      assetSetAsset && assetSetAssets.push(assetSetAsset);\n      return !!assetSetAsset;\n    });\n  } else {\n    const dateStart = new Date(json.begins);\n    const seasons = json.season.split(',').map(item => item.replace(/[{}]/g, ''));\n    for (const season of seasons) {\n      const generatedFeedName = `${dateStart.getFullYear()} ${json.sport} ${season}`.toLowerCase();\n      const existFeedName = allFeedNames.find(name => name.toLocaleLowerCase() === generatedFeedName)\n      if(!!existFeedName) {\n        feedNames.push(existFeedName)\n      }\n    }\n\n    feedNames = feedNames.filter((feedName) => {\n      return allFeeds[feedName] && !allFeeds[feedName].assetSetAssets.find((asset) => asset.pageURL.toLowerCase().replace(/\\/$/, '') === json.url.toLowerCase().replace(/\\/$/, ''));\n    })\n  }\n\n  const feedResourceNames = feedNames.map(name => allFeeds[name].resourceName);\n\n  return {\n    ...json,\n    feedResourceNames,\n    feedNames,\n    assetSetAssets\n  }\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        368
+      ],
+      "id": "db99ba5d-2e9d-46ae-b4b1-053d39b5643e",
+      "name": "Add feednames for camp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/assetSetAssets:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6a8735b7-0287-474d-b8a5-e8c67591605b",
+      "name": "Remove asset from AssetSet1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2512,
+        368
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps = $input.all() || [];\nconst operations = [];\nconst campIds = [];\n\nfor (const camp of camps) {\n  campIds.push(camp.json.id)\n  for (const assetSetAsset of camp.json.assetSetAssets) {\n    operations.push({\n      \"remove\": assetSetAsset.resourceName\n    });\n  }\n}\n\n\nreturn {\n  json: {\n    operations,\n    campIds\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        368
+      ],
+      "id": "dbce1333-e880-43df-9b8d-bb2602cc53dc",
+      "name": "Prepare remove url operations"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "03c4f883-497e-4b60-93dc-21da0880a60b",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "enable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "fe876989-ab16-4332-9063-c757489f762c",
+              "leftValue": "={{ $json.feedResourceNames }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        528
+      ],
+      "id": "73bd7326-2796-4053-9b90-9ac754f13fc3",
+      "name": "Camps to add to feeds"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps = $input.all() || [];\nconst operations = [];\nconst operationsMap = [];\nconst campIds = [];\n\nfor (const camp of camps) {\n  campIds.push(camp.json.id);\n  operationsMap.push(camp.json.feedResourceNames);\n  operations.push({\n    \"create\": {\n      \"page_feed_asset\": {\n        \"page_url\": camp.json.url,\n        \"labels\": [camp.json.sport]\n      }\n    }\n  });\n}\n\n\nreturn {\n  json: {\n    operations,\n    operationsMap,\n    campIds\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        528
+      ],
+      "id": "f0f13bb0-decf-4b1f-82c7-305efc6a00a9",
+      "name": "Prepare add url operations"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/assets:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "97ce219a-a5be-473b-9ab2-dcb9908dd140",
+      "name": "Create asset1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2512,
+        528
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/assetSetAssets:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "70701daf-8aa3-4140-ba7c-4f3f12b88a3f",
+      "name": "Add asset to AssetSet1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2944,
+        528
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const assets = $input.first().json.results || [];\nconst operationsMap = $('Prepare add url operations').first().json.operationsMap || [];\n\nconst operations = assets.map((asset, key) => {\n  return operationsMap[key].map(feedResourceName => {\n    return {\n    \"create\": {\n      \"assetSet\": feedResourceName,\n      \"asset\": asset.resourceName\n    }\n  }\n  })\n})\n\n\nreturn {\n  json: {\n    operations: operations.flat()\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        528
+      ],
+      "id": "e201e4ba-afb5-49b4-ac71-b000bb6347db",
+      "name": "Prepare operations to connect asset with assetSet"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "google_ads_feed_url_status": "=removed",
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        368
+      ],
+      "id": "8e1f2b2c-11cd-43cd-a149-f1730c031ff1",
+      "name": "set feed removed status",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "google_ads_feed_url_status": "=added",
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3392,
+        528
+      ],
+      "id": "f03deaf5-a9ee-418a-be9e-d74d2218a801",
+      "name": "set feed added status",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $('Prepare add url operations').first().json.campIds || [];\n\nreturn ids.map(id => {\n  return {id}\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3168,
+        528
+      ],
+      "id": "ebbea50c-de18-4b66-a8c8-ce94af4619e3",
+      "name": "Prepare added ids"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $('Prepare remove url operations').first().json.campIds || [];\n\nreturn ids.map(id => {\n  return {id}\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        368
+      ],
+      "id": "14bc8606-4d0b-4246-982e-2ead9615cd3a",
+      "name": "Prepare remove ids"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst compaignsRaw = $('Final campaigns').all() || [];\nconst allCompaignsNames = compaignsRaw.map(comp => comp.json.campaign.name.toLowerCase());\n\nfunction findCompanyKeyBySport(sport) {\n  if (sport === '') {\n    return [];\n  }\n  sport = sport.toLowerCase()\n  if(sport === 'football') {\n    return allCompaignsNames.filter(companyName => companyName.includes(sport) && !companyName.includes('flag_football'));\n  }\n  return allCompaignsNames.filter(companyName => companyName.includes(sport));\n}\n\nfunction isCompanyNameExist(name) {\n  return allCompaignsNames.includes(name.toLowerCase());\n}\n\n\nreturn items.map((item) => {\n  const json = item.json || item;\n  const sportName = json.sport.replace(/[\\s-]+/g, '_');\n  const additionalCampaigns = (!!json.additional_companies ? json.additional_companies.split(',') : []).filter(name => isCompanyNameExist(name));\n  const campaigns = findCompanyKeyBySport(sportName).filter(name => json.overnight ? true : !name.includes('_overnight') );\n\n  const coordinatesSplitted = json.coordinates && json.coordinates.split(',') || [];\n  const coordinatesArr = coordinatesSplitted.length === 2 && coordinatesSplitted.map(coord => Math.round(+coord * 1_000_000)) || [];\n\n  return {\n    ...json,\n    coordinatesArr,\n    campaigns: [...campaigns, ...additionalCampaigns]\n  }\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        880
+      ],
+      "id": "c0aedde6-3a94-4c8f-95fa-66c0bb4d8a81",
+      "name": "Add campaigns for camp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campaigns = $input.all() || [];\n\nreturn {\n  json: {\n    resourceNames: campaigns.map(campaign => `'${campaign.json.campaign.resourceName}'`) \n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        544
+      ],
+      "id": "ad7d9c75-b98f-47fe-8ea2-a93db3b84b6d",
+      "name": "Campaigns resourceNames"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{$('Google ads additional keys').first().json.googleAdsKeys.customerId}}/googleAds:searchStream",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT campaign_criterion.resource_name, campaign_criterion.campaign, campaign_criterion.proximity.geo_point.longitude_in_micro_degrees, campaign_criterion.proximity.geo_point.latitude_in_micro_degrees FROM campaign_criterion WHERE campaign_criterion.type = PROXIMITY AND campaign_criterion.status = ENABLED AND campaign_criterion.campaign IN ({{ $json.resourceNames }})\"\n}",
+        "options": {}
+      },
+      "id": "079b9079-8b03-4079-8005-60853160748e",
+      "name": "All Locations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        432,
+        544
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "11375df2-40cb-490f-8576-2e260bd60c52",
+              "leftValue": "={{ $json.google_ads_feed_url_status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "93b643e8-3b06-4f9f-b678-26edef10d2f5",
+              "leftValue": "={{ $json.google_ads_synced }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "fbb0a7ea-7961-458d-96e8-ec1ad12741d5",
+              "leftValue": "={{ $json.google_ads_feed_url_status }}",
+              "rightValue": "NULL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1408,
+        368
+      ],
+      "id": "945cd435-b825-45ce-b646-b4a2840c9fbd",
+      "name": "Elems to update"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a976ea7-b0ff-4238-8286-efa3e9ca2c9c",
+              "leftValue": "={{ $json.campaigns }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        1072
+      ],
+      "id": "1a977770-838c-42f6-ad95-c7c98e4c24c8",
+      "name": "Empty locations"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true,
+            "google_ads_location_status": "skipped"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2512,
+        1072
+      ],
+      "id": "584776af-d306-4e5a-b2bb-082ef5ca6122",
+      "name": "set location skipped status3",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true,
+            "google_ads_feed_url_status": "skipped"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2512,
+        208
+      ],
+      "id": "1cb3a571-e36f-41e0-bbcf-9a552ebc70f4",
+      "name": "set feed skipped status",
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a976ea7-b0ff-4238-8286-efa3e9ca2c9c",
+              "leftValue": "={{ $json.google_ads_synced }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "df2fb779-836e-4d43-89b6-8bbf23a6690e",
+              "leftValue": "={{ $json.google_ads_location_status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2ebdf20e-9d30-4930-9613-0a8290ef9753",
+              "leftValue": "={{ $json.google_ads_location_status }}",
+              "rightValue": "NULL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        880
+      ],
+      "id": "6bc3aa17-2b78-404d-865f-b7da322c6a15",
+      "name": "Elems to update1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a976ea7-b0ff-4238-8286-efa3e9ca2c9c",
+              "leftValue": "={{ $json.campaigns }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5ee9494c-3e07-4f82-936b-b99d422b0a71",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "enable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        752
+      ],
+      "id": "2efde9cb-5756-4ff4-8471-3bba3a60612b",
+      "name": "Camps to add locations"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps = $input.all() || [];\nconst campaignsRaw = $('Final campaigns').all() || [];\nconst operations = [];\nconst campIds = [];\n\nfor (const camp of camps) {\n  campIds.push(camp.json.id)\n  \n  for (const campaignName of camp.json.campaigns) {\n    const campaignObj = campaignsRaw.find(camp => camp.json.campaign.name.toLowerCase() === campaignName);\n    campaignObj && operations.push({\n      \"create\": {\n        \"campaign\": campaignObj.json.campaign.resourceName,\n        \"proximity\": {\n          \"radius\": 15,\n          \"radius_units\": \"MILES\",\n          \"geo_point\": {\n            \"latitude_in_micro_degrees\": camp.json.coordinatesArr[0],\n            \"longitude_in_micro_degrees\": camp.json.coordinatesArr[1]\n          }\n        },\n        \"status\": \"ENABLED\"\n      }\n    });\n  }\n}\n\n\nreturn {\n  json: {\n    operations,\n    campIds\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        752
+      ],
+      "id": "e9c17c20-e4f1-42fa-a682-4b7c1d718572",
+      "name": "Prepare add locations"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/campaignCriteria:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0161bf8f-1218-4d7e-8b09-5e150f19f8c1",
+      "name": "Add locations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2512,
+        752
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps = $input.all() || [];\nconst campaignsRaw = $('Final campaigns').all() || [];\nconst locations = $('All Locations').first().json.results || [];\nconst operations = [];\nconst campIds = [];\n\nfor (const camp of camps) {\n  campIds.push(camp.json.id)\n  \n  for (const campaignName of camp.json.campaigns) {\n    const campaignObj = campaignsRaw.find(camp => camp.json.campaign.name.toLowerCase() === campaignName);\n    const location = campaignObj && locations.find(location =>\n      location.campaignCriterion.campaign === campaignObj.json.campaign.resourceName &&\n      location.campaignCriterion.proximity.geoPoint.latitudeInMicroDegrees === camp.json.coordinatesArr[0] &&\n      location.campaignCriterion.proximity.geoPoint.longitudeInMicroDegrees === camp.json.coordinatesArr[1]\n    );\n    location && operations.push({\n      \"remove\": location.campaignCriterion.resourceName\n    });\n  }\n}\n\n\nreturn {\n  json: {\n    operations,\n    campIds\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        912
+      ],
+      "id": "c89235ab-c749-4fcb-942f-2b8d97c1d90f",
+      "name": "Prepare remove locations"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/campaignCriteria:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "12929888-0530-4551-a28c-bc7f5d9ed3d4",
+      "name": "Remove locations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2512,
+        912
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $('Prepare add locations').first().json.campIds || [];\n\nreturn ids.map(id => {\n  return {id}\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        752
+      ],
+      "id": "dfd90655-5590-456f-bee3-2bcd8110e6aa",
+      "name": "Prepare add loc ids"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true,
+            "google_ads_location_status": "added"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        752
+      ],
+      "id": "727afa16-c272-40e8-91cc-701cae2ac68c",
+      "name": "set location added status",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $('Prepare remove locations').first().json.campIds || [];\n\nreturn ids.map(id => {\n  return {id}\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        912
+      ],
+      "id": "6a14e372-d9c3-462f-8e56-23cf0416c983",
+      "name": "Prepare remove loc ids"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "camps",
+          "mode": "list",
+          "cachedResultName": "camps"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "google_ads_synced": true,
+            "google_ads_location_status": "removed"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport",
+              "displayName": "sport",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "zip",
+              "displayName": "zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "street_address",
+              "displayName": "street_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "region",
+              "displayName": "region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "add_to_cart",
+              "displayName": "add_to_cart",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "class",
+              "displayName": "class",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "begins",
+              "displayName": "begins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ends",
+              "displayName": "ends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "minAge",
+              "displayName": "minAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "maxAge",
+              "displayName": "maxAge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "camp",
+              "displayName": "camp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "modification_date",
+              "displayName": "modification_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sport_code",
+              "displayName": "sport_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_synced",
+              "displayName": "google_ads_synced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "google_ads_feed_url_status",
+              "displayName": "google_ads_feed_url_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "google_ads_location_status",
+              "displayName": "google_ads_location_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        912
+      ],
+      "id": "e07947ad-a0e0-408a-849c-f84ce6b208e2",
+      "name": "set location remove status",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500,
+      "credentials": {
+        "postgres": {
+          "id": "OvunvY0RH3fVoKBS",
+          "name": "USSC db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a976ea7-b0ff-4238-8286-efa3e9ca2c9c",
+              "leftValue": "={{ $json.campaigns }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5ee9494c-3e07-4f82-936b-b99d422b0a71",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "disable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        912
+      ],
+      "id": "70426ad1-a3ec-46be-9d49-f39b1b17b684",
+      "name": "Camps to remove locations"
+    },
+    {
+      "parameters": {
+        "batchSize": 500,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        1072
+      ],
+      "id": "3e83b63e-bc0d-48b1-9520-2ddce4dfbe00",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "batchSize": 500,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        208
+      ],
+      "id": "0a515768-6f4e-4cae-8204-dfeee56437ef",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const feeds = $('Get all feeds').first().json.feeds || {};\nconst allfeedsName = Object.keys(feeds);\nconst allowedFeeds = ($input.all() || []).map((feed) => feed.json['feed-name']);\n\nfor (const key in feeds) {\n  if(!allowedFeeds.includes(key.toLowerCase())) {\n    delete feeds[key];\n  }\n}\n\n// Возвращаем результат\nreturn {\n  json: {\n    allfeedsName,\n    filteredfeedsName: Object.keys(feeds),\n    feeds: feeds\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        720
+      ],
+      "id": "b5d4a851-b969-445f-8964-3c6c058e741d",
+      "name": "Final feeds"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 436936665,
+          "mode": "list",
+          "cachedResultName": "all-feeds",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1O4Ln7xA-mcWSUvj3dncAbJes2kqAtyByVL4D-SL8k6I/edit#gid=436936665"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        112,
+        720
+      ],
+      "id": "b88d35e5-2d67-4f18-9c0d-de1d97418e5e",
+      "name": "Allowed feeds",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allLocations = $(\"All Locations\").first().json.results || [];\nconst excluded_campaigns = [\"Support_NN_25\"].map(item => item.toLowerCase());\nconst allCampaigns = ($(\"Final campaigns\").all() || []).filter(campaign => {\n  return !excluded_campaigns.includes(campaign.json.campaign.name.toLowerCase());\n});\nconst locationsArr = [];\n\nfor (const loc of allLocations) {\n  const campaign = allCampaigns.find(item => item.json.campaign.resourceName === loc.campaignCriterion.campaign);\n  if(!campaign) continue;\n  locationsArr.push({\n    campaign: campaign?.json,\n    resourceName: loc.campaignCriterion.resourceName,\n    geo: [loc.campaignCriterion.proximity.geoPoint.latitudeInMicroDegrees,loc.campaignCriterion.proximity.geoPoint.longitudeInMicroDegrees]\n  });\n}\n\nconst items = $input.all().map((camp) => {\n  const json = camp.json;\n  const coordinatesSplitted = json.coordinates && json.coordinates.split(',') || [];\n  const coordinatesArr = coordinatesSplitted.length === 2 && coordinatesSplitted.map(coord => Math.round(+coord * 1_000_000)) || [];\n  return {\n    link: json.link,\n    coordinatesArr,\n    campaigns: json.campaigns\n  }\n});\n\nconst diffLocCamp = locationsArr.filter(loc => {\n  return !items.find((camp) => {\n    return loc.geo[0] === camp.coordinatesArr[0] && loc.geo[1] === camp.coordinatesArr[1] && camp.campaigns.includes(loc.campaign.campaign.name.toLowerCase());\n  })\n})\n//   .filter(loc => {\n//   return !items.find((camp) => {\n//     if(camp.coordinatesArr.length < 2) return false;\n//     return loc.geo[0].toString().slice(0, 4) === camp.coordinatesArr[0].toString().slice(0, 4) && loc.geo[1].toString().slice(0, 4) === camp.coordinatesArr[1].toString().slice(0, 4);\n//   })\n// })\n\n\n\n// const diffLocCamp = locationsArr.filter(loc => {\n//   return !items.find((camp) => {\n//     return loc[0] === camp.coordinatesArr[0] && loc[1] === camp.coordinatesArr[1];\n//   })\n// }).map(loc => {\n//   return {\n//     loc: loc,\n//     relatedCamps: items.filter((camp) => {\n//       if(camp.coordinatesArr.length !== 2) return false;\n//       return loc[0].toString().slice(0, 4) === camp.coordinatesArr[0].toString().slice(0, 4) && loc[1].toString().slice(0, 4) === camp.coordinatesArr[1].toString().slice(0, 4);\n//     })\n//   }\n// })\n\n// const diffLocCamp = items.filter(camp => {\n//   const json = camp.json;\n//   const coordinatesSplitted = json.coordinates && json.coordinates.split(',') || [];\n//   const coordinatesArr = coordinatesSplitted.length === 2 && coordinatesSplitted.map(coord => Math.round(+coord * 1_000_000)) || [];\n\n//   return !!locationsArr.find((loc) => loc[0] === coordinatesArr[0] && loc[1] === coordinatesArr[1])\n  \n// })\n\nreturn {\n  json: {\n    length: diffLocCamp.length,\n    items: diffLocCamp,\n    allCampaigns\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1264
+      ],
+      "id": "f4abfe21-acb2-45ef-a9b7-cfd2d2eb6f54",
+      "name": "Locations list not it DB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const operations = [];\nconst input = $input.first().json;\n\nfor (const location of input.items) {\n  operations.push({\n    \"remove\": location.resourceName\n  });\n}\n\n\nreturn {\n  json: {\n    operations\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        1264
+      ],
+      "id": "90b5fac2-4fd5-4230-8e63-b865a8582afa",
+      "name": "Prepare remove locations1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{ $('Google ads additional keys').first().json.googleAdsKeys.customerId }}/campaignCriteria:mutate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "={{ $json.operations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4998ca68-3314-4041-8efc-d9a0b18cfcf7",
+      "name": "Remove locations1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        1264
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{$('Google ads additional keys').first().json.googleAdsKeys.customerId}}/googleAds:searchStream",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT campaign_criterion.resource_name, campaign_criterion.campaign, campaign_criterion.proximity.geo_point.longitude_in_micro_degrees, campaign_criterion.proximity.geo_point.latitude_in_micro_degrees FROM campaign_criterion WHERE campaign_criterion.type = PROXIMITY AND campaign_criterion.status = ENABLED AND campaign_criterion.campaign IN ('{{ $json.resourceNames }}')\"\n}",
+        "options": {}
+      },
+      "id": "206b3f75-63ea-4949-a90d-f3ead3c8a203",
+      "name": "All Locations1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        432,
+        64
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://googleads.googleapis.com/{{ $('Google ads additional keys').first().json.googleAdsKeys.version }}/customers/{{$('Google ads additional keys').first().json.googleAdsKeys.customerId}}/googleAds:searchStream",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAdsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "login-customer-id",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.mccCustomerId }}"
+            },
+            {
+              "name": "developer-token",
+              "value": "={{ $('Google ads additional keys').first().json.googleAdsKeys.developerToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"SELECT campaign_criterion.resource_name, campaign_criterion.campaign, campaign_criterion.proximity.geo_point.longitude_in_micro_degrees, campaign_criterion.proximity.geo_point.latitude_in_micro_degrees FROM campaign_criterion WHERE campaign_criterion.type = PROXIMITY AND campaign_criterion.status = ENABLED AND campaign_criterion.campaign IN ('customers/2400614295/campaigns/22683876219')\"\n}",
+        "options": {}
+      },
+      "id": "9d9e2dab-3691-498c-a1f6-344d373c8074",
+      "name": "All Locations2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -48,
+        -96
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleAdsOAuth2Api": {
+          "id": "ttyhreBK4xRNot0S",
+          "name": "google@dizzain gads API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        192,
+        -96
+      ],
+      "id": "377124ed-38e3-4833-b6a3-cdd5cf6c5267",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "function findDifferenceFromFirst(arrays) {\n  // Если на вход ничего не пришло или только один массив\n  if (!arrays || arrays.length === 0) {\n    return [];\n  }\n  if (arrays.length === 1) {\n    return arrays[0];\n  }\n\n  // 1. Деструктурируем массив: firstArray - первый, otherArrays - все остальные\n  const [firstArray, ...otherArrays] = arrays;\n\n  // 2. Создаем Set со всеми элементами, которые нужно исключить\n  const elementsToExclude = new Set();\n  for (const arr of otherArrays) {\n    for (const item of arr) {\n      elementsToExclude.add(item);\n    }\n  }\n\n  // 3. Фильтруем первый массив: оставляем только те элементы,\n  //    которых нет в нашем Set'е для исключения.\n  const result = firstArray.filter(item => !elementsToExclude.has(item));\n  \n  // Чтобы вернуть только уникальные значения из первого массива, можно сделать так:\n  // return [...new Set(result)];\n  // Но обычно требуется сохранить дубликаты из первого массива, если они были.\n  // Например, для [[1, 1, 2], [2]] результат должен быть [1, 1]\n\n  return result;\n}\n\n// --- Пример использования ---\nconst listOfLists = ($input.all() || []).map(arr => {\n  return arr.json.results.map(item => Object.values(item.campaignCriterion.proximity.geoPoint).join('|'))\n})\n\nconst diff = findDifferenceFromFirst(listOfLists);\n\nreturn {\n  json: {\n    listOfLists,\n    listLengts: listOfLists.map(arr => arr.length),\n    diff\n  }  \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -96
+      ],
+      "id": "345ae91c-b310-4fa0-9c61-e866020fab20",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    resourceNames: [\"customers/2400614295/campaigns/22683876210\", \"customers/2400614295/campaigns/22638391862\", \"customers/2400614295/campaigns/22638339812\"]\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        64
+      ],
+      "id": "d899e206-5902-45fd-8b23-24ac3a8f7f97",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        160,
+        64
+      ],
+      "id": "145bac4f-e5d1-4b4f-9f91-398cdbffb529",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "resourceNames",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        64
+      ],
+      "id": "a6396e71-205b-4213-9126-0520e2cf5f46",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "92deab3b-7e06-4103-939b-9fcc1c3a434a",
+              "leftValue": "={{ $json.operations }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        1264
+      ],
+      "id": "33b2c9aa-b5c2-4b10-ab61-4c680e84ef1d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"googleAdsKeys\": {\n    \"developerToken\": \"vNsmUkml55K8cqbmUzxKiw\",\n    \"mccCustomerId\": \"6234909705\",\n    \"customerId\": \"2400614295\",\n    \"version\": \"v18\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        832
+      ],
+      "id": "ad8132b9-2312-4cf5-b855-4de3f4aec7b1",
+      "name": "Google ads additional keys TEST"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "50 1 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        752
+      ],
+      "id": "97a4093d-b2e5-49e1-bb87-c79c30e1d1c6",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google ads additional keys": {
+      "main": [
+        [
+          {
+            "node": "gAds campaigns",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get all feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data": {
+      "main": [
+        [
+          {
+            "node": "Elems to update1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format google data": {
+      "main": [
+        [
+          {
+            "node": "Add campaigns for camp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Elems to update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get current camps from DB": {
+      "main": [
+        [
+          {
+            "node": "Format google data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Get current camps from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed campaigns": {
+      "main": [
+        [
+          {
+            "node": "Final campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final campaigns": {
+      "main": [
+        [
+          {
+            "node": "Campaigns resourceNames",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gAds campaigns": {
+      "main": [
+        [
+          {
+            "node": "Allowed campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all feeds": {
+      "main": [
+        [
+          {
+            "node": "Allowed feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty feednames": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camps to remove from feeds": {
+      "main": [
+        [
+          {
+            "node": "Prepare remove url operations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add feednames for camp": {
+      "main": [
+        [
+          {
+            "node": "Camps to remove from feeds",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Empty feednames",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Camps to add to feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove asset from AssetSet1": {
+      "main": [
+        [
+          {
+            "node": "Prepare remove ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare remove url operations": {
+      "main": [
+        [
+          {
+            "node": "Remove asset from AssetSet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camps to add to feeds": {
+      "main": [
+        [
+          {
+            "node": "Prepare add url operations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare add url operations": {
+      "main": [
+        [
+          {
+            "node": "Create asset1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create asset1": {
+      "main": [
+        [
+          {
+            "node": "Prepare operations to connect asset with assetSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add asset to AssetSet1": {
+      "main": [
+        [
+          {
+            "node": "Prepare added ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare operations to connect asset with assetSet": {
+      "main": [
+        [
+          {
+            "node": "Add asset to AssetSet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare added ids": {
+      "main": [
+        [
+          {
+            "node": "set feed added status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare remove ids": {
+      "main": [
+        [
+          {
+            "node": "set feed removed status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add campaigns for camp": {
+      "main": [
+        [
+          {
+            "node": "Locations list not it DB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campaigns resourceNames": {
+      "main": [
+        [
+          {
+            "node": "All Locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Locations": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elems to update": {
+      "main": [
+        [
+          {
+            "node": "Add feednames for camp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty locations": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set location skipped status3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set feed skipped status": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elems to update1": {
+      "main": [
+        [
+          {
+            "node": "Camps to add locations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Camps to remove locations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Empty locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camps to add locations": {
+      "main": [
+        [
+          {
+            "node": "Prepare add locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare add locations": {
+      "main": [
+        [
+          {
+            "node": "Add locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add locations": {
+      "main": [
+        [
+          {
+            "node": "Prepare add loc ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare remove locations": {
+      "main": [
+        [
+          {
+            "node": "Remove locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove locations": {
+      "main": [
+        [
+          {
+            "node": "Prepare remove loc ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare add loc ids": {
+      "main": [
+        [
+          {
+            "node": "set location added status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare remove loc ids": {
+      "main": [
+        [
+          {
+            "node": "set location remove status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camps to remove locations": {
+      "main": [
+        [
+          {
+            "node": "Prepare remove locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "set location skipped status3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "set feed skipped status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Allowed feeds": {
+      "main": [
+        [
+          {
+            "node": "Final feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Locations list not it DB": {
+      "main": [
+        [
+          {
+            "node": "Prepare remove locations1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare remove locations1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Locations1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Locations2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All Locations1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Remove locations1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google ads additional keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {
+    "When clicking ‘Test workflow’": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "versionId": "633d4248-9cd3-46e1-bd9c-6268eaad6a62",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:40.503Z",
+      "updatedAt": "2025-08-28T14:34:40.503Z",
+      "role": "workflow:owner",
+      "workflowId": "r3eo0SdPBve9b69b",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
