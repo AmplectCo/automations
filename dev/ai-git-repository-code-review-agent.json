@@ -1,0 +1,590 @@
+{
+  "createdAt": "2025-08-20T10:56:53.977Z",
+  "updatedAt": "2025-08-23T14:35:11.445Z",
+  "id": "LJYalrNStceXElB5",
+  "name": "AI Git Repository Code Review Agent",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ],
+      "id": "chat-trigger-node",
+      "name": "When chat message received",
+      "webhookId": "git-review-agent-webhook"
+    },
+    {
+      "parameters": {
+        "content": "## Git Repository Code Review Agent\nThis AI agent analyzes pull requests, reviews code changes, and helps you decide which commits to accept",
+        "height": 200,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        80
+      ],
+      "id": "sticky-note-1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are an expert code review assistant specializing in analyzing Git repositories and pull requests. Your responsibilities include:\n\n1. Fetching and analyzing pull requests from GitHub repositories\n2. Reviewing code changes for quality, security, and best practices\n3. Providing detailed feedback on each commit\n4. Asking the user which commits should be accepted or require changes\n5. Maintaining context of the review process\n\nWhen reviewing code:\n- Check for code quality and readability\n- Identify potential bugs or security issues\n- Suggest improvements and best practices\n- Evaluate test coverage\n- Check for proper documentation\n\nAlways provide clear, actionable feedback and ask for user confirmation before approving commits.\n\nStart by asking the user for the repository URL or name they want to review."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "ai-agent-node",
+      "name": "Code Review AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4-turbo-preview",
+          "mode": "list",
+          "cachedResultName": "GPT-4 Turbo"
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        500
+      ],
+      "id": "llm-node",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "git_review_session_{{ $now.toMillis() }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        300,
+        500
+      ],
+      "id": "memory-node",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "name": "Fetch Pull Requests",
+        "description": "Fetches all open pull requests from a GitHub repository",
+        "workflowId": {
+          "__rl": true,
+          "value": "fetch-prs-workflow",
+          "mode": "id"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "repository",
+              "type": "string",
+              "description": "Repository name in format owner/repo"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        620,
+        500
+      ],
+      "id": "fetch-prs-tool",
+      "name": "Fetch Pull Requests Tool"
+    },
+    {
+      "parameters": {
+        "name": "Analyze Code Changes",
+        "description": "Analyzes code changes in a specific pull request",
+        "workflowId": {
+          "__rl": true,
+          "value": "analyze-code-workflow",
+          "mode": "id"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "pr_number",
+              "type": "number",
+              "description": "Pull request number to analyze"
+            },
+            {
+              "name": "repository",
+              "type": "string",
+              "description": "Repository name in format owner/repo"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        500
+      ],
+      "id": "analyze-code-tool",
+      "name": "Analyze Code Tool"
+    },
+    {
+      "parameters": {
+        "name": "Get Commit Details",
+        "description": "Gets detailed information about specific commits",
+        "workflowId": {
+          "__rl": true,
+          "value": "get-commits-workflow",
+          "mode": "id"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "commit_sha",
+              "type": "string",
+              "description": "SHA of the commit to analyze"
+            },
+            {
+              "name": "repository",
+              "type": "string",
+              "description": "Repository name in format owner/repo"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        500
+      ],
+      "id": "get-commits-tool",
+      "name": "Get Commits Tool"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        760
+      ],
+      "id": "workflow-trigger-1",
+      "name": "Fetch PRs Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "repository",
+        "operation": "getPullRequests",
+        "owner": "={{ $json.repository.split('/')[0] }}",
+        "repository": "={{ $json.repository.split('/')[1] }}",
+        "returnAll": true,
+        "filters": {
+          "state": "open"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        460,
+        760
+      ],
+      "id": "github-fetch-prs",
+      "name": "GitHub - Get Pull Requests",
+      "credentials": {
+        "githubApi": {
+          "id": "github-credentials",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Pull Request Fetcher\nConfigure GitHub credentials here",
+        "height": 140,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        680
+      ],
+      "id": "sticky-note-2",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        960
+      ],
+      "id": "workflow-trigger-2",
+      "name": "Analyze Code Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "getPullRequestFiles",
+        "owner": "={{ $json.repository.split('/')[0] }}",
+        "repository": "={{ $json.repository.split('/')[1] }}",
+        "pullRequestNumber": "={{ $json.pr_number }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        460,
+        960
+      ],
+      "id": "github-get-pr-files",
+      "name": "GitHub - Get PR Files",
+      "credentials": {
+        "githubApi": {
+          "id": "github-credentials",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following code changes:\n\nFiles changed: {{ $json }}\n\nProvide a detailed code review including:\n1. Code quality assessment\n2. Potential bugs or issues\n3. Security concerns\n4. Suggestions for improvement\n5. Overall recommendation",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        960
+      ],
+      "id": "code-analysis-chain",
+      "name": "Code Analysis Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4-turbo-preview",
+          "mode": "list",
+          "cachedResultName": "GPT-4 Turbo"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        1120
+      ],
+      "id": "llm-node-2",
+      "name": "OpenAI Model for Analysis",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Code Analyzer\nAnalyzes PR files and provides detailed review",
+        "height": 140,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        880
+      ],
+      "id": "sticky-note-3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        1300
+      ],
+      "id": "workflow-trigger-3",
+      "name": "Get Commits Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "repository",
+        "operation": "getCommit",
+        "owner": "={{ $json.repository.split('/')[0] }}",
+        "repository": "={{ $json.repository.split('/')[1] }}",
+        "sha": "={{ $json.commit_sha }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        460,
+        1300
+      ],
+      "id": "github-get-commit",
+      "name": "GitHub - Get Commit Details",
+      "credentials": {
+        "githubApi": {
+          "id": "github-credentials",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Commit Analyzer\nFetches detailed commit information",
+        "height": 140,
+        "width": 400,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        1220
+      ],
+      "id": "sticky-note-4",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "commit-review",
+              "name": "review_summary",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        860,
+        960
+      ],
+      "id": "set-review-data",
+      "name": "Set Review Data"
+    },
+    {
+      "parameters": {
+        "content": "## Important Configuration Notes\n\n1. **GitHub Credentials**: Add your GitHub API token in all GitHub nodes\n2. **OpenAI API**: Configure OpenAI API key for AI analysis\n3. **Workflow IDs**: Update the tool workflow IDs to match your actual sub-workflows\n4. **Webhook**: Configure the chat trigger webhook for user interaction\n5. **Memory**: Session-based memory maintains context during review",
+        "height": 200,
+        "width": 500,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        940,
+        80
+      ],
+      "id": "sticky-note-5",
+      "name": "Sticky Note5"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pull Requests Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Code Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Commits Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Code Review AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch PRs Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Get Pull Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Code Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Get PR Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Get PR Files": {
+      "main": [
+        [
+          {
+            "node": "Code Analysis Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model for Analysis": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Code Analysis Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Analysis Chain": {
+      "main": [
+        [
+          {
+            "node": "Set Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Commits Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Get Commit Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "Europe/Moscow"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "065d67a3-a8f0-4868-b68c-4e18cfe0332f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:07.364Z",
+      "updatedAt": "2025-08-28T14:31:07.364Z",
+      "role": "workflow:owner",
+      "workflowId": "LJYalrNStceXElB5",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
