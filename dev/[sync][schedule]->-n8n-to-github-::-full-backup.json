@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-14T19:56:19.917Z",
-  "updatedAt": "2025-09-23T11:28:41.141Z",
+  "updatedAt": "2025-09-23T13:07:42.106Z",
   "id": "CDI4c438qhMBM5kV",
   "name": "[SYNC][schedule] > N8N to Github :: FULL backup",
   "active": false,
@@ -149,7 +149,8 @@
           "id": "7VQNHerCV03uma6z",
           "name": "GitHub account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -367,7 +368,8 @@
         -400,
         544
       ],
-      "typeVersion": 3.4
+      "typeVersion": 3.4,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -712,7 +714,7 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "6d6b0b36-df7d-4d26-a63f-d3b7018a47d4",
+  "versionId": "cea005a3-9085-44b4-b38f-5ef2cf6d7221",
   "triggerCount": 0,
   "shared": [
     {
