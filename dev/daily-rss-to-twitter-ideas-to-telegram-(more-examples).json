@@ -1,0 +1,224 @@
+{
+  "createdAt": "2025-08-24T13:46:06.844Z",
+  "updatedAt": "2025-08-24T13:47:40.258Z",
+  "id": "b7ALEEtRRGGERBvt",
+  "name": "Daily RSS to Twitter Ideas to Telegram (more examples)",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "d4c7b5a2-8e9f-4b3c-a1d2-6f3e8a9b7c5d",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "ЗАМЕНИ_НА_URL_RSS_ЛЕНТЫ",
+        "options": {}
+      },
+      "id": "e8f9c2b1-7a6d-4e5f-b3c8-9d2a1f4e8b7c",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        464,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "f3a8b9c4-2d7e-4f6a-c8b9-3e1d5a7f9c8b",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER_OPENAI_CRED_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Проанализируй следующую статью, сохранив ее оригинальный стиль и тон. На основе этого анализа, сгенерируй ровно 3 уникальные идеи для постов в Twitter. Каждая идея должна быть краткой, цепляющей и готовой к публикации. Не добавляй ничего лишнего, только идеи. Статья для анализа:\n\n---\n\nЗаголовок: {{$json.title}}\n\nСодержание: {{$json.content}}",
+        "options": {}
+      },
+      "id": "c9b8a7f6-3e2d-4c5a-b7a8-2f1e6d8c9a3b",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        736,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "ЗАМЕНИ_НА_СВОЙ_TELEGRAM_CHAT_ID",
+        "text": "=🔥 Новые идеи для Twitter на основе статьи \"{{ $('RSS Feed Read').item.json.title }}\":\n\n{{ $('AI Agent').item.json.output }}",
+        "additionalFields": {}
+      },
+      "id": "a5c8d9b7-1f3e-4b6c-d9a7-8e2f1b4c7d9a",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        272
+      ],
+      "webhookId": "f67ca737-d975-4d11-83bb-e509b6a1d4e5",
+      "credentials": {
+        "telegramApi": {
+          "id": "PLACEHOLDER_TELEGRAM_CRED_ID",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Ежедневный запуск\nВоркфлоу запускается один раз в день (в 9:00) для проверки новых статей.\n\nВы можете изменить время запуска в настройках ноды."
+      },
+      "id": "b2d8e9f1-3a5c-4d7e-a8b9-1f2e3c4d5b6a",
+      "name": "Sticky Note - Schedule",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Чтение RSS-ленты\nПолучение последней статьи из указанной RSS-ленты.\n\n⚠️ Замените 'ЗАМЕНИ_НА_URL_RSS_ЛЕНТЫ' на реальный URL вашей RSS-ленты."
+      },
+      "id": "c3e9f2a1-4b6d-5e8f-b9a7-2f3e4d5c6b7a",
+      "name": "Sticky Note - RSS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        432,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Генерация идей с помощью AI\nИспользование AI для анализа текста статьи и создания трех идей для постов в Twitter.\n\n⚠️ Необходимо настроить учетные данные OpenAI."
+      },
+      "id": "d4f1a3b2-5c7e-6f9a-c1b8-3f4e5d6c7b8a",
+      "name": "Sticky Note - AI",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        672,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Отправка идей в Telegram\nОтправка сгенерированных идей в указанный чат Telegram.\n\n⚠️ Замените 'ЗАМЕНИ_НА_СВОЙ_TELEGRAM_CHAT_ID' на ID вашего чата.\n⚠️ Настройте учетные данные Telegram Bot."
+      },
+      "id": "e5a2b4c3-6d8f-7a1b-d2c9-4f5e6d7c8b9a",
+      "name": "Sticky Note - Telegram",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        976,
+        464
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 3600,
+    "timezone": "Europe/Moscow"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "25f3c60a-c8c7-4547-be44-2874dbe6417f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:54.113Z",
+      "updatedAt": "2025-08-28T14:32:54.113Z",
+      "role": "workflow:owner",
+      "workflowId": "b7ALEEtRRGGERBvt",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
