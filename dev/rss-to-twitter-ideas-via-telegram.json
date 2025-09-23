@@ -1,0 +1,267 @@
+{
+  "createdAt": "2025-08-24T13:25:57.947Z",
+  "updatedAt": "2025-08-24T13:45:39.678Z",
+  "id": "awBztAmdGHVHEFu7",
+  "name": "RSS to Twitter Ideas via Telegram",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "f1a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Ежедневный запуск\\nВоркфлоу запускается автоматически каждый день в 9:00 утра.\\n\\n**Настройка:**\\n- Измените время запуска в параметрах Schedule Trigger\\n- Можно изменить на другой интервал (каждые N часов, определенные дни недели и т.д.)"
+      },
+      "id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+      "name": "Schedule Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        64,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.io/blog/rss/",
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6g7-8h9i-0j1k-l2m3n4o5p6q7",
+      "name": "RSS Feed Reader",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        304,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Получение данных из RSS\\nЭта нода читает RSS-ленту и получает последнюю статью.\\n\\n**Важно настроить:**\\n- Замените URL на адрес вашей RSS-ленты\\n- Текущий URL (n8n.io/blog/rss/) используется как пример"
+      },
+      "id": "c3d4e5f6-g7h8-9i0j-1k2l-m3n4o5p6q7r8",
+      "name": "RSS Configuration",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        256,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "d4e5f6g7-h8i9-0j1k-2l3m-n4o5p6q7r8s9",
+      "name": "Get Full Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        304
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e5f6g7h8-i9j0-1k2l-3m4n-o5p6q7r8s9t0",
+      "name": "Extract Article Text",
+      "type": "n8n-nodes-base.htmlExtract",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AI Генерация идей\\nAI анализирует текст статьи и создает 3 идеи для Twitter.\\n\\n**Настройка credentials:**\\n1. Добавьте OpenAI API Key в credentials\\n2. Можно заменить на другую AI модель (Claude, Gemini и т.д.)\\n3. Промпт уже настроен для генерации качественных идей"
+      },
+      "id": "f6g7h8i9-j0k1-2l3m-4n5o-p6q7r8s9t0u1",
+      "name": "AI Processing",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        864,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "Ты — креативный копирайтер и эксперт по социальным медиа. Твоя задача — анализировать статьи и создавать вирусные идеи для Twitter, которые привлекут внимание и вызовут дискуссию.",
+              "role": "system"
+            },
+            {
+              "content": "Проанализируй следующую статью и создай ровно 3 уникальные идеи для постов в Twitter:\\n\\nЗаголовок: {{ $node['RSS Feed Reader'].json.title }}\\n\\nТекст статьи:\\n{{ $json.text }}\\n\\nТребования:\\n1. Каждая идея должна быть в пределах 280 символов\\n2. Сохрани стиль и тон оригинальной статьи\\n3. Идеи должны быть разнообразными (вопрос к аудитории, интересный факт, провокационное утверждение)\\n4. Добавь релевантные хэштеги\\n5. Сделай посты engaging и shareable\\n\\nФормат ответа:\\nИдея 1: [текст поста]\\n\\nИдея 2: [текст поста]\\n\\nИдея 3: [текст поста]"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "topP": 0.9
+        }
+      },
+      "id": "g7h8i9j0-k1l2-3m4n-5o6p-q7r8s9t0u1v2",
+      "name": "Generate Twitter Ideas",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [
+        912,
+        304
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-creds",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Отправка в Telegram\\nФинальный этап - отправка идей в ваш Telegram.\\n\\n**Необходимо настроить:**\\n1. Создайте бота через @BotFather\\n2. Получите API Token\\n3. Узнайте свой Chat ID (можно через @userinfobot)\\n4. Добавьте эти данные в Telegram credentials"
+      },
+      "id": "h8i9j0k1-l2m3-4n5o-6p7q-r8s9t0u1v2w3",
+      "name": "Telegram Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $credentials.chatId }}",
+        "text": "🔔 *Новые идеи для Twitter*\\n\\n📰 *Оригинальная статья:* {{ $node['RSS Feed Reader'].json.title }}\\n🔗 [Читать полностью]({{ $node['RSS Feed Reader'].json.link }})\\n\\n✨ *Сгенерированные идеи:*\\n\\n{{ $node['Generate Twitter Ideas'].json.message.content }}\\n\\n_Сгенерировано с помощью AI на основе последней статьи из RSS_",
+        "additionalFields": {
+          "disable_web_page_preview": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "i9j0k1l2-m3n4-5o6p-7q8r-s9t0u1v2w3x4",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        304
+      ],
+      "webhookId": "b66a1802-2d75-4a4d-b6b2-16b64ecfd44b",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Reader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Reader": {
+      "main": [
+        [
+          {
+            "node": "Get Full Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Full Article": {
+      "main": [
+        [
+          {
+            "node": "Extract Article Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article Text": {
+      "main": [
+        [
+          {
+            "node": "Generate Twitter Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Twitter Ideas": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 900,
+    "timezone": "Europe/Moscow",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "2e21d0d9-0d07-4f1b-86e6-cfc9185a4490",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:32:50.354Z",
+      "updatedAt": "2025-08-28T14:32:50.354Z",
+      "role": "workflow:owner",
+      "workflowId": "awBztAmdGHVHEFu7",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
