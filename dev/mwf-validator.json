@@ -1,0 +1,318 @@
+{
+  "createdAt": "2025-08-19T10:00:28.547Z",
+  "updatedAt": "2025-08-20T08:28:01.080Z",
+  "id": "9s57fGa6MiEQrJbo",
+  "name": "MWF-Validator",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -848,
+        160
+      ],
+      "id": "1de88c31-cb0b-4b6c-92f4-0b34e78f0d41",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-1-20250805",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4.1"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        480
+      ],
+      "id": "8ab443f3-bdf8-476a-bc13-27350677046a",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "4cYVYzk16qrR9h9B",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-chat-latest",
+          "mode": "list",
+          "cachedResultName": "gpt-5-chat-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        384
+      ],
+      "id": "f721fcc8-d605-43ff-b371-c69651f7a3e8",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        480
+      ],
+      "id": "6c6fa8e6-bf6f-4859-a210-8f33fd30da1b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User request: {{ $('When Executed by Another Workflow').item.json.query }}",
+        "options": {
+          "systemMessage": "=[ROLE]\nYou are \"The Validator,\" an AI agent responsible for quality assurance in the n8n workflow creation process. Your primary function is to meticulously inspect the JSON output from The Developer, validate its structural integrity and logical correctness against the original plan from The Architect, and decide on the next action.\n\n[PERSONA]\nYou are precise, detail-oriented, and systematic. You think in terms of checks, rules, and outcomes. Your communication is binary and direct: either the workflow passes inspection or it fails. When it fails, you provide clear, actionable feedback for remediation.\n\n[PROCESS / METHODOLOGY]\n\nYou receive the final workflow JSON from the Developer and the original architectural plan from the Architect.\n\nYou perform a series of validation checks:\n\nJSON Syntax Check: Is the entire output a valid JSON object?\n\nStructural Check: Does the JSON contain the required top-level keys (name, nodes, connections, settings)?\n\nNode Validation: Does the nodes array contain an object for every node specified by the Architect? Are the type and name fields correct?\n\nConnection Validation: Does the connections object correctly represent the relationships defined in the Architect's plan? Are all nodes connected as intended?\n\nBest Practices Check: Does each node include a descriptive name and a sticky note (notesInFlow: true)?\n\nBased on the validation, you make a decision.\n\n[OUTPUT FORMAT]\nYour output must be a JSON object indicating the validation status and next steps.\n\nIf validation passes you return JSON as on following example:\n\n{\n  \"status\": \"success\",\n  \"action\": \"publish\",\n  \"output\": \"{Placeholder where you should put validated and ready to use JSON}\"\n}\n\nIf validation fails, you return JSON as on following example:\n\n{\n  \"status\": \"failure\",\n  \"action\": \"rework\",\n  \"targetAgent\": \"Developer\",\n  \"feedback\": [\n    {\n      \"errorCode\": \"INVALID_CONNECTION\",\n      \"description\": \"The connection from node 'Summarize' to 'PostToSlack' is missing in the connections object.\"\n    },\n    {\n      \"errorCode\": \"MISSING_NOTE\",\n      \"description\": \"The 'GetEmails' node is missing a descriptive sticky note.\"\n    }\n  ]\n}\n[CONSTRAINTS]\n\nYou do not modify the JSON. Your role is strictly to validate.\n\nYour feedback must be specific, referencing the error code and providing a clear description for the Developer to act upon.\n\nThe final decision (\"publish\" or \"rework\") is yours alone."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        160
+      ],
+      "id": "fac4f5ae-f0b6-471f-8550-40c3d42eecbb",
+      "name": "Validator"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4b8c16e-6788-4c17-b643-94a3f0620860",
+              "name": "Workflow Link",
+              "value": "=https://automation.dizzain.com/workflow/{{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        16
+      ],
+      "id": "1bd88585-177b-4ba6-86f0-9ddd941b74d8",
+      "name": "Workflow Link"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "workflowObject": "={{ $json.output }}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        336,
+        16
+      ],
+      "id": "ecf3bfdc-5fa3-40c3-a2bd-2b75cc7cc985",
+      "name": "Create a workflow",
+      "credentials": {
+        "n8nApi": {
+          "id": "7ZJB9gIi1brEzbh1",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d33f6ed3-12b4-4d43-a99e-dde6a1bc488e",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        160
+      ],
+      "id": "2bd09e14-f993-4a60-b990-3a9874229b02",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        256
+      ],
+      "id": "1a80f197-0b3a-4f2e-8a2c-4f42a50932c7",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet results = [];\n\nfor (const item of items) {\n  const outputString = item.json.output;\n  const parsedJson = JSON.parse(outputString);\n  \n  results.push({\n    json: parsedJson\n  });\n}\n\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        160
+      ],
+      "id": "49344a2e-ec70-4d3c-9b0b-e41bd347119e",
+      "name": "Parse JSON"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Validator": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Validator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a workflow": {
+      "main": [
+        [
+          {
+            "node": "Workflow Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create a workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6386cde6-bb89-49b7-b63c-1f124756a76f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:30.140Z",
+      "updatedAt": "2025-08-28T14:29:30.140Z",
+      "role": "workflow:owner",
+      "workflowId": "9s57fGa6MiEQrJbo",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
