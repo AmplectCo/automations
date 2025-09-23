@@ -1,0 +1,306 @@
+{
+  "createdAt": "2025-06-20T09:40:00.672Z",
+  "updatedAt": "2025-09-02T11:22:04.170Z",
+  "id": "tKgbWWi0efOEPvrY",
+  "name": "Analyze Semrush data",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=BUSINESS_GOAL: {{ $json.buissenes_goal }}",
+        "options": {
+          "systemMessage": "=You are an elite data analyst specializing in marketing. Your task is to analyze the keywords dump from ahrefs.com and leave only the top 50 keywords that are suitable for achieving our business goal. Also, before starting the analysis, familiarize yourself with the semantic profile of our target site.\n\nMandatory Tool Usage:\n\nTool 1: \"Target site semantic profile data from MongoDB\"\n\nTool 2: \"Semrush data from MongoDB\".\n\nIMPORTANT: You MUST use ALL tools before starting the analysis.\n\nGive the final result in the format of an array of the top 50 lines from ahrefs."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1360,
+        -48
+      ],
+      "id": "406a9552-eb3a-4a84-89ed-d6d1f22f7a06",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp-01-21",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        224
+      ],
+      "id": "d486776b-b088-4986-aaf7-9033c9254a17",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ new Date().toISOString().replace(/[^\\w]/g, '') + '-' + Math.floor(Math.random() * 10000) }}\n",
+        "contextWindowLength": 20
+      },
+      "id": "695e3b11-048f-49c8-9659-25a25b1df501",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1424,
+        224
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need Semrush data from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('When Executed by Another Workflow').item.json.session }}\", \"context.semrush\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        464
+      ],
+      "id": "e34dc7e0-b479-486f-95bc-5fe014fd06cf",
+      "name": "Ahref data from MongoDB",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool when you need target site semantic profile from MongoDB",
+        "collection": "context",
+        "options": {},
+        "query": "={ \"context.session\": \"{{ $('When Executed by Another Workflow').item.json.session }}\", \"context.target_site_semantic_profile\": { \"$exists\": true } } "
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        464
+      ],
+      "id": "f2bc6ada-649f-4a58-b3d7-dedc11afb29f",
+      "name": "Target site semantic profile data from MongoDB",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Context from DB tools\n\n\n",
+        "height": 280,
+        "width": 620,
+        "color": 4
+      },
+      "id": "b14ef549-0547-4945-a40f-ba580a9c0ae9",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1600,
+        368
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      output: $('AI Agent').first().json.output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        -48
+      ],
+      "id": "2c489e3f-4ba3-4d29-a644-441d832afea5",
+      "name": "Result message"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "=Analyze Semrush data is ready.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('When Executed by Another Workflow').first().json.timestamp }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1760,
+        -48
+      ],
+      "id": "c96b5c85-3453-46cb-b349-20079ec73e37",
+      "name": "Send a message",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "target_site"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "buissenes_goal"
+            },
+            {
+              "name": "user"
+            },
+            {
+              "name": "timestamp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1088,
+        -48
+      ],
+      "id": "9b46c9f6-b399-4bf6-ad46-78da09b26a6b",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ahref data from MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target site semantic profile data from MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Result message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "49204803-6063-4de2-9f43-ee485432f639",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:35:07.522Z",
+      "updatedAt": "2025-08-28T14:35:07.522Z",
+      "role": "workflow:owner",
+      "workflowId": "tKgbWWi0efOEPvrY",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
