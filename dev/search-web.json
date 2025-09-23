@@ -1,0 +1,118 @@
+{
+  "createdAt": "2025-07-17T08:46:07.140Z",
+  "updatedAt": "2025-09-02T11:22:41.816Z",
+  "id": "cXrMEnARM0rirRZV",
+  "name": "Search web",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "task"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        96
+      ],
+      "id": "64fdd451-6619-4ef6-8122-aa28f9869731",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем входную строку\nconst input = $input.first().json.task;\n\n// Заменяем все двойные кавычки на одинарные\nconst output = input.replace(/\"/g, \"'\");\n\n// Возвращаем результат\nreturn [\n  {\n    json: {\n      original: input,\n      modified: output,\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        96
+      ],
+      "id": "aa056c25-8ac9-4d13-866f-8e08569a361b",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={   \"contents\": [     {       \"role\": \"user\",       \"parts\": [         {           \"text\": \"{{ $json.modified }}\"         }       ]     }   ], \"tools\": [\n    {\n      \"url_context\": {}\n    }\n  ],  \"generationConfig\": {     \"responseMimeType\": \"text/plain\",     \"maxOutputTokens\": 100000   } }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        96
+      ],
+      "id": "4e2981a1-9e13-4fef-9ad8-176cf450216e",
+      "name": "Search web",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Search web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "task": "Зайди на сайт https://interros.by/ и определи его тематику"
+        }
+      }
+    ]
+  },
+  "versionId": "80b101c1-336b-42c8-a1e2-6013f8c4a837",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:02.033Z",
+      "updatedAt": "2025-08-28T14:33:02.033Z",
+      "role": "workflow:owner",
+      "workflowId": "cXrMEnARM0rirRZV",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
