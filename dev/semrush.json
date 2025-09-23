@@ -1,0 +1,264 @@
+{
+  "createdAt": "2025-06-20T09:40:32.084Z",
+  "updatedAt": "2025-09-02T11:22:07.803Z",
+  "id": "fNT2e5lpc0J3DaQ2",
+  "name": "Semrush",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "context",
+        "fields": "=context",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        -144
+      ],
+      "id": "7fe6f436-2dab-410e-9a2c-a91405c642d9",
+      "name": "MongoDB",
+      "credentials": {
+        "mongoDb": {
+          "id": "Izj04vyOAJ9tg38z",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const csvData = $input.first().json.data;  // предполагается, что это строка CSV\n\n// Функция для преобразования CSV в JSON\nconst csvToJson = (csv) => {\n  // Убираем символы новой строки и разделяем на строки\n  const rows = csv.split('\\r\\n').filter(row => row.trim() !== ''); // Убираем пустые строки\n  \n  // Первая строка — это заголовки\n  const headers = rows[0].split(';');\n  \n  // Преобразуем каждую строку данных в объект\n  const jsonData = rows.slice(1).map(row => {\n    const values = row.split(';');\n    let obj = {};\n    \n    // Создаём объект для каждой строки данных\n    headers.forEach((header, index) => {\n      obj[header.trim()] = values[index].trim();\n    });\n    \n    return obj;\n  });\n  \n  return jsonData;\n};\n\n// Преобразуем CSV в JSON\nconst formattedData = csvToJson(csvData);\n\n\nreturn [\n  {\n    context: {\n      session: $('When Executed by Another Workflow').first().json.session,\n      date: new Date(),\n      semrush: formattedData\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        -144
+      ],
+      "id": "6f2c8d67-c93c-4feb-a6b9-ea74cf6c6de4",
+      "name": "Formating"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      message: \"Successfully completed\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        -144
+      ],
+      "id": "7b34a277-3682-4622-b94f-daa1b002b502",
+      "name": "Result message"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').item.json.user }}",
+          "mode": "id"
+        },
+        "text": "=Get data from Semrush.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('When Executed by Another Workflow').item.json.timestamp }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2384,
+        -144
+      ],
+      "id": "5f109749-e2a7-420e-acc8-1a486446d64f",
+      "name": "Send a message",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.semrush.com/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "domain_organic"
+            },
+            {
+              "name": "key",
+              "value": "b33b94e3c54ff9961a56d4a63abc905e"
+            },
+            {
+              "name": "domain",
+              "value": "={{ $json.target_site }}"
+            },
+            {
+              "name": "database",
+              "value": "={{ $json.region }}"
+            },
+            {
+              "name": "export_columns",
+              "value": "Ph,Nq,Cp,Co"
+            },
+            {
+              "name": "display_limit",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1712,
+        -144
+      ],
+      "id": "58feafb6-3e56-41d7-a570-12ed5cc814c6",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "target_site"
+            },
+            {
+              "name": "session"
+            },
+            {
+              "name": "buissenes_goal"
+            },
+            {
+              "name": "user"
+            },
+            {
+              "name": "timestamp"
+            },
+            {
+              "name": "keywords"
+            },
+            {
+              "name": "region"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        -144
+      ],
+      "id": "eb43a4b0-31e1-4eac-bf45-5c1f61508077",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "MongoDB": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formating": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Result message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Formating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "target_site": "https://go.cargoloop.com/pl/",
+          "session": "1752657733.899859",
+          "buissenes_goal": "attract similar high-profile clients who are interested in our services",
+          "keywords": "wordpress development",
+          "user": "U01QLUNCNF4",
+          "timestamp": "1752657736.104179",
+          "region": "pl"
+        }
+      }
+    ]
+  },
+  "versionId": "583a7683-9d66-4be9-8d7a-aca30383e56d",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:32.327Z",
+      "updatedAt": "2025-08-28T14:33:32.327Z",
+      "role": "workflow:owner",
+      "workflowId": "fNT2e5lpc0J3DaQ2",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
