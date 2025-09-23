@@ -1,0 +1,305 @@
+{
+  "createdAt": "2025-07-10T09:24:12.965Z",
+  "updatedAt": "2025-07-16T06:31:04.951Z",
+  "id": "eJ6iOKTSuaXPp2aM",
+  "name": "Update customer sheet data",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "row_number",
+              "type": "number"
+            },
+            {
+              "name": "Stripe_Customer_ID"
+            },
+            {
+              "name": "Stripe_Subscription_ID"
+            },
+            {
+              "name": "Stripe_Sub_Item_ID"
+            },
+            {
+              "name": "Payment_Method"
+            },
+            {
+              "name": "Stripe_Price_ID"
+            },
+            {
+              "name": "Payment_Status"
+            },
+            {
+              "name": "Stripe_Fee_Actual",
+              "type": "number"
+            },
+            {
+              "name": "Ads_Spend_MTD",
+              "type": "number"
+            },
+            {
+              "name": "Ads_Spend_Actual",
+              "type": "number"
+            },
+            {
+              "name": "Adjustment",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -20,
+        -40
+      ],
+      "id": "fc8f251b-cb79-43b1-87a1-28dc5f8f9747",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/19ErmkNNnyxmWmer7ZfYCYKwToEzNkdqZYEpsbdh2CgQ/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/19ErmkNNnyxmWmer7ZfYCYKwToEzNkdqZYEpsbdh2CgQ/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Franchisee_ID",
+              "displayName": "Franchisee_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Portal_Link",
+              "displayName": "Portal_Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Stripe_Customer_ID",
+              "displayName": "Stripe_Customer_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Stripe_Subscription_ID",
+              "displayName": "Stripe_Subscription_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment_Method",
+              "displayName": "Payment_Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Billing_Period",
+              "displayName": "Billing_Period",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Stripe_Price_ID",
+              "displayName": "Stripe_Price_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment_Status",
+              "displayName": "Payment_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Planned_Budget",
+              "displayName": "Planned_Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Stripe_Fee_Est",
+              "displayName": "Stripe_Fee_Est",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Stripe_Fee_Actual",
+              "displayName": "Stripe_Fee_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Our_Fee",
+              "displayName": "Our_Fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Planned_Ad_Budget",
+              "displayName": "Planned_Ad_Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ads_Spend_MTD",
+              "displayName": "Ads_Spend_MTD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ads_Spend_Actual",
+              "displayName": "Ads_Spend_Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Adjustment",
+              "displayName": "Adjustment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        220,
+        -40
+      ],
+      "id": "21c48770-c7ec-4690-822d-6867cc4476ee",
+      "name": "Update sheet data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Update sheet data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update sheet data": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "72b53fc5-b189-44cd-8f56-2b10bc349172",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:33:24.723Z",
+      "updatedAt": "2025-08-28T14:33:24.723Z",
+      "role": "workflow:owner",
+      "workflowId": "eJ6iOKTSuaXPp2aM",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
