@@ -1,0 +1,1300 @@
+{
+  "createdAt": "2025-06-27T09:52:40.632Z",
+  "updatedAt": "2025-07-16T06:34:24.173Z",
+  "id": "LddohazWpvIeyoH5",
+  "name": "Parse camps meta old",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.sportscampscanada.com/find-a-camp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        500
+      ],
+      "id": "0e9559e6-f5ec-44d5-9566-1f6b81778140",
+      "name": "Get page html"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "config_src",
+              "cssSelector": "script[src*=\".txt\"]",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        660
+      ],
+      "id": "938f82f0-e8a4-4e99-b1ad-4d1ab0d52baf",
+      "name": "Parse config source"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Исходная строка, которую ты получаешь\nconst datas = $input.all() || [];\n\nlet csvUrl = null;\n\nfor (const rawString of datas) {\n  if(!!csvUrl) continue;\n  const regex = /CSV:\\s+\"(https:\\/\\/[^\\\"]+)\"/;\n  // Извлекаем ссылку\n  const matches = rawString.json.data.match(regex);\n  csvUrl = matches && matches[1] || null; \n}\n\n\nreturn {\n  json: {\n    csvUrl\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        500
+      ],
+      "id": "4e38fcb5-0b77-4737-87d5-e82f904a9be2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.config_src }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        660
+      ],
+      "id": "3a5bb28b-da53-49a0-902d-aec1b3b13e0e",
+      "name": "Get config"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.csvUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        660
+      ],
+      "id": "43fa9d8e-e994-463f-810d-7026f9873a35",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        500
+      ],
+      "id": "240e2f0e-8304-431b-80bb-21b6e431136a",
+      "name": "All camps data"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1840,
+        340
+      ],
+      "id": "15d7a20f-cd56-4bdb-af29-9ce431c98e3c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const camps_to_parse = $input.all() || [];\n\nconst all_camps_data = $(\"All camps data\").all() || [];\n\n\n// --- ШАГ 1: Функции для обработки и сравнения строк ---\n\n// Определяем набор стоп-слов, которые нужно игнорировать.\n// Использование Set обеспечивает очень быстрый поиск (метод .has()).\nconst STOP_WORDS = new Set(['at', 'the', 'in', 'a', 'an', 'for', 'of', 'on']);\n\n/**\n * Нормализует строку и превращает ее в Set уникальных, значащих слов.\n * @param {string} text - Исходная строка.\n * @returns {Set<string>} - Набор слов.\n */\nfunction preprocessStringToSet(text) {\n    if (!text || typeof text !== 'string') {\n        return new Set();\n    }\n    // 1. Привести к нижнему регистру и удалить все символы, кроме букв, цифр и пробелов.\n    // Флаг 'g' означает \"глобальный\" поиск, чтобы заменить все вхождения.\n    const normalizedText = text.toLowerCase().replace(/[^\\w\\s]/g, '');\n    \n    // 2. Разбить на слова и отфильтровать пустые строки и стоп-слова.\n    const tokens = normalizedText.split(/\\s+/) // Разделяем по одному или нескольким пробелам\n        .filter(word => word.length > 0 && !STOP_WORDS.has(word));\n        \n    // 3. Вернуть как Set для уникальности и быстрых операций.\n    return new Set(tokens);\n}\n\n/**\n * Вычисляет коэффициент схожести Жаккара для двух наборов (Set).\n * @param {Set<string>} set1\n * @param {Set<string>} set2\n * @returns {number} - Коэффициент от 0 до 1.\n */\nfunction jaccardSimilarity(set1, set2) {\n    const intersection = new Set([...set1].filter(word => set2.has(word)));\n    const union = new Set([...set1, ...set2]);\n\n    // Защита от деления на ноль, если оба набора пустые.\n    if (union.size === 0) {\n        return 1.0; // Два пустых набора идентичны\n    }\n    \n    return intersection.size / union.size;\n}\n\n\n// --- ШАГ 2: Основная логика слияния ---\n\n// Используем метод .map(), чтобы преобразовать каждый элемент исходного массива в новый\nconst mergedCamps = camps_to_parse.map(campToFind => {\n    let bestMatch = null;\n    let highestScore = -1;\n\n    const setToFind = preprocessStringToSet(campToFind.json.camp_name);\n\n    for (const potentialMatch of all_camps_data) {\n        const potentialSet = preprocessStringToSet(potentialMatch.json.Name.trim());\n        const score = jaccardSimilarity(setToFind, potentialSet);\n\n        if (score > highestScore) {\n            highestScore = score;\n            bestMatch = potentialMatch;\n        }\n    }\n    \n    // Создаем новый объект, копируя все свойства из campToFind,\n    // и добавляем результат поиска.\n    const result = {\n      name: campToFind.json.camp_name\n    };\n    \n    // Устанавливаем порог уверенности, например, 0.5 (50% общих слов)\n    if (bestMatch && highestScore > 0.5) {\n      result.slug = bestMatch.json.Slug;\n      // result.matched_data = bestMatch;\n      // result.match_score = highestScore;\n    } else {\n      result.slug = null;\n      // result.matched_data = null;\n      // result.match_score = 0;\n    }\n    \n    return result;\n});\n\nreturn mergedCamps;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        340
+      ],
+      "id": "ef6752c9-2956-43d6-80f7-e6471956d54f",
+      "name": "Add meta for camps"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.sportscampscanada.com/camps/{{ $json.slug }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        300
+      ],
+      "id": "3a8a7816-727a-4aeb-9980-9643e6ccd0d2",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2480,
+        340
+      ],
+      "id": "1ba0814b-68b0-42c9-99a2-d141b113f34a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7ed11b87-b077-40b1-8eee-035a0f8737dc",
+              "leftValue": "={{ $json.slug }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2720,
+        340
+      ],
+      "id": "2983b755-bd94-438d-9671-b0e2cc4af09b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        580
+      ],
+      "id": "56cba181-7f19-4551-8069-0d40181ba405",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zlpzHmEIFxC4AQLg",
+          "name": "Alex's free gemini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "content",
+              "cssSelector": ".site-wrapper",
+              "returnValue": "html"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        3220,
+        300
+      ],
+      "id": "95d2752a-b35d-427f-a4a4-a509a49dac80",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campStartDate = $(\"Loop Over Items\").first().json;\nconst data = $input.first().json.output || {};\n\nconst output = {\n  link: `https://www.sportscampscanada.com/camps/${campStartDate.slug}`,\n  name: campStartDate.name\n};\n\nif(data && !data.properties) {\n  output.type = data.type;\n  output.sport = data.sport || \"\";\n  output.location = data.location;\n  output.season = data.season;\n  output.dates = \"\";\n  output.age = \"\";\n  output.skill = \"\";\n  if(data.sessions) {\n    for (const session of data.sessions) {\n      if(data.sessions.length > 1) {\n        output.dates += `${session.session_name} - ${session.dates} \\n`;\n        output.age += `${session.session_name} - ${session.age} \\n`;\n        output.skill += `${session.session_name} - ${session.skill} \\n`;\n      } else {\n        output.dates = `${session.dates}`;\n        output.age = `${session.age}`;\n        output.skill = `${session.skill}`;\n      }\n    } \n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        540
+      ],
+      "id": "ddef452f-af4d-4b44-a658-8121c74cebe2",
+      "name": "Prepare data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const campStartDate = $(\"Loop Over Items\").first().json;\n\nconst output = {\n  link: `https://www.sportscampscanada.com/camps/${campStartDate.slug}`,\n  name: campStartDate.name\n};\n\nreturn output"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        480
+      ],
+      "id": "30d87bf3-12f0-48d3-857c-f5ca9a13c83a",
+      "name": "Prepare data1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b0c7d08-2947-40e8-96d4-01d2e79523ea",
+              "leftValue": "={{ $itemIndex }}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2260,
+        340
+      ],
+      "id": "ec4943a9-2fb8-46d2-bde1-1dd72ac6d08a",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"type\": \"The main type of the camp, extracted from the `<h1>` page title, which usually follows the pattern '[Company Name] [Sport] Camp'. Example: 'Nike Soccer Camp'. If not found, this field must be an empty string.\",\n  \"sport\": \"The sport for which the camp is intended, extracted from the `type` field. It is the word(s) between the company name and the word 'Camp'. Example: For 'Nike Basketball Camp', the sport is 'Basketball'. If not found, this field must be an empty string.\",\n  \"location\": \"The physical location or venue of the camp. This is determined by a strict hierarchical search: first, from the `<h1>` title (after removing the `type`), and if not found there, from an explicit 'Location' section in the page body. Example: 'Alberta Tennis Centre'. If not found, this field must be an empty string.\",\n  \"season\": \"The season and year of the camp, formatted as 'Season Year'. IMPORTANT: This value is always calculated based on the final extracted dates and the year found on the page. Any conflicting season names mentioned in the text (e.g., 'Spring') MUST BE IGNORED. Example: 'Summer 2025'. If not found, this field must be an empty string.\",\n  \"sessions\": [\n    {\n      \"session_name\": \"The specific name of the session. If the tool's decision was to AGGREGATE, this field MUST be an empty string `\\\"\\\"`. If the decision was to SEPARATE, this is the unique name of the program (e.g., 'Hoops Workshop'), with any date information removed from the name string.\",\n      \"dates\": \"The date range for the session, with the year explicitly removed. Formatting is strict: '[Month] [Day] - [Day]' if within the same month (e.g., 'July 7 - 11'), and '[Start Month] [Day] - [End Month] [Day]' if spanning multiple months (e.g., 'July 28 - August 1'). For aggregated sessions, this represents the combined range. If not found, this field must be an empty string.\",\n      \"age\": \"The age group for the session, always formatted as 'X-Y years'. For aggregated sessions, this is the combined range from the youngest to the oldest participant. If the term 'Co-Ed' is found anywhere on the page, it should be appended. Example: '9-15 years' or '4-14 years, Co-Ed'. If not found, this field must be an empty string.\",\n      \"skill\": \"The required skill level. If the decision was to AGGREGATE and multiple skill levels were found, this value must be 'All Skills'. Otherwise, it is the specific skill level mentioned for that session. If none is found, this field must be an empty string.\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3660,
+        580
+      ],
+      "id": "612e3755-052a-47b2-8f01-25caee5f93d1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Completion:\n--------------\n{completion}\n--------------\n\nThe model's previous response could not be parsed due to the following error:\n\n{error}\n\nPlease correct the output so that it is a valid JSON object.\n\nFix rules:\n- Only return the JSON object — no extra explanation, markdown formatting, or additional text.\n- Ensure the output matches this exact structure\n- Remove any extra characters before or after the JSON.\n- Ensure valid key-value pairs with double quotes.\n- Remove trailing commas.\n- Fix unmatched braces or brackets.\n\nImportant: Output only the corrected JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        3580,
+        480
+      ],
+      "id": "cfdba3be-c792-45da-b494-5190f116ff0b",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "# Definitive Prompt for an Intelligent Data Extraction Agent (v8)\n\n### **Guiding Principles (MUST READ FIRST)**\n*   **You are an intelligent orchestrator executing a strict algorithm.** Your primary function is to follow the sequence of steps below, using specialized tools when instructed. Do not deviate.\n*   **The Grounding Rule: No Hallucinations.** This is the most important rule. If a piece of information (a date, an age, a location) is not **explicitly written** in the provided HTML, the corresponding JSON field **MUST** be an empty string `\"\"`. Do not guess, assume, or use prior knowledge.\n*   **The Tool is the Judge:** The decision to aggregate or separate sessions is made **exclusively** by the `analyzeJaccardSimilarity` tool. Your job is to call the tool correctly and obey its decision.\n\n### **Core Task**\nGiven a snippet of HTML code, execute the **Master Extraction Logic** in the exact sequence provided. This involves identifying page attributes, using a tool to make a critical decision, and then assembling the final JSON based on the tool's response.\n\n---\n\n### **Required Output Format (JSON)**\n```json\n{\n  \"type\": \"string\",\n  \"sport\": \"string\",\n  \"location\": \"string\",\n  \"season\": \"string\",\n  \"sessions\": [\n    {\n      \"session_name\": \"string\",\n      \"dates\": \"string\",\n      \"age\": \"string\",\n      \"skill\": \"string\"\n    }\n  ]\n}\n```\n---\n### **The Algorithm: Execute in This Exact Order**\n\n#### **Step 1: Establish Page Identity (`type`, `sport`, and `location`)**\n1.  **Input:** Use the provided HTML snippet as your only source of information.\n2.  **Identify `type`:**\n    *   Find the `<h1 class=\"h1-inner\">` tag.\n    *   The `type` follows a specific pattern: **`[Company Name] [Sport] Camp`**.\n    *   *Examples:* \"Nike Basketball Camp\", \"Nike Soccer Camp\". Identify the part of the title that matches this pattern.\n3.  **Identify `sport`:**\n    *   From the `type` field you just identified, extract the sport. It's the word(s) between the company name (e.g., \"Nike\") and the word \"Camp\".\n    *   *Example:* For \"Nike Basketball Camp\", the `sport` is \"Basketball\".\n4.  **Identify `location` (Revised Strict Procedure):**\n    *   **A. Candidate Identification (Find BOTH first):**\n        1.  **`title_location_candidate`:** Analyze the text remaining in the `<h1>` title after removing the `type` and any leading prepositions (\"at\", \"in\", \"on\"). Store this value, even if it's empty.\n        2.  **`body_location_candidate`:** Scan the entire HTML content for a section explicitly marked with a heading like \"Location\". Store the address/venue from this section. If not found, this candidate is empty.\n    *   **B. Priority Decision Logic (Apply the rule AFTER finding both):**\n        1.  **Examine the `title_location_candidate`**. Does this text represent a valid geographical place, venue, or institution (e.g., a university, a city, a park, a stadium)?\n        2.  **IF YES:** The final `location` **MUST** be set to the value of `title_location_candidate`. The `body_location_candidate` **MUST BE IGNORED**.\n        3.  **IF NO (or if it's empty):** The final `location` **MUST** be set to the value of `body_location_candidate`.\n    *   **C. Fallback:**\n        1.  If both candidates are empty after this process, the `location` field **MUST** be an empty string `\"\"`.\n        \n#### **Step 2: Create the Anchor List (Input for the Tool)**\n1.  Find the HTML element with `id=\"register-block\"`. This is your **only source** for session names.\n2.  Inside it, find every heading that represents a session (usually `<h3>`).\n3.  Extract the text from each heading and **clean it** by removing all dates and parenthetical text.\n4.  Store these cleaned names in a list. This is your **`Anchor List`**.\n\n#### **Step 3: The CRITICAL DECISION GATE (Using the `analyzeJaccardSimilarity` Tool)**\n1.  Take the `Anchor List` you created in Step 2.\n2.  Pass this list as the input to the **`analyzeJaccardSimilarity`** tool.\n3.  The tool will return an object, for example: `{ \"decision\": \"AGGREGATE\", \"scores\": [...] }`.\n4.  Your next action is **determined solely by the value of the `decision` key**.\n    *   If `decision` is **`'AGGREGATE'`**, execute **PATH A: AGGREGATION LOGIC**.\n    *   If `decision` is **`'SEPARATE'`**, execute **PATH B: SEPARATION LOGIC**.\n\n#### **Step 4: Execute Final Logic & Assemble Sessions**\n*Based on the tool's decision, execute ONLY one of the following paths.*\n\n*   **PATH A: AGGREGATION LOGIC**\n    1.  Create a **single session object**.\n    2.  `session_name`: Set to an empty string `\"\"`.\n    3.  `dates`: Find all date ranges mentioned in the HTML, determine the absolute earliest start and latest end.\n        *   **Formatting:** Format the final range according to these strict rules. The year **MUST NOT** be included.\n            *   If start and end months are the same: `[Month] [Start Day] - [End Day]` (e.g., \"July 7 - 11\").\n            *   If months are different: `[Start Month] [Start Day] - [End Month] [End Day]` (e.g., \"July 28 - August 1\").\n        *   If not found, use `\"\"`.\n    4.  `age` (Format: `'[range] years'`): Find all age ranges, determine the absolute minimum and maximum, create one combined range, and append \" years\". If not found, use `\"\"`.\n    5.  `skill`: If multiple, distinct skill levels are mentioned, set to `\"All Skills\"`. If only one is mentioned, use it. If none, use `\"\"`.\n    6.  The `sessions` array in your final JSON will contain only this one object.\n\n*   **PATH B: SEPARATION LOGIC**\n    1.  Create a new session object **for each name in your `Anchor List`**.\n    2.  **For each object:** Find the block of text in the HTML body that describes this specific session. Extract the following details **only from that block**:\n        *   `session_name`: The name from the `Anchor List`.\n        *   `dates`: The specific date range for this session.\n            *   **Formatting:** Format the date range according to these strict rules. The year **MUST NOT** be included.\n                *   If start and end months are the same: `[Month] [Start Day] - [End Day]` (e.g., \"July 7 - 11\").\n                *   If months are different: `[Start Month] [Start Day] - [End Month] [End Day]` (e.g., \"July 28 - August 1\").\n            *   If not found, use `\"\"`.\n        *   `age` (Format: `'[range] years'`): The specific age range for this session, formatted correctly. If not found, use `\"\"`.\n        *   `skill`: The specific skill level for this session. If not found, use `\"\"`.\n    3.  The `sessions` array in your final JSON will contain all of these created objects.\n\n#### **Step 5: Final Assembly & `season` Calculation**\n1.  **Calculate `season` (Strict Procedure - NO EXCEPTIONS):**\n    *   The `season` value is **ALWAYS** composed of `[Season Name] [Year]`.\n    *   **WARNING:** You **MUST IGNORE** any season name written directly in the text. Your **ONLY SOURCE OF TRUTH** for the season is the calculation based on the final dates.\n    *   **To get the [Year]:** This **MUST** be found in the HTML. Scan the document for a 4-digit number like 2025 that corresponds to the camp dates.\n    *   **To get the [Season Name]:** This **MUST** be derived from the earliest start month in the final `dates` field. Apply this mapping strictly:\n        *   Summer: June, July, August\n        *   Spring: March, April, May\n        *   Autumn: September, October, November\n        *   Winter: December, January, February\n    *   **Fallback:** If either the year or the dates cannot be found, the entire `season` field **MUST** be an empty string `\"\"`.\n2.  **Final JSON:** Assemble the `type`, `sport`, `location`, calculated `season`, and the `sessions` array into the final JSON object. Ensure every field exists."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        3440,
+        300
+      ],
+      "id": "e2f240a3-fb36-4995-be0f-7d292877782d",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Вспомогательная функция для преобразования строки в набор уникальных слов (токенов).\n * @param {string} str - Исходная строка.\n * @returns {Set<string>} Набор уникальных токенов.\n */\nfunction stringToTokenSet(str) {\n    if (!str || typeof str !== 'string') {\n        return new Set();\n    }\n    \n    const tokens = str\n        .toLowerCase()\n        .replace(/[^\\w\\s-]/g, '')\n        .split(/\\s+/);\n        \n    return new Set(tokens.filter(Boolean)); \n}\n\n\n/**\n * Анализирует массив строк на схожесть по методу Жаккара.\n * Сравнивает первую строку со всеми остальными и принимает решение об объединении.\n *\n * @param {string[]} stringArray - Массив строк для анализа.\n * @param {number} [threshold=0.5] - Порог схожести для принятия решения об объединении.\n * @returns {{decision: ('AGGREGATE'|'SEPARATE'), scores: number[]}} - Объект с решением и массивом коэффициентов.\n */\nfunction analyzeJaccardSimilarity(stringArray, threshold = 0.2) {\n    // Обработка крайних случаев: если в массиве меньше двух строк, сравнивать нечего.\n    if (!Array.isArray(stringArray) || stringArray.length < 2) {\n        return {\n            decision: 'AGGREGATE', // Нечего объединять\n            scores: []\n        };\n    }\n\n    // Первая строка становится эталоном для сравнения\n    const referenceSet = stringToTokenSet(stringArray[0]);\n    const scores = [];\n\n    // Сравниваем каждую последующую строку с эталоном\n    for (let i = 1; i < stringArray.length; i++) {\n        const currentSet = stringToTokenSet(stringArray[i]);\n\n        // Логика расчета коэффициента Жаккара\n        const intersection = new Set([...referenceSet].filter(token => currentSet.has(token)));\n        const union = new Set([...referenceSet, ...currentSet]);\n        \n        const score = union.size === 0 ? 1.0 : intersection.size / union.size;\n        scores.push(score);\n    }\n\n    // Принимаем решение: нужно ли объединять?\n    // Объединяем, только если КАЖДАЯ строка похожа на первую (все коэф. > порога)\n    const shouldAggregate = scores.every(score => score > threshold);\n    const decision = shouldAggregate ? 'AGGREGATE' : 'SEPARATE';\n\n    return {\n        decision: decision,\n        scores: scores\n    };\n}\n\n\nconst result = query.session_names.length && analyzeJaccardSimilarity(query.session_names) || {};\n// console.log(\"Анализ похожих сессий:\");\n// console.log(result1);\n// Ожидаем: { decision: 'AGGREGATE', scores: [ 0.75, 0.66... ] }\nreturn JSON.stringify(result);",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"session_names\": [\n    \"session_name\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        3480,
+        580
+      ],
+      "id": "af10c5bc-5737-4fbe-a8df-e379d399295e",
+      "name": "analyzeJaccardSimilarity"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A",
+          "mode": "list",
+          "cachedResultName": "Sportscampscanada - camps parse meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 11149240,
+          "mode": "list",
+          "cachedResultName": "Parsed meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit#gid=11149240"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2480,
+        160
+      ],
+      "id": "d81c2a82-cca6-484e-b25e-ce8dd5261cc6",
+      "name": "Clear sheet",
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A",
+          "mode": "list",
+          "cachedResultName": "Sportscampscanada - camps parse meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 11149240,
+          "mode": "list",
+          "cachedResultName": "Parsed meta",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit#gid=11149240"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "season",
+              "displayName": "season",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dates",
+              "displayName": "dates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "age",
+              "displayName": "age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skill",
+              "displayName": "skill",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        4200,
+        540
+      ],
+      "id": "3d2c08bf-5f58-4153-81a9-3dc19b4ce130",
+      "name": "Append meta",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "app_mention"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "options": {},
+        "path": "3bc495d7-ca35-433a-acb7-d425a959ccf8"
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -20
+      ],
+      "id": "b3d7e2cf-bdf7-4d1a-b109-29cb6b80a870",
+      "name": "Slack Trigger",
+      "webhookId": "3bc495d7-ca35-433a-acb7-d425a959ccf8",
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\nif(!Object.keys(input).length) {\n  return {};\n}\nconst link = input.blocks[0].elements[0].elements.find(item => item.type === 'link' && item.url.includes(\"https://docs.google.com\"));\n\nconst colName = input.blocks[0].elements[0].elements.find(item => item.type === 'text' && item.text !== \" \");\n\nreturn {\n  json: {\n    link: !!link && link.url || \"\",\n    colName: !!colName && colName.text || \"\",\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        160
+      ],
+      "id": "c7d70608-1e3e-43df-9bcd-949e818c360a",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.link }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.link }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        920,
+        -20
+      ],
+      "id": "47e30efc-1932-4f95-9100-8c43f9c52333",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7BLsk9UPythPPxam",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6735f1a0-6eff-45f0-a2ad-ef869b436e8d",
+              "name": "camp_name",
+              "value": "={{ $json[$('Code1').item.json.colName] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1060,
+        -20
+      ],
+      "id": "c253902e-f21c-496e-92a3-6450379e4a31",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01e25fe6-672e-4ccb-8024-52e0c816af89",
+              "leftValue": "={{ $json.link }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2edf836b-73d1-49d2-b362-4286ee229f09",
+              "leftValue": "={{ $json.colName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        160
+      ],
+      "id": "b867d025-4a63-4002-98f4-c38e88ab01bf",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> The link isn't Google Drive folder or Column name is empty",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "203bfb69-d360-4504-86c4-7331321ec76f"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        980,
+        160
+      ],
+      "id": "f8cdea48-ebd6-46b6-b6d4-3aa94ee4144b",
+      "name": "Is not google drive link",
+      "webhookId": "203bfb69-d360-4504-86c4-7331321ec76f",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "952f4417-3cfa-4bb4-95d1-7588b5a24fb0",
+              "leftValue": "={{ $input.first().json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        160
+      ],
+      "id": "d25ac3f1-8ed7-4bcf-bf31-b5d2ba2e77d5",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "47c87e62-54e8-49b6-8575-c59d0f90afb7",
+              "leftValue": "={{ $json.camp_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        160
+      ],
+      "id": "ef3a07b3-8d72-45c5-970d-f5bd39c82a6f",
+      "name": "Filter1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "path": "237ba469-af8f-4d51-8447-f6369667dbc4"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4380,
+        540
+      ],
+      "id": "05b9ae87-0f45-4fb5-81cc-44761b7119f7",
+      "name": "Wait",
+      "webhookId": "237ba469-af8f-4d51-8447-f6369667dbc4"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Rows not found",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "7cd4d9c6-1409-48b7-9378-1cfc88e9d3e6"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1560,
+        340
+      ],
+      "id": "629168f8-9c7f-44e9-a8c5-fe5afc3c2dcb",
+      "name": "Rows not found",
+      "webhookId": "7cd4d9c6-1409-48b7-9378-1cfc88e9d3e6",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Process finished! <https://docs.google.com/spreadsheets/d/16iGTAjQmCKrA-hhuVXyqnGCND1deCoN0-kYw843KH2A/edit?gid=11149240#gid=11149240|Here is a camps data!>",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "1c2008d7-eda6-44c1-9247-d30ac0d59f35"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2720,
+        160
+      ],
+      "id": "fcb1605c-0a86-4eaf-860d-d2e2a26ced38",
+      "name": "Finished",
+      "webhookId": "1c2008d7-eda6-44c1-9247-d30ac0d59f35",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Process is started!",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        },
+        "path": "a626fe25-3474-4041-8858-7af03679cfb4"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2480,
+        0
+      ],
+      "id": "3f8f14b9-ec72-45e9-8660-d72819711857",
+      "name": "Start process",
+      "webhookId": "a626fe25-3474-4041-8858-7af03679cfb4",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "4icMQ55blsp59CCY",
+          "name": "SportsCampCanada parse meta"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.first().json.config_src.map(item => ({config_src: item}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        500
+      ],
+      "id": "426e4694-e8ba-4b3f-add1-cba581650a21",
+      "name": "Code2"
+    }
+  ],
+  "connections": {
+    "Get page html": {
+      "main": [
+        [
+          {
+            "node": "Parse config source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse config source": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get config": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "All camps data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All camps data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add meta for camps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add meta for camps": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Finished",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data": {
+      "main": [
+        [
+          {
+            "node": "Append meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare data1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Start process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyzeJaccardSimilarity": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append meta": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get page html",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is not google drive link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rows not found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Get config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "f686a875-c709-4e82-9c45-7bd50f332c21",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:31:14.883Z",
+      "updatedAt": "2025-08-28T14:31:14.883Z",
+      "role": "workflow:owner",
+      "workflowId": "LddohazWpvIeyoH5",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
