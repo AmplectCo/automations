@@ -1,0 +1,272 @@
+{
+  "createdAt": "2025-09-12T08:45:07.016Z",
+  "updatedAt": "2025-09-18T07:36:07.928Z",
+  "id": "G4cQykScsTa8jkSY",
+  "name": "Compute distance",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        48
+      ],
+      "id": "356ffba6-8f93-401b-8a1b-8e1369d73a4d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A",
+          "mode": "list",
+          "cachedResultName": "SCC All Enrolled Campers 2025 Season with radius",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 435865969,
+          "mode": "list",
+          "cachedResultName": "Sheet4",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit#gid=435865969"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "country",
+              "lookupValue": "Canada"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -288,
+        48
+      ],
+      "id": "e27820bb-9ee2-4b7c-bc46-5c8d07a66080",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        352,
+        48
+      ],
+      "id": "f35c6ecc-0fd6-4346-9e2f-21f15a403400",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "=https://maps.googleapis.com/maps/api/geocode/json?address= {{ $json.address }} {{ $json.city }} {{ $json.state }} {{ $json.country }} {{ $json.zip }},&key=AIzaSyC8nmFtk7eOhBNGVa53N7MpUNUNLS_qqEk",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 500
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        144
+      ],
+      "id": "22704562-0854-497a-87bb-270fb65481de",
+      "name": "Camper",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://maps.googleapis.com/maps/api/geocode/json?address= {{ $('Loop Over Items').item.json['camp location'] }} {{ $('Loop Over Items').item.json.country }},&key=AIzaSyC8nmFtk7eOhBNGVa53N7MpUNUNLS_qqEk",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 500
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        160
+      ],
+      "id": "19564d63-b190-4f5e-86c6-140a8172e6c7",
+      "name": "Camp",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Получаем координаты из двух разных предыдущих нод ('Camper' и 'Camp')\nconst location1 = $('Camper').first().json.results[0].geometry.location;\nconst location2 = $('Camp').first().json.results[0].geometry.location;\n\n// 2. Получаем основной объект данных, который мы будем изменять.\n//    'items[0].json' относится к данным, поступающим на главный вход этой ноды.\nconst mainDataObject = $('Loop Over Items').first().json;\n\n/**\n * Рассчитывает расстояние между двумя точками в милях,\n * используя формулу гаверсинусов.\n * @param {object} loc1 - Первая точка { lat, lng }\n * @param {object} loc2 - Вторая точка { lat, lng }\n * @returns {number} - Расстояние в милях.\n */\nfunction getStraightLineDistance(loc1, loc2) {\n  // Используем радиус Земли в милях\n  const R = 3958.8;\n  \n  const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);\n  const dLng = (loc2.lng - loc1.lng) * (Math.PI / 180);\n  \n  const a = \n    Math.sin(dLat / 2) * Math.sin(dLat / 2) +\n    Math.cos(loc1.lat * (Math.PI / 180)) * Math.cos(loc2.lat * (Math.PI / 180)) * \n    Math.sin(dLng / 2) * Math.sin(dLng / 2);\n    \n  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));\n  const distance = R * c; // Расстояние в милях\n  \n  return distance;\n}\n\n// 3. Выполняем расчет\nconst distanceInMiles = getStraightLineDistance(location1, location2);\n\n// 4. Добавляем новое поле 'distance' в наш основной объект.\n//    Результат округляем до двух знаков после запятой для удобства.\nmainDataObject.distance = parseFloat(distanceInMiles.toFixed(2));\n\n// 5. Возвращаем ИЗМЕНЕННЫЙ основной объект.\n//    Теперь он содержит все исходные поля плюс новое поле 'distance'.\nreturn [\n  {\n    json: mainDataObject\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        288
+      ],
+      "id": "39ff60bc-422d-4662-b13c-03ea22cd19ef",
+      "name": "Distance",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A",
+          "mode": "list",
+          "cachedResultName": "SCC All Enrolled Campers 2025 Season with radius",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1595000476,
+          "mode": "list",
+          "cachedResultName": "Sheet5",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D--W5JM9hvPVlkRnNTn7gGviVXN-wYPI3UQEri4Gp3A/edit#gid=1595000476"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        -32
+      ],
+      "id": "9890996e-48b6-4afb-9d10-d658f26c3491",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8gaWRnOMLmzKzb4j",
+          "name": "Google Dizzain account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Camper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camper": {
+      "main": [
+        [
+          {
+            "node": "Camp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Camp": {
+      "main": [
+        [
+          {
+            "node": "Distance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Distance": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7dd39362-d353-4378-99ec-be1e9382dda7",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-09-12T08:45:07.016Z",
+      "updatedAt": "2025-09-12T08:45:07.016Z",
+      "role": "workflow:owner",
+      "workflowId": "G4cQykScsTa8jkSY",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
