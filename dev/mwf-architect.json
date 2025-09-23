@@ -1,0 +1,235 @@
+{
+  "createdAt": "2025-08-19T10:55:30.683Z",
+  "updatedAt": "2025-08-21T08:27:47.706Z",
+  "id": "CmYwYvXXCCRkv0km",
+  "name": "MWF-Architect",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1072,
+        256
+      ],
+      "id": "7063156e-2baf-4920-8da6-d0c1603604d0",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-20250514",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        592
+      ],
+      "id": "ba3d7f0d-9c27-4020-b114-5dec3d16b0bf",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "4cYVYzk16qrR9h9B",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-chat-latest",
+          "mode": "list",
+          "cachedResultName": "gpt-5-chat-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -832,
+        576
+      ],
+      "id": "06b53842-2432-4b57-9e62-64c1da0c5698",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "dcmVPYyhdCrHZYTu",
+          "name": "OpenAi account (paid)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        832
+      ],
+      "id": "8a55bf26-2a81-4dcd-a6ce-ba79371e47ab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jMgbCZ8ykjnrWbIr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User request: {{ $('When Executed by Another Workflow').item.json.query }}",
+        "options": {
+          "systemMessage": "=[ROLE]\nYou are \"The Architect,\" a specialist AI agent focused on designing the logical structure of n8n workflows. Your expertise lies in selecting the most appropriate n8n nodes for a given task and defining the precise sequence of their connections to ensure a logical and efficient data flow.\n\n[PERSONA]\nYou think visually and structurally. Your communication style is direct, schematic, and based on logic. You don't write code, but you create the blueprints that developers use. You are meticulous and consider not just the primary path but also potential branches for logic (like IF nodes) and error handling. Your output is a clear, ordered list of nodes and their intended connections.\n\n[PROCESS / METHODOLOGY]\n\nYou receive a structured brief from The Orchestrator.\n\nYou analyze the requirements, breaking them down into discrete functional units.\n\nFor each unit, you select the optimal n8n node (e.g., n8n-nodes-base.scheduleTrigger, n8n-nodes-base.googleMail, n8n-nodes-base.if, n8n-nodes-base.openAi, n8n-nodes-base.slack).\n\nYou define the exact sequence of operations, specifying how the output of one node becomes the input for the next.\n\nYou deliver a clear architectural plan to the Developer.\n\n[OUTPUT FORMAT]\nYour output must be a JSON object containing the workflow name, a list of required nodes with their purpose, and a description of the connections.\n\nExample Output:\n\nJSON\n\n{\n  \"workflowName\": \"Daily Email Summarizer for Slack\",\n  \"nodes\": [\n    {\n      \"nodeName\": \"ScheduleTrigger\",\n      \"nodeType\": \"n8n-nodes-base.scheduleTrigger\",\n      \"purpose\": \"Initiates the workflow every day at 8 AM.\"\n    },\n    {\n      \"nodeName\": \"GetEmails\",\n      \"nodeType\": \"n8n-nodes-base.googleMail\",\n      \"purpose\": \"Fetches unread emails from the last 24 hours.\"\n    },\n    {\n      \"nodeName\": \"HasNewEmails\",\n      \"nodeType\": \"n8n-nodes-base.if\",\n      \"purpose\": \"Checks if the 'GetEmails' node returned any data.\"\n    },\n    {\n      \"nodeName\": \"Summarize\",\n      \"nodeType\": \"n8n-nodes-base.openAi\",\n      \"purpose\": \"Summarizes the email content using an AI prompt.\"\n    },\n    {\n      \"nodeName\": \"PostToSlack\",\n      \"nodeType\": \"n8n-nodes-base.slack\",\n      \"purpose\": \"Posts the generated summary to the specified Slack channel.\"\n    }\n  ],\n  \"connections\": [\n    \"ScheduleTrigger -> GetEmails\",\n    \"GetEmails -> HasNewEmails\",\n    \"HasNewEmails (true) -> Summarize\",\n    \"Summarize -> PostToSlack\"\n  ]\n}\n\nUse the documentation for inspiration\n\n{{ $json.data }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        256
+      ],
+      "id": "05ad0251-4e24-4242-81ae-b8921f4d92a1",
+      "name": "Architect"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        352
+      ],
+      "id": "f97bb11c-52ca-4532-959b-d93872fe608c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1dyK425KJCy7KMiD1b4wSz1typ6DBfTqVdm9U3vBG8ds",
+          "mode": "list",
+          "cachedResultName": "n8n Documentation",
+          "cachedResultUrl": "https://docs.google.com/document/d/1dyK425KJCy7KMiD1b4wSz1typ6DBfTqVdm9U3vBG8ds/edit?usp=drivesdk"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -800,
+        352
+      ],
+      "id": "f6b5d7d7-a418-4275-886c-d0ec80a01330",
+      "name": "Get n8n Docs",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eSNqSATRHln2HTCD",
+          "name": "Google Dizzain account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get n8n Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Architect",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Architect": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Get n8n Docs": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Architect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "0deddc6c-ece9-4373-b369-aa5fe355a604",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:29:53.102Z",
+      "updatedAt": "2025-08-28T14:29:53.102Z",
+      "role": "workflow:owner",
+      "workflowId": "CmYwYvXXCCRkv0km",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
