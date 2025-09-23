@@ -1,0 +1,473 @@
+{
+  "createdAt": "2025-07-02T08:01:20.413Z",
+  "updatedAt": "2025-07-16T07:47:00.268Z",
+  "id": "ySfPCdZftWYrb4Ka",
+  "name": "Main flow",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6088ffa4-00ff-404b-b23a-22fb10d6f9eb",
+              "name": "chatInput",
+              "value": "=MESSAGE: {{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "35f71532-5fbb-4008-a719-3f629420d2e4",
+              "name": "sessionId",
+              "value": "={{ $json.thread_ts || $json.ts }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        -140
+      ],
+      "id": "94fdc05b-1006-488f-bf40-191e7b97f8d7",
+      "name": "Set variables",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "app_mention"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        0
+      ],
+      "id": "01b72183-6c47-4dc4-940d-024be3086183",
+      "name": "Slack Trigger",
+      "webhookId": "b27c06b2-4546-43f8-ae0c-d47679b9b427",
+      "credentials": {
+        "slackApi": {
+          "id": "cnSZZMPiPZw0So5c",
+          "name": "What is perfect banner bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.chatInput }} Session: {{ $json.sessionId }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "sheet_links",
+              "description": "URLs of Google spreadsheets containing data to analyze. If there are several, list them separated by commas. Otherwise, an empty string."
+            },
+            {
+              "name": "context",
+              "description": "The main context of the task with some additional explanations"
+            },
+            {
+              "name": "sessionId",
+              "description": "sessionId"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "86176a23-cd7d-40a5-b132-4c7304740d88",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        180
+      ],
+      "id": "49d7d357-1707-44dc-b9c2-59e3f0a1886c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zlpzHmEIFxC4AQLg",
+          "name": "Alex's free gemini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "64cde870-7753-4b4b-98df-9305fbc2ac69",
+              "leftValue": "={{ $json.output.sheet_links }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        -140
+      ],
+      "id": "b3eb9bc0-73f1-4167-89bd-57f7194c0200",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C092BLX271Q",
+          "mode": "list",
+          "cachedResultName": "test-bots"
+        },
+        "text": "=<@{{ $('Slack Trigger').item.json.user }}> Please add link to google sheets",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Slack Trigger').item.json.ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        840,
+        20
+      ],
+      "id": "18eb5a69-e8d3-4873-bb0c-e6ed728938d2",
+      "name": "Has not google sheet links",
+      "webhookId": "40f42a9c-51b2-4036-b656-f9b1ea35f471",
+      "executeOnce": true,
+      "credentials": {
+        "slackApi": {
+          "id": "cnSZZMPiPZw0So5c",
+          "name": "What is perfect banner bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12d15d88-7377-4050-a64d-69cc153db51e",
+              "name": "output.sheet_links",
+              "value": "={{ $json.output.sheet_links.split(',').map(link => link.trim()) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        840,
+        -300
+      ],
+      "id": "cc3f8637-2def-4c96-b088-0be90fad375e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        -140
+      ],
+      "id": "07003252-7469-4cbb-a342-bbbce92e0a20",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.sheet_links",
+        "options": {
+          "destinationFieldName": "sheet_link"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        980,
+        -140
+      ],
+      "id": "ba85f0d0-5ff3-4f4a-9531-3b7519d902c9",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cda9e55b-f63e-48be-917e-c8b7234f06d1",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        -360
+      ],
+      "id": "a41658f4-6627-4b2b-b2cc-2419ddfae566",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec436ae6-8285-4e5e-b106-af3bb94518cb",
+              "name": "={{ $('Loop Over Items').item.json.sheet_link }}",
+              "value": "={{ $input.all() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        -140
+      ],
+      "id": "82d2072a-7fda-494c-b05e-537ef2181651",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LjNGprYOn7RZZqPK",
+          "mode": "list",
+          "cachedResultName": "Get data from all google sheets"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{ $json.sheet_link }}"
+          },
+          "matchingColumns": [
+            "url"
+          ],
+          "schema": [
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        -140
+      ],
+      "id": "bee2c692-455c-4fba-a075-048b4dc7dafc",
+      "name": "Execute Workflow"
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set variables": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has not google sheet links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "6418cfd4-072f-4c83-8e2b-fe394d9d01a8",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:36:09.130Z",
+      "updatedAt": "2025-08-28T14:36:09.130Z",
+      "role": "workflow:owner",
+      "workflowId": "ySfPCdZftWYrb4Ka",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
