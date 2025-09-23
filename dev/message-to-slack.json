@@ -1,0 +1,115 @@
+{
+  "createdAt": "2025-07-31T07:16:23.598Z",
+  "updatedAt": "2025-09-02T11:21:51.450Z",
+  "id": "nOllcQNjNiWnBW1P",
+  "name": "Message to Slack",
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('When Executed by Another Workflow').first().json.timestamp }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        -112
+      ],
+      "id": "1ca0133d-a9c7-44ec-90ce-8dc667be8971",
+      "name": "Send a message",
+      "webhookId": "6998fbaa-ac4f-4239-af91-ad1e66610590",
+      "credentials": {
+        "slackApi": {
+          "id": "0sQzgF3XJIVOKQoD",
+          "name": "Keyword generation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message"
+            },
+            {
+              "name": "user"
+            },
+            {
+              "name": "timestamp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -112
+      ],
+      "id": "3712b0d3-5a3b-47d2-b03c-83e7b5b0bc2c",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "message": "test massage",
+          "user": "U01QLUNCNF4",
+          "timestamp": "1752657736.104179"
+        }
+      }
+    ]
+  },
+  "versionId": "aaef6803-6fb2-4e82-a16d-40567039393a",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "createdAt": "2025-08-28T14:34:21.547Z",
+      "updatedAt": "2025-08-28T14:34:21.547Z",
+      "role": "workflow:owner",
+      "workflowId": "nOllcQNjNiWnBW1P",
+      "projectId": "flRKzvtMN6hhu506"
+    }
+  ],
+  "tags": []
+}
